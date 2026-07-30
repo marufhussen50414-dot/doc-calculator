@@ -136,7 +136,6 @@ export default function App() {
   const handleCalculate = () => {
     const errors: Record<string, boolean> = {};
 
-    // Contextual validation: Only check fields required for the active formula
     if (selectedFormula === 'netto') {
       if (!inputs['tot_competenze'].trim()) errors['tot_competenze'] = true;
       if (!inputs['tot_trattenute'].trim()) errors['tot_trattenute'] = true;
@@ -286,7 +285,7 @@ export default function App() {
             </div>
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
               <div className="text-xs font-medium text-gray-500 uppercase">TFR Spettante Azienda</div>
-              <div className="text-lg font-bold text-gray-900 mt-1">€ {calculatedTfrSpettante.`,2` || calculatedTfrSpettante.toFixed(2)}</div>
+              <div className="text-lg font-bold text-gray-900 mt-1">€ {calculatedTfrSpettante.toFixed(2)}</div>
             </div>
           </div>
 
