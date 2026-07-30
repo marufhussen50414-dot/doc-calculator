@@ -10,87 +10,12 @@ import { AppState } from './types';
  * Handles navigation between different views:
  * - Home: Document selection screen
  * - Individual calculators: Busta Paga, Certificazione Unica, etc.
- * 
- * This component uses a simple state-based routing system.
- * For larger applications, consider using React Router.
  */
 function App() {
   const [appState, setAppState] = useState<AppState>({
     currentView: 'home',
   });
 
-  /**
-   * Navigate to a specific document calculator
-   */
-  const handleSelectDocument = (documentId: string) => {
-    setAppState({
-      currentView: documentId,
-      selectedDocument: documentId,
-    });
-  };
-
-  /**
-   * Navigate back to home
-   */
-  const handleBackToHome = () => {
-    setAppState({
-      currentView: 'home',
-    });
-  };
-
-  /**
-   * Render the appropriate view based on current state
-   */
-  const renderView = () => {
-    switch (appState.currentView) {
-      case 'home':
-        return <HomePage onSelectDocument={handleSelectDocument} />;
-      
-      case 'busta-paga':
-        return <BustaPaga onBack={handleBackToHome} />;
-      
-      case 'certificazione-unica':
-        return <CertificazioneUnica onBack={handleBackToHome} />;
-      
-      // Add more cases here as new calculators are implemented
-      // case 'tfr':
-      //   return <TFR onBack={handleBackToHome} />;
-      
-      default:
-        // Fallback to home if unknown view
-        return <HomePage onSelectDocument={handleSelectDocument} />;
-    }
-  };
-
-  return (
-    <div className="app">
-      {renderView()}
-    </div>
-  );
-}
-
-export default App;
-
-
-import { useState } from 'react';
-import { HomePage } from './components/HomePage';
-import { BustaPaga } from './components/BustaPaga';
-import { CertificazioneUnica } from './components/CertificazioneUnica';
-import { AppState } from './types';
-
-/**
- * Main Application Component
- * 
- * Handles navigation between different views:
- * - Home: Document selection screen
- * - Individual calculators: Busta Paga, Certificazione Unica, etc.
- */
-function App() {
-  const [appState, setAppState] = useState<AppState>({
-    currentView: 'home',
-  });
-
-  // Additional states for formula validation and red borders inside BustaPaga or inline if needed
   const [formula, setFormula] = useState<'netto' | 'tfr'>('netto');
   const [competenze, setCompetenze] = useState('');
   const [trattenute, setTrattenute] = useState('');
@@ -134,7 +59,7 @@ function App() {
       
       case 'busta-paga':
         return (
-          <div className="p-6">
+          <div className="p-6 bg-gray-50 min-h-screen">
             <button 
               onClick={handleBackToHome}
               className="mb-4 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-300"
@@ -142,7 +67,6 @@ function App() {
               ← Back to Home
             </button>
             
-            {/* Red border validation UI integrated with your structure */}
             <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md mx-auto space-y-4">
               <div className="flex gap-2">
                 <button 
