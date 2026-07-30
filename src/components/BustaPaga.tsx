@@ -138,11 +138,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
-    if (calculatedResult !== null) {
+if (calculatedResult !== null) {
       setResults({ [outputField]: calculatedResult });
       setShowResult(true);
-    } else {
-      alert('Unable to calculate. Please check your inputs.');
     }
   };
 
