@@ -73,28 +73,20 @@ export default App;
 
 
 import React, { useState, useMemo } from 'react';
-import { 
-  Calculator, Search, RefreshCw, AlertCircle, 
-  ChevronRight, DollarSign, PieChart, Layers, HelpCircle 
-} from 'lucide-react';
+import { Search } from 'lucide-react';
 
-// --- Data Types ---
 interface ComponentItem {
   id: string;
   name: string;
   itName: string;
   category: 'competenze' | 'trattenute' | 'tfr' | 'other';
-  value: number;
-  requiredFor: string[];
 }
 
 export default function App() {
-  // --- States ---
   const [activeTab, setActiveTab] = useState<'standard' | 'multi' | 'target'>('standard');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFormula, setSelectedFormula] = useState<'netto' | 'tfr_anno' | 'tfr_spettante'>('netto');
   
-  // Input values mapping
   const [inputs, setInputs] = useState<Record<string, string>>({
     tot_competenze: '',
     tot_trattenute: '',
@@ -104,26 +96,23 @@ export default function App() {
     contr_agg_tfr: '',
     tfr_mese: '',
     fdo_tfr_ap: '',
-    anticipazioni_anno: '',
-    target_netto: ''
+    anticipazioni_anno: ''
   });
 
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
-  // --- Component List ---
   const componentsList: ComponentItem[] = [
-    { id: 'tot_competenze', name: 'Total Competenze', itName: 'Totale Competenze', category: 'competenze', value: 0, requiredFor: ['netto'] },
-    { id: 'tot_trattenute', name: 'Total Trattenute', itName: 'Totale Trattenute', category: 'trattenute', value: 0, requiredFor: ['netto'] },
-    { id: 'arr_preced', name: 'Arretrati Anno Precedente', itName: 'Arretrati Prec.', category: 'other', value: 0, requiredFor: [] },
-    { id: 'arr_attuale', name: 'Arretrati Anno Corrente', itName: 'Arretrati Attuale', category: 'other', value: 0, requiredFor: [] },
-    { id: 'retribuzione_utile_tfr', name: 'Retribuzione Utile TFR', itName: 'Retrib. Utile TFR', category: 'tfr', value: 0, requiredFor: ['tfr_anno'] },
-    { id: 'contr_agg_tfr', name: 'Contributo Aggiornamento TFR', itName: 'Contr. Agg. TFR', category: 'tfr', value: 0, requiredFor: [] },
-    { id: 'tfr_mese', name: 'TFR Mese', itName: 'TFR Mese', category: 'tfr', value: 0, requiredFor: [] },
-    { id: 'fdo_tfr_ap', name: 'Fondo TFR 31/12 AP', itName: 'F.do TFR 31/12 AP', category: 'tfr', value: 0, requiredFor: ['tfr_spettante'] },
-    { id: 'anticipazioni_anno', name: 'Anticipazioni Anno', itName: 'Anticipazioni Anno', category: 'tfr', value: 0, requiredFor: [] },
+    { id: 'tot_competenze', name: 'Total Competenze', itName: 'Totale Competenze', category: 'competenze' },
+    { id: 'tot_trattenute', name: 'Total Trattenute', itName: 'Totale Trattenute', category: 'trattenute' },
+    { id: 'arr_preced', name: 'Arretrati Anno Precedente', itName: 'Arretrati Prec.', category: 'other' },
+    { id: 'arr_attuale', name: 'Arretrati Anno Corrente', itName: 'Arretrati Attuale', category: 'other' },
+    { id: 'retribuzione_utile_tfr', name: 'Retribuzione Utile TFR', itName: 'Retrib. Utile TFR', category: 'tfr' },
+    { id: 'contr_agg_tfr', name: 'Contributo Aggiornamento TFR', itName: 'Contr. Agg. TFR', category: 'tfr' },
+    { id: 'tfr_mese', name: 'TFR Mese', itName: 'TFR Mese', category: 'tfr' },
+    { id: 'fdo_tfr_ap', name: 'Fondo TFR 31/12 AP', itName: 'F.do TFR 31/12 AP', category: 'tfr' },
+    { id: 'anticipazioni_anno', name: 'Anticipazioni Anno', itName: 'Anticipazioni Anno', category: 'tfr' },
   ];
 
-  // Filter components based on search
   const filteredComponents = useMemo(() => {
     return componentsList.filter(item => 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -131,35 +120,30 @@ export default function App() {
     );
   }, [searchQuery]);
 
-  // Handle number inputs cleanly (preserving leading zeros like 0.04)
   const handleInputChange = (id: string, val: string) => {
     setInputs(prev => ({ ...prev, [id]: val }));
-    // Clear error when user types
     if (validationErrors[id]) {
       setValidationErrors(prev => ({ ...prev, [id]: false }));
     }
   };
 
-  // --- Calculations ---
   const compVal = (id: string) => parseFloat(inputs[id]) || 0;
 
   const calculatedNetto = compVal('tot_competenze') - compVal('tot_trattenute') + compVal('arr_preced') + compVal('arr_attuale');
   const calculatedTfrAnnuo = (compVal('retribuzione_utile_tfr') / 13.5) + compVal('contr_agg_tfr');
   const calculatedTfrSpettante = compVal('fdo_tfr_ap') + calculatedTfrAnnuo - compVal('anticipazioni_anno');
 
-  // Validate and Calculate
   const handleCalculate = () => {
     const errors: Record<string, boolean> = {};
-    let isValid = true;
 
-    // Contextual validation based on active formula
+    // Contextual validation: Only check fields required for the active formula
     if (selectedFormula === 'netto') {
-      if (!inputs['tot_competenze']) { errors['tot_competenze'] = true; isValid = false; }
-      if (!inputs['tot_trattenute']) { errors['tot_trattenute'] = true; isValid = false; }
+      if (!inputs['tot_competenze'].trim()) errors['tot_competenze'] = true;
+      if (!inputs['tot_trattenute'].trim()) errors['tot_trattenute'] = true;
     } else if (selectedFormula === 'tfr_anno') {
-      if (!inputs['retribuzione_utile_tfr']) { errors['retribuzione_utile_tfr'] = true; isValid = false; }
+      if (!inputs['retribuzione_utile_tfr'].trim()) errors['retribuzione_utile_tfr'] = true;
     } else if (selectedFormula === 'tfr_spettante') {
-      if (!inputs['fdo_tfr_ap']) { errors['fdo_tfr_ap'] = true; isValid = false; }
+      if (!inputs['fdo_tfr_ap'].trim()) errors['fdo_tfr_ap'] = true;
     }
 
     setValidationErrors(errors);
@@ -169,7 +153,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
 
-        {/* Navigation / Mode Tabs */}
+        {/* Navigation Tabs */}
         <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
           <button
             onClick={() => setActiveTab('standard')}
@@ -197,7 +181,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* Main Workspace Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
           
           {/* Formula Selector */}
@@ -236,14 +219,14 @@ export default function App() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search components (e.g. Competenze, TFR)..."
+              placeholder="Search components..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 transition-colors"
             />
           </div>
 
-          {/* Scrollable Component Cards Container (Max 4 lines height with smooth scroll) */}
+          {/* Scrollable Component Cards Container (Max 4 lines height) */}
           <div className="max-h-72 overflow-y-auto pr-2 space-y-2 border border-gray-100 rounded-xl p-2 bg-gray-50/50">
             {filteredComponents.length > 0 ? (
               filteredComponents.map((comp) => {
@@ -270,7 +253,7 @@ export default function App() {
                         onChange={(e) => handleInputChange(comp.id, e.target.value)}
                         className={`w-full px-3 py-1.5 text-sm rounded-lg border text-right focus:outline-none transition-colors ${
                           isError 
-                            ? 'border-red-500 bg-red-50/20 text-red-900' 
+                            ? 'border-red-500 bg-red-50/20 text-red-900 ring-1 ring-red-500' 
                             : 'border-gray-300 focus:border-gray-900 bg-white text-gray-800'
                         }`}
                       />
@@ -303,7 +286,7 @@ export default function App() {
             </div>
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
               <div className="text-xs font-medium text-gray-500 uppercase">TFR Spettante Azienda</div>
-              <div className="text-lg font-bold text-gray-900 mt-1">€ {calculatedTfrSpettante.toFixed(2)}</div>
+              <div className="text-lg font-bold text-gray-900 mt-1">€ {calculatedTfrSpettante.`,2` || calculatedTfrSpettante.toFixed(2)}</div>
             </div>
           </div>
 
