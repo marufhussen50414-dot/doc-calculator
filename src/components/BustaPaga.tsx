@@ -129,12 +129,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   /**
    * Calculate the result (Standard mode)
    */
-  const handleCalculate = () => {
-    const validation = areRequiredFieldsFilled(outputField);
-    if (!validation.valid) {
-      alert(`Please fill all required fields:\n${validation.missing.map(id => getFieldLabel(id)).join(', ')}`);
-      return;
-    }
+const handleCalculate = () => {
+    // বাকি কোড...
     
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
@@ -160,10 +156,6 @@ if (calculatedResult !== null) {
       return value === undefined || value === '' || value === null;
     });
 
-    if (missingFields.length > 0) {
-      alert(`Please fill all required fields:\n${missingFields.map(id => getFieldLabel(id)).join(', ')}`);
-      return;
-    }
 
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResults: { [key: string]: number } = {};
@@ -178,11 +170,9 @@ if (calculatedResult !== null) {
       }
     });
 
-    if (allSuccessful && Object.keys(calculatedResults).length > 0) {
+if (allSuccessful && Object.keys(calculatedResults).length > 0) {
       setResults(calculatedResults);
       setShowResult(true);
-    } else {
-      alert('Unable to calculate some fields. Please check your inputs.');
     }
   };
 
