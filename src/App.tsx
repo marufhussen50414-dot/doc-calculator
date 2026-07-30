@@ -69,4 +69,94 @@ function App() {
   );
 }
 
+// আপনার বর্তমান কোডগুলোর নিচে এবং 'export default App;' এর উপরে এটি বসিয়ে দিন:
+
+// পপ-আপ ছাড়া শুধু লাল বর্ডার দেখানোর ফাংশন বা কম্পোনেন্ট
+function SimpleCalculatorView({ onBack }: { onBack: () => void }) {
+  const [formula, setFormula] = useState<'netto' | 'tfr'>('netto');
+  const [competenze, setCompetenze] = useState('');
+  const [trattenute, setTrattenute] = useState('');
+  const [tfrVal, setTfrVal] = useState('');
+  const [errors, setErrors] = useState({ comp: false, tratt: false, tfr: false });
+
+  const handleCalc = () => {
+    setErrors({
+      comp: formula === 'netto' && !competenze.trim(),
+      tratt: formula === 'netto' && !trattenute.trim(),
+      tfr: formula === 'tfr' && !tfrVal.trim(),
+    });
+  };
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <button 
+        onClick={onBack}
+        className="mb-4 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-300"
+      >
+        ← Back
+      </button>
+      
+      <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md mx-auto space-y-4">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { setFormula('netto'); setErrors({comp: false, tratt: false, tfr: false}); }}
+            className={`flex-1 py-2 text-sm rounded-lg border font-medium ${formula === 'netto' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700'}`}
+          >
+            Netto Busta
+          </button>
+          <button 
+            onClick={() => { setFormula('tfr'); setErrors({comp: false, tratt: false, tfr: false}); }}
+            className={`flex-1 py-2 text-sm rounded-lg border font-medium ${formula === 'tfr' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700'}`}
+          >
+            TFR Annuo
+          </button>
+        </div>
+
+        {formula === 'netto' ? (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">Totale Competenze</label>
+              <input
+                type="text"
+                value={competenze}
+                onChange={(e) => { setCompetenze(e.target.value); setErrors(prev => ({...prev, comp: false})); }}
+                className={`w-full p-2 border rounded-lg text-sm ${errors.comp ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">Totale Trattenute</label>
+              <input
+                type="text"
+                value={trattenute}
+                onChange={(e) => { setTrattenute(e.target.value); setErrors(prev => ({...prev, tratt: false})); }}
+                className={`w-full p-2 border rounded-lg text-sm ${errors.tratt ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        ) : (
+          <div>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Retribuzione Utile TFR</label>
+            <input
+              type="text"
+              value={tfrVal}
+              onChange={(e) => { setTfrVal(e.target.value); setErrors(prev => ({...prev, tfr: false})); }}
+              className={`w-full p-2 border rounded-lg text-sm ${errors.tfr ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
+              placeholder="0.00"
+            />
+          </div>
+        )}
+
+        <button
+          onClick={handleCalc}
+          className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+        >
+          Calculate
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default App;
