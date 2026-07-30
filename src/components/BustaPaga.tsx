@@ -552,7 +552,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 );
               })}
           </div>
-        </div>
 
         {/* Action Buttons */}
         <div className="flex gap-4">
