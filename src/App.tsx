@@ -121,7 +121,6 @@ export default function App() {
 
   const handleInputChange = (id: string, val: string) => {
     setInputs(prev => ({ ...prev, [id]: val }));
-    // Clear error dynamically when user types
     if (validationErrors[id]) {
       setValidationErrors(prev => ({ ...prev, [id]: false }));
     }
@@ -136,7 +135,6 @@ export default function App() {
   const handleCalculate = () => {
     const errors: Record<string, boolean> = {};
 
-    // Contextual Validation based on Active Formula (No popup alerts)
     if (selectedFormula === 'netto') {
       if (!inputs['tot_competenze'].trim()) errors['tot_competenze'] = true;
       if (!inputs['tot_trattenute'].trim()) errors['tot_trattenute'] = true;
@@ -197,7 +195,7 @@ export default function App() {
             />
           </div>
 
-          {/* Scrollable Container (Max 4 lines height) */}
+          {/* Scrollable Container */}
           <div className="max-h-72 overflow-y-auto pr-2 space-y-2 border border-gray-100 rounded-xl p-2 bg-gray-50/50">
             {filteredComponents.map((comp) => {
               const isError = validationErrors[comp.id];
@@ -205,7 +203,7 @@ export default function App() {
                 <div 
                   key={comp.id} 
                   className={`flex items-center justify-between p-3 bg-white rounded-xl border transition-all ${
-                    isError ? 'border-red-500 ring-1 ring-red-500 bg-red-50/10' : 'border-gray-200'
+                    isError ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
                   }`}
                 >
                   <div>
@@ -222,7 +220,7 @@ export default function App() {
                       value={inputs[comp.id]}
                       onChange={(e) => handleInputChange(comp.id, e.target.value)}
                       className={`w-full px-3 py-1.5 text-sm rounded-lg border text-right focus:outline-none ${
-                        isError ? 'border-red-500 bg-white text-red-900 ring-1 ring-red-500' : 'border-gray-300 focus:border-gray-900 bg-white'
+                        isError ? 'border-red-500 bg-red-50/20 text-red-900' : 'border-gray-300 focus:border-gray-900 bg-white'
                       }`}
                     />
                   </div>
@@ -249,7 +247,7 @@ export default function App() {
               <div className="text-xs font-medium text-gray-500 uppercase">TFR Annuo Progr.</div>
               <div className="text-lg font-bold text-gray-900 mt-1">€ {calculatedTfrAnnuo.toFixed(2)}</div>
             </div>
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">Executive
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
               <div className="text-xs font-medium text-gray-500 uppercase">TFR Spettante Azienda</div>
               <div className="text-lg font-bold text-gray-900 mt-1">€ {calculatedTfrSpettante.toFixed(2)}</div>
             </div>
