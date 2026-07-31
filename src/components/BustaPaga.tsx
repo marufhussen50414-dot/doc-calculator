@@ -1,38 +1,32 @@
 import { useState, useMemo } from 'react';
-import { CalculatorInputs } from '../types';
-import { UNIFIED_CALCULATOR, searchFields } from '../config/unifiedCalculator';
-import { FormulaModal } from './FormulaModal';
-import { TargetCalculator } from './TargetCalculator';
-
-interface BustaPagaProps {
-  onBack: () => void;
-}
-
-type CalculatorMode = 'standard' | 'target' | 'multi';
+import { UNIFIED_CALCULATOR, searchFields } from '@/config/unifiedCalculator';
+import FormulaModal from '@/components/FormulaModal';
+import TargetCalculator from '@/components/TargetCalculator';
 
 /**
  * Busta Paga Calculator Component
- * 
+ *
  * Implements the payslip calculator with the exact formula:
  * NETTO IN BUSTA = TOTALE COMPETENZE - (TOTALE TRATTENUTE + (± ARR. PRECED.)) ± ARR. ATTUALE
- * 
+ *
  * Modes:
  * - Standard: Single output calculation
  * - Target: Set a target value and see what adjustments are needed
  * - Multi: Calculate multiple outputs simultaneously
  */
-export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
-  const [mode, setMode] = useState<CalculatorMode>('standard');
-  const [outputField, setOutputField] = useState<string>('netto_busta');
-  const [outputFields, setOutputFields] = useState<Set<string>>(new Set(['netto_busta']));
-  const [inputs, setInputs] = useState<{ [key: string]: string | number }>({});
-  const [results, setResults] = useState<{ [key: string]: number }>({});
+export default function BustaPaga({ onBack }) {
+  const [mode, setMode] = useState('standard');
+  const [outputField, setOutputField] = useState('netto_busta');
+  const [outputFields, setOutputFields] = useState(new Set(['netto_busta']));
+  const [inputs, setInputs] = useState({});
+  const [results, setResults] = useState({});
   const [showResult, setShowResult] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const calculator = UNIFIED_CALCULATOR;
-  
+
   // Filter fields based on search query
   const filteredFields = useMemo(() => {
     return searchFields(searchQuery);
@@ -42,7 +36,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
    * Handle input change for a field
    * Allows typing decimals and values starting with 0 (e.g., 0.04)
    */
-  const handleInputChange = (fieldId: string, value: string) => {
+  const handleInputChange = (fieldId, value) => {
     // Store the raw string value to allow typing decimals like "0.04"
     // Only convert to number when calculating
     if (value === '') {
@@ -56,15 +50,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }));
     }
     setShowResult(false);
+    setAttempted(false);
   };
 
   /**
    * Handle output field selection change (Standard mode - single select)
    */
-  const handleOutputFieldChange = (fieldId: string) => {
+  const handleOutputFieldChange = (fieldId) => {
     setOutputField(fieldId);
     setOutputFields(new Set([fieldId]));
     setShowResult(false);
+    setAttempted(false);
     setResults({});
     // Remove the selected output field from inputs
     const newInputs = { ...inputs };
@@ -75,7 +71,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   /**
    * Handle multiple output fields selection (Multi mode)
    */
-  const handleMultiOutputToggle = (fieldId: string) => {
+  const handleMultiOutputToggle = (fieldId) => {
     const newOutputFields = new Set(outputFields);
     if (newOutputFields.has(fieldId)) {
       if (newOutputFields.size > 1) {
@@ -85,7 +81,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       newOutputFields.add(fieldId);
     }
     setOutputFields(newOutputFields);
-    
+    setAttempted(false);
+
     // Remove all output fields from inputs
     const newInputs = { ...inputs };
     newOutputFields.forEach(field => {
@@ -99,8 +96,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   /**
    * Convert string inputs to numbers for calculation
    */
-  const convertInputsToNumbers = (inputs: { [key: string]: string | number }): CalculatorInputs => {
-    const numericInputs: CalculatorInputs = {};
+  const convertInputsToNumbers = (inputs) => {
+    const numericInputs = {};
     Object.keys(inputs).forEach(key => {
       const value = inputs[key];
       numericInputs[key] = typeof value === 'string' ? parseFloat(value) || 0 : value;
@@ -111,13 +108,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   /**
    * Check if all required fields are filled
    */
-  const getRequiredFields = (outputFieldId: string): string[] => {
+  const getRequiredFields = (outputFieldId) => {
+    const outputFieldObj = calculator.fields.find(f => f.id === outputFieldId);
+    const category = outputFieldObj?.category;
     return calculator.fields
-      .filter((f: any) => f.id !== outputFieldId)
-      .map((f: any) => f.id);
+      .filter((f) => f.id !== outputFieldId && f.category === category)
+      .map((f) => f.id);
   };
 
-  const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
+  const areRequiredFieldsFilled = (outputFieldId) => {
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -129,12 +128,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   /**
    * Calculate the result (Standard mode)
    */
-const handleCalculate = () => {
-    // বাকি কোড...
-    
+  const handleCalculate = () => {
+    setAttempted(true);
+    const validation = areRequiredFieldsFilled(outputField);
+    if (!validation.valid) {
+      setShowResult(false);
+      return;
+    }
+
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
-if (calculatedResult !== null) {
+    if (calculatedResult !== null) {
       setResults({ [outputField]: calculatedResult });
       setShowResult(true);
     }
@@ -144,33 +148,33 @@ if (calculatedResult !== null) {
    * Calculate multiple results (Multi mode)
    */
   const handleMultiCalculate = () => {
-    // Check if required fields are filled for all output fields
-    const allRequiredFields = new Set<string>();
+    setAttempted(true);
+
+    const allRequiredFields = new Set();
     outputFields.forEach(field => {
       const required = getRequiredFields(field);
       required.forEach(r => allRequiredFields.add(r));
     });
-
-    const missingFields = Array.from(allRequiredFields).filter(fieldId => {
+    const hasMissing = Array.from(allRequiredFields).some(fieldId => {
       const value = inputs[fieldId];
       return value === undefined || value === '' || value === null;
     });
-
+    if (hasMissing) {
+      setShowResult(false);
+      return;
+    }
 
     const numericInputs = convertInputsToNumbers(inputs);
-    const calculatedResults: { [key: string]: number } = {};
-    let allSuccessful = true;
+    const calculatedResults = {};
 
     outputFields.forEach(field => {
       const result = calculator.calculate(numericInputs, field);
       if (result !== null) {
         calculatedResults[field] = result;
-      } else {
-        allSuccessful = false;
       }
     });
 
-if (allSuccessful && Object.keys(calculatedResults).length > 0) {
+    if (Object.keys(calculatedResults).length > 0) {
       setResults(calculatedResults);
       setShowResult(true);
     }
@@ -183,6 +187,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
     setInputs({});
     setResults({});
     setShowResult(false);
+    setAttempted(false);
     if (mode === 'standard') {
       setOutputField('netto_busta');
       setOutputFields(new Set(['netto_busta']));
@@ -192,7 +197,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
   /**
    * Change calculator mode
    */
-  const handleModeChange = (newMode: CalculatorMode) => {
+  const handleModeChange = (newMode) => {
     setMode(newMode);
     handleReset();
   };
@@ -200,7 +205,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
   /**
    * Format number as currency
    */
-  const formatCurrency = (value: number): string => {
+  const formatCurrency = (value) => {
     return new Intl.NumberFormat('it-IT', {
       style: 'currency',
       currency: 'EUR',
@@ -210,7 +215,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
   /**
    * Get field label
    */
-  const getFieldLabel = (fieldId: string): string => {
+  const getFieldLabel = (fieldId) => {
     return calculator.fields.find(f => f.id === fieldId)?.label || fieldId;
   };
 
@@ -306,6 +311,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
             inputs={inputs}
             results={results}
             showResult={showResult}
+            attempted={attempted}
             onOutputToggle={handleMultiOutputToggle}
             onInputChange={handleInputChange}
             onCalculate={handleMultiCalculate}
@@ -323,6 +329,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
             inputs={inputs}
             results={results}
             showResult={showResult}
+            attempted={attempted}
             onOutputFieldChange={handleOutputFieldChange}
             onInputChange={handleInputChange}
             onCalculate={handleCalculate}
@@ -365,29 +372,13 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
       />
     </div>
   );
-};
+}
 
 /**
  * Standard Mode Calculator Component
  */
-interface StandardModeCalculatorProps {
-  calculator: any;
-  filteredFields: any[];
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  outputField: string;
-  inputs: { [key: string]: string | number };
-  results: { [key: string]: number };
-  showResult: boolean;
-  onOutputFieldChange: (fieldId: string) => void;
-  onInputChange: (fieldId: string, value: string) => void;
-  onCalculate: () => void;
-  onReset: () => void;
-  formatCurrency: (value: number) => string;
-  getFieldLabel: (fieldId: string) => string;
-}
-
-const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
+function StandardModeCalculator({
+  calculator,
   filteredFields,
   searchQuery,
   onSearchChange,
@@ -395,13 +386,18 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   inputs,
   results,
   showResult,
+  attempted,
   onOutputFieldChange,
   onInputChange,
   onCalculate,
   onReset,
   formatCurrency,
   getFieldLabel,
-}) => {
+}) {
+  const requiredFieldIds = calculator.fields
+    .filter(f => f.id !== outputField && f.category === calculator.fields.find(o => o.id === outputField)?.category)
+    .map(f => f.id);
+
   return (
     <>
       {/* Calculator */}
@@ -411,7 +407,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Select the field to calculate (output):
           </label>
-          
+
           {/* Search Bar */}
           <div className="mb-4">
             <div className="relative">
@@ -446,11 +442,11 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           </div>
 
           {/* Scrollable Component Grid - Max 4 rows */}
-          <div 
+          <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
             style={{ maxHeight: '400px' }}
           >
-            {filteredFields.map((field: any) => (
+            {filteredFields.map((field) => (
               <button
                 key={field.id}
                 onClick={() => onOutputFieldChange(field.id)}
@@ -458,7 +454,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   p-4 rounded-lg border-2 text-left transition-all
                   ${
                     outputField === field.id
-                      ? field.category === 'TFR' 
+                      ? field.category === 'TFR'
                         ? 'border-green-600 bg-green-50 shadow-md'
                         : 'border-indigo-600 bg-indigo-50 shadow-md'
                       : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
@@ -474,7 +470,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     </div>
                     {field.category && (
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        field.category === 'TFR' 
+                        field.category === 'TFR'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-indigo-100 text-indigo-800'
                       }`}>
@@ -512,8 +508,12 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredFields
-              .filter((field: any) => field.id !== outputField)
-              .map((field: any) => (
+              .filter((field) => field.id !== outputField)
+              .map((field) => {
+                const isRequired = requiredFieldIds.includes(field.id);
+                const isEmpty = !inputs[field.id];
+                const showError = attempted && isRequired && isEmpty;
+                return (
                 <div key={field.id} className="relative">
                   <label
                     htmlFor={field.id}
@@ -522,6 +522,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     {field.label}
                     {field.sign && (
                       <span className="text-gray-500 ml-1">(± can be negative)</span>
+                    )}
+                    {showError && (
+                      <span className="text-red-500 ml-1 font-bold" title="Required field">*</span>
                     )}
                   </label>
                   <div className="relative">
@@ -535,11 +538,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       value={inputs[field.id] || ''}
                       onChange={(e) => onInputChange(field.id, e.target.value)}
                       placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all ${
+                        showError
+                          ? 'border-red-500 bg-red-50 focus:ring-red-500'
+                          : 'border-gray-300 focus:ring-indigo-500'
+                      }`}
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
           </div>
         </div>
 
@@ -582,29 +590,13 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
       )}
     </>
   );
-};
+}
 
 /**
  * Multi Mode Calculator Component
  */
-interface MultiModeCalculatorProps {
-  calculator: any;
-  filteredFields: any[];
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  outputFields: Set<string>;
-  inputs: { [key: string]: string | number };
-  results: { [key: string]: number };
-  showResult: boolean;
-  onOutputToggle: (fieldId: string) => void;
-  onInputChange: (fieldId: string, value: string) => void;
-  onCalculate: () => void;
-  onReset: () => void;
-  formatCurrency: (value: number) => string;
-  getFieldLabel: (fieldId: string) => string;
-}
-
-const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
+function MultiModeCalculator({
+  calculator,
   filteredFields,
   searchQuery,
   onSearchChange,
@@ -612,13 +604,21 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   inputs,
   results,
   showResult,
+  attempted,
   onOutputToggle,
   onInputChange,
   onCalculate,
   onReset,
   formatCurrency,
   getFieldLabel,
-}) => {
+}) {
+  const selectedCategories = new Set(
+    calculator.fields.filter(f => outputFields.has(f.id)).map(f => f.category)
+  );
+  const requiredFieldIds = calculator.fields
+    .filter(f => !outputFields.has(f.id) && selectedCategories.has(f.category))
+    .map(f => f.id);
+
   return (
     <>
       {/* Calculator */}
@@ -628,7 +628,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Select fields to calculate (output - minimum 1):
           </label>
-          
+
           {/* Search Bar */}
           <div className="mb-4">
             <div className="relative">
@@ -663,11 +663,11 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           </div>
 
           {/* Scrollable Component Grid - Max 4 rows */}
-          <div 
+          <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
             style={{ maxHeight: '400px' }}
           >
-            {filteredFields.map((field: any) => (
+            {filteredFields.map((field) => (
               <button
                 key={field.id}
                 onClick={() => onOutputToggle(field.id)}
@@ -675,7 +675,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                   p-4 rounded-lg border-2 text-left transition-all
                   ${
                     outputFields.has(field.id)
-                      ? field.category === 'TFR' 
+                      ? field.category === 'TFR'
                         ? 'border-green-600 bg-green-50 shadow-md'
                         : 'border-indigo-600 bg-indigo-50 shadow-md'
                       : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
@@ -691,7 +691,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                     </div>
                     {field.category && (
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        field.category === 'TFR' 
+                        field.category === 'TFR'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-indigo-100 text-indigo-800'
                       }`}>
@@ -729,8 +729,12 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredFields
-              .filter((field: any) => !outputFields.has(field.id))
-              .map((field: any) => (
+              .filter((field) => !outputFields.has(field.id))
+              .map((field) => {
+                const isRequired = requiredFieldIds.includes(field.id);
+                const isEmpty = !inputs[field.id];
+                const showError = attempted && isRequired && isEmpty;
+                return (
                 <div key={field.id} className="relative">
                   <label
                     htmlFor={field.id}
@@ -739,6 +743,9 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                     {field.label}
                     {field.sign && (
                       <span className="text-gray-500 ml-1">(± can be negative)</span>
+                    )}
+                    {showError && (
+                      <span className="text-red-500 ml-1 font-bold" title="Required field">*</span>
                     )}
                   </label>
                   <div className="relative">
@@ -752,11 +759,16 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                       value={inputs[field.id] || ''}
                       onChange={(e) => onInputChange(field.id, e.target.value)}
                       placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all ${
+                        showError
+                          ? 'border-red-500 bg-red-50 focus:ring-red-500'
+                          : 'border-gray-300 focus:ring-indigo-500'
+                      }`}
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
           </div>
         </div>
 
@@ -803,4 +815,4 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
       )}
     </>
   );
-};
+}
