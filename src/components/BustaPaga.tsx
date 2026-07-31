@@ -515,6 +515,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               .filter((field: any) => field.id !== outputField)
               .map((field: any) => {
                 const isMissing = getRequiredFields(outputField).includes(field.id) && !inputs[field.id];
+
                 return (
                   <div key={field.id} className="relative">
                     <label
