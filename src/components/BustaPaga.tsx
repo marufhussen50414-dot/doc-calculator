@@ -511,47 +511,47 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
             Enter the known values:
           </label>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredFields
-              .filter((field: any) => field.id !== outputField)
-              .map((field: any) => {
-                const isMissing = getRequiredFields(outputField).includes(field.id) && !inputs[field.id];
+  {filteredFields
+    .filter((field: any) => field.id !== outputField)
+    .map((field: any) => {
+      const isMissing = getRequiredFields(outputField).includes(field.id) && !inputs[field.id];
 
-                return (
-                  <div key={field.id} className="relative">
-                    <label
-                      htmlFor={field.id}
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      {field.label}
-                      {getRequiredFields(outputField).includes(field.id) && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
-                      {field.sign && (
-                        <span className="text-gray-500 ml-1">(± can be negative)</span>
-                      )}
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        €
-                      </span>
-                      <input
-                        id={field.id}
-                        type="number"
-                        step="0.01"
-                        value={inputs[field.id] || ''}
-                        onChange={(e) => onInputChange(field.id, e.target.value)}
-                        placeholder="0.00"
-                        className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 transition-all ${
-                          isMissing 
-                            ? 'border-red-500 bg-red-50 focus:ring-red-500' 
-                            : 'border-gray-300 focus:ring-indigo-500 focus:border-transparent'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+      return (
+        <div key={field.id} className="relative">
+          <label
+            htmlFor={field.id}
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            {field.label}
+            {getRequiredFields(outputField).includes(field.id) && (
+              <span className="text-red-500 ml-1">*</span>
+            )}
+            {field.sign && (
+              <span className="text-gray-500 ml-1">(± can be negative)</span>
+            )}
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+              €
+            </span>
+            <input
+              id={field.id}
+              type="number"
+              step="0.01"
+              value={inputs[field.id] || ''}
+              onChange={(e) => onInputChange(field.id, e.target.value)}
+              placeholder="0.00"
+              className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 transition-all ${
+                isMissing 
+                  ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-indigo-500 focus:border-transparent'
+              }`}
+            />
           </div>
+        </div>
+      );
+    })}
+</div>
 
         {/* Action Buttons */}
         <div className="flex gap-4">
