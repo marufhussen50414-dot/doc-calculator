@@ -28,6 +28,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [inputs, setInputs] = useState<{ [key: string]: string | number }>({});
   const [results, setResults] = useState<{ [key: string]: number }>({});
   const [showResult, setShowResult] = useState(false);
+  const [attempted, setAttempted] = useState(false); // Added validation attempt state
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -56,6 +57,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }));
     }
     setShowResult(false);
+    setAttempted(false);
   };
 
   /**
@@ -65,6 +67,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setOutputField(fieldId);
     setOutputFields(new Set([fieldId]));
     setShowResult(false);
+    setAttempted(false);
     setResults({});
     // Remove the selected output field from inputs
     const newInputs = { ...inputs };
@@ -85,6 +88,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       newOutputFields.add(fieldId);
     }
     setOutputFields(newOutputFields);
+    setAttempted(false);
     
     // Remove all output fields from inputs
     const newInputs = { ...inputs };
@@ -129,12 +133,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   /**
    * Calculate the result (Standard mode)
    */
-const handleCalculate = () => {
-    // বাকি কোড...
+  const handleCalculate = () => {
+    setAttempted(true);
+    const validation = areRequiredFieldsFilled(outputField);
+    if (!validation.valid) {
+      setShowResult(false);
+      return;
+    }
     
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
-if (calculatedResult !== null) {
+    if (calculatedResult !== null) {
       setResults({ [outputField]: calculatedResult });
       setShowResult(true);
     }
@@ -144,6 +153,8 @@ if (calculatedResult !== null) {
    * Calculate multiple results (Multi mode)
    */
   const handleMultiCalculate = () => {
+    setAttempted(true);
+
     // Check if required fields are filled for all output fields
     const allRequiredFields = new Set<string>();
     outputFields.forEach(field => {
@@ -156,6 +167,10 @@ if (calculatedResult !== null) {
       return value === undefined || value === '' || value === null;
     });
 
+    if (missingFields.length > 0) {
+      setShowResult(false);
+      return;
+    }
 
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResults: { [key: string]: number } = {};
@@ -170,7 +185,7 @@ if (calculatedResult !== null) {
       }
     });
 
-if (allSuccessful && Object.keys(calculatedResults).length > 0) {
+    if (allSuccessful && Object.keys(calculatedResults).length > 0) {
       setResults(calculatedResults);
       setShowResult(true);
     }
@@ -183,6 +198,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
     setInputs({});
     setResults({});
     setShowResult(false);
+    setAttempted(false);
     if (mode === 'standard') {
       setOutputField('netto_busta');
       setOutputFields(new Set(['netto_busta']));
@@ -306,6 +322,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
             inputs={inputs}
             results={results}
             showResult={showResult}
+            attempted={attempted}
             onOutputToggle={handleMultiOutputToggle}
             onInputChange={handleInputChange}
             onCalculate={handleMultiCalculate}
@@ -323,6 +340,7 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
             inputs={inputs}
             results={results}
             showResult={showResult}
+            attempted={attempted}
             onOutputFieldChange={handleOutputFieldChange}
             onInputChange={handleInputChange}
             onCalculate={handleCalculate}
@@ -331,8 +349,6 @@ if (allSuccessful && Object.keys(calculatedResults).length > 0) {
             getFieldLabel={getFieldLabel}
           />
         )}
-
-
 
         {/* View Formula Button */}
         <div className="mt-6 text-center">
@@ -379,6 +395,7 @@ interface StandardModeCalculatorProps {
   inputs: { [key: string]: string | number };
   results: { [key: string]: number };
   showResult: boolean;
+  attempted: boolean;
   onOutputFieldChange: (fieldId: string) => void;
   onInputChange: (fieldId: string, value: string) => void;
   onCalculate: () => void;
@@ -388,6 +405,7 @@ interface StandardModeCalculatorProps {
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
+  calculator,
   filteredFields,
   searchQuery,
   onSearchChange,
@@ -395,6 +413,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   inputs,
   results,
   showResult,
+  attempted,
   onOutputFieldChange,
   onInputChange,
   onCalculate,
@@ -402,6 +421,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
+  const requiredFieldIds = calculator.fields
+    .filter((f: any) => f.id !== outputField)
+    .map((f: any) => f.id);
+
   return (
     <>
       {/* Calculator */}
@@ -513,33 +536,46 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredFields
               .filter((field: any) => field.id !== outputField)
-              .map((field: any) => (
-                <div key={field.id} className="relative">
-                  <label
-                    htmlFor={field.id}
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    {field.label}
-                    {field.sign && (
-                      <span className="text-gray-500 ml-1">(± can be negative)</span>
-                    )}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      €
-                    </span>
-                    <input
-                      id={field.id}
-                      type="number"
-                      step="0.01"
-                      value={inputs[field.id] || ''}
-                      onChange={(e) => onInputChange(field.id, e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    />
+              .map((field: any) => {
+                const isRequired = requiredFieldIds.includes(field.id);
+                const isEmpty = !inputs[field.id];
+                const showError = attempted && isRequired && isEmpty;
+
+                return (
+                  <div key={field.id} className="relative">
+                    <label
+                      htmlFor={field.id}
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      {field.label}
+                      {field.sign && (
+                        <span className="text-gray-500 ml-1">(± can be negative)</span>
+                      )}
+                      {showError && (
+                        <span className="text-red-500 ml-1 font-bold" title="Required field">*</span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        €
+                      </span>
+                      <input
+                        id={field.id}
+                        type="number"
+                        step="0.01"
+                        value={inputs[field.id] || ''}
+                        onChange={(e) => onInputChange(field.id, e.target.value)}
+                        placeholder="0.00"
+                        className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all ${
+                          showError
+                            ? 'border-red-500 bg-red-50 focus:ring-red-500'
+                            : 'border-gray-300 focus:ring-indigo-500'
+                        }`}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </div>
 
@@ -596,6 +632,7 @@ interface MultiModeCalculatorProps {
   inputs: { [key: string]: string | number };
   results: { [key: string]: number };
   showResult: boolean;
+  attempted: boolean;
   onOutputToggle: (fieldId: string) => void;
   onInputChange: (fieldId: string, value: string) => void;
   onCalculate: () => void;
@@ -605,6 +642,7 @@ interface MultiModeCalculatorProps {
 }
 
 const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
+  calculator,
   filteredFields,
   searchQuery,
   onSearchChange,
@@ -612,6 +650,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   inputs,
   results,
   showResult,
+  attempted,
   onOutputToggle,
   onInputChange,
   onCalculate,
@@ -619,6 +658,13 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
+  const selectedCategories = new Set(
+    calculator.fields.filter((f: any) => outputFields.has(f.id)).map((f: any) => f.category)
+  );
+  const requiredFieldIds = calculator.fields
+    .filter((f: any) => !outputFields.has(f.id))
+    .map((f: any) => f.id);
+
   return (
     <>
       {/* Calculator */}
@@ -730,33 +776,46 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredFields
               .filter((field: any) => !outputFields.has(field.id))
-              .map((field: any) => (
-                <div key={field.id} className="relative">
-                  <label
-                    htmlFor={field.id}
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    {field.label}
-                    {field.sign && (
-                      <span className="text-gray-500 ml-1">(± can be negative)</span>
-                    )}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      €
-                    </span>
-                    <input
-                      id={field.id}
-                      type="number"
-                      step="0.01"
-                      value={inputs[field.id] || ''}
-                      onChange={(e) => onInputChange(field.id, e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    />
+              .map((field: any) => {
+                const isRequired = requiredFieldIds.includes(field.id);
+                const isEmpty = !inputs[field.id];
+                const showError = attempted && isRequired && isEmpty;
+
+                return (
+                  <div key={field.id} className="relative">
+                    <label
+                      htmlFor={field.id}
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      {field.label}
+                      {field.sign && (
+                        <span className="text-gray-500 ml-1">(± can be negative)</span>
+                      )}
+                      {showError && (
+                        <span className="text-red-500 ml-1 font-bold" title="Required field">*</span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        €
+                      </span>
+                      <input
+                        id={field.id}
+                        type="number"
+                        step="0.01"
+                        value={inputs[field.id] || ''}
+                        onChange={(e) => onInputChange(field.id, e.target.value)}
+                        placeholder="0.00"
+                        className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all ${
+                          showError
+                            ? 'border-red-500 bg-red-50 focus:ring-red-500'
+                            : 'border-gray-300 focus:ring-indigo-500'
+                        }`}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </div>
 
