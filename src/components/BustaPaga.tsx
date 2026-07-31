@@ -13,13 +13,7 @@ type CalculatorMode = 'standard' | 'target' | 'multi';
 /**
  * Busta Paga Calculator Component
  * 
- * Implements the payslip calculator with the exact formula:
- * NETTO IN BUSTA = TOTALE COMPETENZE - (TOTALE TRATTENUTE + (± ARR. PRECED.)) ± ARR. ATTUALE
- * 
- * Modes:
- * - Standard: Single output calculation
- * - Target: Set a target value and see what adjustments are needed
- * - Multi: Calculate multiple outputs simultaneously
+ * Updated validation logic: Only marks required fields that belong to the active formula.
  */
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
@@ -28,21 +22,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [inputs, setInputs] = useState<{ [key: string]: string | number }>({});
   const [results, setResults] = useState<{ [key: string]: number }>({});
   const [showResult, setShowResult] = useState(false);
-  const [attempted, setAttempted] = useState(false); // Added validation attempt state
+  const [attempted, setAttempted] = useState(false);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const calculator = UNIFIED_CALCULATOR;
   
-  // Filter fields based on search query
   const filteredFields = useMemo(() => {
     return searchFields(searchQuery);
   }, [searchQuery]);
 
-  /**
-   * Handle input change for a field
-   * Allows typing decimals and values starting with 0 (e.g., 0.04)
-   */
   const handleInputChange = (fieldId: string, value: string) => {
     if (value === '') {
       const newInputs = { ...inputs };
@@ -58,9 +47,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAttempted(false);
   };
 
-  /**
-   * Handle output field selection change (Standard mode - single select)
-   */
   const handleOutputFieldChange = (fieldId: string) => {
     setOutputField(fieldId);
     setOutputFields(new Set([fieldId]));
@@ -72,9 +58,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setInputs(newInputs);
   };
 
-  /**
-   * Handle multiple output fields selection (Multi mode)
-   */
   const handleMultiOutputToggle = (fieldId: string) => {
     const newOutputFields = new Set(outputFields);
     if (newOutputFields.has(fieldId)) {
@@ -96,9 +79,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setResults({});
   };
 
-  /**
-   * Convert string inputs to numbers for calculation
-   */
   const convertInputsToNumbers = (inputs: { [key: string]: string | number }): CalculatorInputs => {
     const numericInputs: CalculatorInputs = {};
     Object.keys(inputs).forEach(key => {
@@ -109,11 +89,18 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   /**
-   * Check if all required fields are filled
+   * CORRECTED: Define exact required fields based on the formula requirement 
+   * instead of locking all input fields blindly.
    */
   const getRequiredFields = (outputFieldId: string): string[] => {
+    if (outputFieldId === 'netto_busta') {
+      // Netto in busta requires these core fields based on its formula
+      return ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'];
+    }
+    
+    // For other fields, fall back to general inputs except the output itself
     return calculator.fields
-      .filter((f: any) => f.id !== outputFieldId)
+      .filter((f: any) => f.id !== outputFieldId && f.category !== 'TFR')
       .map((f: any) => f.id);
   };
 
@@ -126,9 +113,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return { valid: missing.length === 0, missing };
   };
 
-  /**
-   * Calculate the result (Standard mode)
-   */
   const handleCalculate = () => {
     setAttempted(true);
     const validation = areRequiredFieldsFilled(outputField);
@@ -145,9 +129,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
   };
 
-  /**
-   * Calculate multiple results (Multi mode)
-   */
   const handleMultiCalculate = () => {
     setAttempted(true);
 
@@ -186,9 +167,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
   };
 
-  /**
-   * Reset the calculator
-   */
   const handleReset = () => {
     setInputs({});
     setResults({});
@@ -200,17 +178,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
   };
 
-  /**
-   * Change calculator mode
-   */
   const handleModeChange = (newMode: CalculatorMode) => {
     setMode(newMode);
     handleReset();
   };
 
-  /**
-   * Format number as currency
-   */
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('it-IT', {
       style: 'currency',
@@ -218,9 +190,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }).format(value);
   };
 
-  /**
-   * Get field label
-   */
   const getFieldLabel = (fieldId: string): string => {
     return calculator.fields.find(f => f.id === fieldId)?.label || fieldId;
   };
@@ -228,24 +197,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
           <button
             onClick={onBack}
             className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors"
           >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back to Home
           </button>
@@ -253,58 +211,43 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
         {/* Mode Selector */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Calculation Mode
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <button
               onClick={() => handleModeChange('standard')}
               className={`p-4 rounded-lg border-2 transition-all ${
-                mode === 'standard'
-                  ? 'border-indigo-600 bg-indigo-50 shadow-md'
-                  : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
               }`}
             >
               <div className="text-2xl mb-2">🎯</div>
               <div className="font-semibold text-gray-800">Standard</div>
-              <div className="text-xs text-gray-600 mt-1">
-                Calculate a single field
-              </div>
+              <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
             </button>
 
             <button
               onClick={() => handleModeChange('target')}
               className={`p-4 rounded-lg border-2 transition-all ${
-                mode === 'target'
-                  ? 'border-indigo-600 bg-indigo-50 shadow-md'
-                  : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
               }`}
             >
               <div className="text-2xl mb-2">🎪</div>
               <div className="font-semibold text-gray-800">Target</div>
-              <div className="text-xs text-gray-600 mt-1">
-                Set a goal
-              </div>
+              <div className="text-xs text-gray-600 mt-1">Set a goal</div>
             </button>
 
             <button
               onClick={() => handleModeChange('multi')}
               className={`p-4 rounded-lg border-2 transition-all ${
-                mode === 'multi'
-                  ? 'border-indigo-600 bg-indigo-50 shadow-md'
-                  : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
               }`}
             >
               <div className="text-2xl mb-2">🔢</div>
               <div className="font-semibold text-gray-800">Multi</div>
-              <div className="text-xs text-gray-600 mt-1">
-                Calculate multiple fields
-              </div>
+              <div className="text-xs text-gray-600 mt-1">Calculate multiple fields</div>
             </button>
           </div>
         </div>
 
-        {/* Render appropriate mode */}
         {mode === 'target' ? (
           <TargetCalculator onBack={() => setMode('standard')} />
         ) : mode === 'multi' ? (
@@ -318,6 +261,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             results={results}
             showResult={showResult}
             attempted={attempted}
+            getRequiredFields={getRequiredFields}
             onOutputToggle={handleMultiOutputToggle}
             onInputChange={handleInputChange}
             onCalculate={handleMultiCalculate}
@@ -336,6 +280,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             results={results}
             showResult={showResult}
             attempted={attempted}
+            getRequiredFields={getRequiredFields}
             onOutputFieldChange={handleOutputFieldChange}
             onInputChange={handleInputChange}
             onCalculate={handleCalculate}
@@ -345,42 +290,24 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           />
         )}
 
-        {/* View Formula Button */}
         <div className="mt-6 text-center">
           <button
             onClick={() => setShowFormulaModal(true)}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors text-sm font-medium"
           >
-            <svg
-              className="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
             View Formula and Calculation Logic
           </button>
         </div>
       </div>
 
-      {/* Formula Modal */}
-      <FormulaModal
-        isOpen={showFormulaModal}
-        onClose={() => setShowFormulaModal(false)}
-      />
+      <FormulaModal isOpen={showFormulaModal} onClose={() => setShowFormulaModal(false)} />
     </div>
   );
 };
 
-/**
- * Standard Mode Calculator Component
- */
 interface StandardModeCalculatorProps {
   calculator: any;
   filteredFields: any[];
@@ -391,6 +318,7 @@ interface StandardModeCalculatorProps {
   results: { [key: string]: number };
   showResult: boolean;
   attempted: boolean;
+  getRequiredFields: (outputFieldId: string) => string[];
   onOutputFieldChange: (fieldId: string) => void;
   onInputChange: (fieldId: string, value: string) => void;
   onCalculate: () => void;
@@ -409,6 +337,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   results,
   showResult,
   attempted,
+  getRequiredFields,
   onOutputFieldChange,
   onInputChange,
   onCalculate,
@@ -416,14 +345,11 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
-  const requiredFieldIds = calculator.fields
-    .filter((f: any) => f.id !== outputField)
-    .map((f: any) => f.id);
+  const requiredFieldIds = getRequiredFields(outputField);
 
   return (
     <>
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        {/* Output Field Selector with Search */}
         <div className="mb-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Select the field to calculate (output):
@@ -440,81 +366,22 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search fields... (e.g., NETTO, TFR, COMPETENZE, TRATTENUTE)"
+                placeholder="Search fields..."
                 className="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
               />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
             </div>
-            {searchQuery && (
-              <p className="mt-1.5 text-xs text-gray-600">
-                Found {filteredFields.length} matching field{filteredFields.length !== 1 ? 's' : ''}
-              </p>
-            )}
           </div>
 
-          <div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
-            style={{ maxHeight: '400px' }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2" style={{ maxHeight: '400px' }}>
             {filteredFields.map((field: any) => (
               <button
                 key={field.id}
                 onClick={() => onOutputFieldChange(field.id)}
-                className={`
-                  p-4 rounded-lg border-2 text-left transition-all
-                  ${
-                    outputField === field.id
-                      ? field.category === 'TFR' 
-                        ? 'border-green-600 bg-green-50 shadow-md'
-                        : 'border-indigo-600 bg-indigo-50 shadow-md'
-                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                  }
-                `}
+                className={`p-4 rounded-lg border-2 text-left transition-all ${
+                  outputField === field.id ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-800 text-sm break-words">
-                        {field.label}
-                      </span>
-                    </div>
-                    {field.category && (
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        field.category === 'TFR' 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-indigo-100 text-indigo-800'
-                      }`}>
-                        {field.category}
-                      </span>
-                    )}
-                  </div>
-                  {outputField === field.id && (
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      field.category === 'TFR' ? 'bg-green-600' : 'bg-indigo-600'
-                    }`}>
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+                <span className="font-medium text-gray-800 text-sm">{field.label}</span>
               </button>
             ))}
           </div>
@@ -535,22 +402,12 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
 
                 return (
                   <div key={field.id} className="relative">
-                    <label
-                      htmlFor={field.id}
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
                       {field.label}
-                      {field.sign && (
-                        <span className="text-gray-500 ml-1">(± can be negative)</span>
-                      )}
-                      {showError && (
-                        <span className="text-red-500 ml-1 font-bold" title="Required field">*</span>
-                      )}
+                      {showError && <span className="text-red-500 ml-1 font-bold">*</span>}
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        €
-                      </span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
                       <input
                         id={field.id}
                         type="number"
@@ -559,9 +416,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         onChange={(e) => onInputChange(field.id, e.target.value)}
                         placeholder="0.00"
                         className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all ${
-                          showError
-                            ? 'border-red-500 bg-red-50 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-indigo-500'
+                          showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
                         }`}
                       />
                     </div>
@@ -571,49 +426,26 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-4">
-          <button
-            onClick={onCalculate}
-            className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors font-semibold shadow-md hover:shadow-lg"
-          >
+          <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 font-semibold shadow-md">
             Calculate
           </button>
-          <button
-            onClick={onReset}
-            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
-          >
+          <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
             Reset
           </button>
         </div>
       </div>
 
       {showResult && results[outputField] !== undefined && (
-        <div className="bg-white rounded border-2 border-gray-800 shadow-sm animate-fadeIn">
-          <div className="border-b-2 border-gray-800 px-5 py-3 bg-gray-50">
-            <h2 className="text-base font-semibold text-gray-900">
-              Calculated Result
-            </h2>
-          </div>
-          <div className="p-6">
-            <div className="text-center">
-              <p className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">
-                {getFieldLabel(outputField)}
-              </p>
-              <p className="text-4xl font-bold text-gray-900">
-                {formatCurrency(results[outputField])}
-              </p>
-            </div>
-          </div>
+        <div className="bg-white rounded border-2 border-gray-800 shadow-sm p-6 text-center">
+          <p className="text-xs font-medium text-gray-600 mb-2 uppercase">{getFieldLabel(outputField)}</p>
+          <p className="text-4xl font-bold text-gray-900">{formatCurrency(results[outputField])}</p>
         </div>
       )}
     </>
   );
 };
 
-/**
- * Multi Mode Calculator Component
- */
 interface MultiModeCalculatorProps {
   calculator: any;
   filteredFields: any[];
@@ -624,6 +456,7 @@ interface MultiModeCalculatorProps {
   results: { [key: string]: number };
   showResult: boolean;
   attempted: boolean;
+  getRequiredFields: (outputFieldId: string) => string[];
   onOutputToggle: (fieldId: string) => void;
   onInputChange: (fieldId: string, value: string) => void;
   onCalculate: () => void;
@@ -633,7 +466,6 @@ interface MultiModeCalculatorProps {
 }
 
 const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
-  calculator,
   filteredFields,
   searchQuery,
   onSearchChange,
@@ -642,6 +474,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   results,
   showResult,
   attempted,
+  getRequiredFields,
   onOutputToggle,
   onInputChange,
   onCalculate,
@@ -649,199 +482,82 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
-  const requiredFieldIds = calculator.fields
-    .filter((f: any) => !outputFields.has(f.id))
-    .map((f: any) => f.id);
+  const requiredFieldIds = Array.from(outputFields).flatMap(field => getRequiredFields(field));
 
   return (
-    <>
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Select fields to calculate (output - minimum 1):
-          </label>
-          
-          <div className="mb-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search fields... (e.g., NETTO, TFR, COMPETENZE, TRATTENUTE)"
-                className="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            {searchQuery && (
-              <p className="mt-1.5 text-xs text-gray-600">
-                Found {filteredFields.length} matching field{filteredFields.length !== 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
-
-          <div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
-            style={{ maxHeight: '400px' }}
-          >
-            {filteredFields.map((field: any) => (
-              <button
-                key={field.id}
-                onClick={() => onOutputToggle(field.id)}
-                className={`
-                  p-4 rounded-lg border-2 text-left transition-all
-                  ${
-                    outputFields.has(field.id)
-                      ? field.category === 'TFR' 
-                        ? 'border-green-600 bg-green-50 shadow-md'
-                        : 'border-indigo-600 bg-indigo-50 shadow-md'
-                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-800 text-sm break-words">
-                        {field.label}
-                      </span>
-                    </div>
-                    {field.category && (
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        field.category === 'TFR' 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-indigo-100 text-indigo-800'
-                      }`}>
-                        {field.category}
-                      </span>
-                    )}
-                  </div>
-                  {outputFields.has(field.id) && (
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      field.category === 'TFR' ? 'bg-green-600' : 'bg-indigo-600'
-                    }`}>
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Input Fields */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Enter the known values:
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredFields
-              .filter((field: any) => !outputFields.has(field.id))
-              .map((field: any) => {
-                const isRequired = requiredFieldIds.includes(field.id);
-                const isEmpty = !inputs[field.id];
-                const showError = attempted && isRequired && isEmpty;
-
-                return (
-                  <div key={field.id} className="relative">
-                    <label
-                      htmlFor={field.id}
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      {field.label}
-                      {field.sign && (
-                        <span className="text-gray-500 ml-1">(± can be negative)</span>
-                      )}
-                      {showError && (
-                        <span className="text-red-500 ml-1 font-bold" title="Required field">*</span>
-                      )}
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        €
-                      </span>
-                      <input
-                        id={field.id}
-                        type="number"
-                        step="0.01"
-                        value={inputs[field.id] || ''}
-                        onChange={(e) => onInputChange(field.id, e.target.value)}
-                        placeholder="0.00"
-                        className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all ${
-                          showError
-                            ? 'border-red-500 bg-red-50 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-indigo-500'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <button
-            onClick={onCalculate}
-            className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors font-semibold shadow-md hover:shadow-lg"
-          >
-            Calculate All
-          </button>
-          <button
-            onClick={onReset}
-            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
-          >
-            Reset
-          </button>
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-700 mb-3">Select fields to calculate:</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filteredFields.map((field: any) => (
+            <button
+              key={field.id}
+              onClick={() => onOutputToggle(field.id)}
+              className={`p-4 rounded-lg border-2 text-left ${
+                outputFields.has(field.id) ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200'
+              }`}
+            >
+              <span className="font-medium text-gray-800 text-sm">{field.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {showResult && Object.keys(results).length > 0 && (
-        <div className="bg-white rounded border-2 border-gray-800 shadow-sm animate-fadeIn">
-          <div className="border-b-2 border-gray-800 px-5 py-3 bg-gray-50">
-            <h2 className="text-base font-semibold text-gray-900">
-              Calculated Results
-            </h2>
-          </div>
-          <div className="p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {Object.entries(results).map(([fieldId, value]) => (
-                <div key={fieldId} className="bg-white rounded border border-gray-300 p-4">
-                  <p className="text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">
-                    {getFieldLabel(fieldId)}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(value)}
-                  </p>
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-700 mb-3">Enter the known values:</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredFields
+            .filter((field: any) => !outputFields.has(field.id))
+            .map((field: any) => {
+              const isRequired = requiredFieldIds.includes(field.id);
+              const isEmpty = !inputs[field.id];
+              const showError = attempted && isRequired && isEmpty;
+
+              return (
+                <div key={field.id} className="relative">
+                  <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
+                    {field.label}
+                    {showError && <span className="text-red-500 ml-1 font-bold">*</span>}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                    <input
+                      id={field.id}
+                      type="number"
+                      step="0.01"
+                      value={inputs[field.id] || ''}
+                      onChange={(e) => onInputChange(field.id, e.target.value)}
+                      placeholder="0.00"
+                      className={`w-full pl-8 pr-4 py-3 border rounded-lg ${
+                        showError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
                 </div>
-              ))}
+              );
+            })}
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold">
+          Calculate All
+        </button>
+        <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold">
+          Reset
+        </button>
+      </div>
+
+      {showResult && Object.keys(results).length > 0 && (
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {Object.entries(results).map(([fieldId, value]) => (
+            <div key={fieldId} className="bg-white rounded border border-gray-300 p-4">
+              <p className="text-xs font-medium text-gray-600 mb-1.5 uppercase">{getFieldLabel(fieldId)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(value)}</p>
             </div>
-          </div>
+          ))}
         </div>
       )}
-    </>
+    </div>
   );
 };
