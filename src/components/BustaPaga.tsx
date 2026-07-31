@@ -44,8 +44,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
    * Allows typing decimals and values starting with 0 (e.g., 0.04)
    */
   const handleInputChange = (fieldId: string, value: string) => {
-    // Store the raw string value to allow typing decimals like "0.04"
-    // Only convert to number when calculating
     if (value === '') {
       const newInputs = { ...inputs };
       delete newInputs[fieldId];
@@ -53,7 +51,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     } else {
       setInputs((prev) => ({
         ...prev,
-        [fieldId]: value, // Store as string
+        [fieldId]: value,
       }));
     }
     setShowResult(false);
@@ -69,7 +67,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setShowResult(false);
     setAttempted(false);
     setResults({});
-    // Remove the selected output field from inputs
     const newInputs = { ...inputs };
     delete newInputs[fieldId];
     setInputs(newInputs);
@@ -90,7 +87,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setOutputFields(newOutputFields);
     setAttempted(false);
     
-    // Remove all output fields from inputs
     const newInputs = { ...inputs };
     newOutputFields.forEach(field => {
       delete newInputs[field];
@@ -155,7 +151,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const handleMultiCalculate = () => {
     setAttempted(true);
 
-    // Check if required fields are filled for all output fields
     const allRequiredFields = new Set<string>();
     outputFields.forEach(field => {
       const required = getRequiredFields(field);
@@ -427,7 +422,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
 
   return (
     <>
-      {/* Calculator */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         {/* Output Field Selector with Search */}
         <div className="mb-6">
@@ -435,7 +429,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
             Select the field to calculate (output):
           </label>
           
-          {/* Search Bar */}
           <div className="mb-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -468,7 +461,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
             )}
           </div>
 
-          {/* Scrollable Component Grid - Max 4 rows */}
           <div 
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
             style={{ maxHeight: '400px' }}
@@ -596,7 +588,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
         </div>
       </div>
 
-      {/* Result Display */}
       {showResult && results[outputField] !== undefined && (
         <div className="bg-white rounded border-2 border-gray-800 shadow-sm animate-fadeIn">
           <div className="border-b-2 border-gray-800 px-5 py-3 bg-gray-50">
@@ -658,24 +649,18 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
-  const selectedCategories = new Set(
-    calculator.fields.filter((f: any) => outputFields.has(f.id)).map((f: any) => f.category)
-  );
   const requiredFieldIds = calculator.fields
     .filter((f: any) => !outputFields.has(f.id))
     .map((f: any) => f.id);
 
   return (
     <>
-      {/* Calculator */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        {/* Output Fields Selector with Search */}
         <div className="mb-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Select fields to calculate (output - minimum 1):
           </label>
           
-          {/* Search Bar */}
           <div className="mb-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -708,7 +693,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
             )}
           </div>
 
-          {/* Scrollable Component Grid - Max 4 rows */}
           <div 
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
             style={{ maxHeight: '400px' }}
@@ -819,7 +803,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-4">
           <button
             onClick={onCalculate}
@@ -836,7 +819,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
         </div>
       </div>
 
-      {/* Results Display */}
       {showResult && Object.keys(results).length > 0 && (
         <div className="bg-white rounded border-2 border-gray-800 shadow-sm animate-fadeIn">
           <div className="border-b-2 border-gray-800 px-5 py-3 bg-gray-50">
