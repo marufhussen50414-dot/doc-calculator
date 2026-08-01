@@ -19,7 +19,7 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
         {/* Header */}
         <div className="sticky top-0 bg-indigo-600 text-white p-6 rounded-t-lg z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">📐 Formula and Calculation Logic</h2>
+            <h2 className="text-2xl font-bold">📐 Formula</h2>
             <button
               onClick={onClose}
               className="text-white hover:text-gray-200 transition-colors"
