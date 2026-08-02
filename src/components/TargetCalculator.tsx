@@ -11,10 +11,10 @@ interface TargetCalculatorProps {
  * Allows users to set a target value and see what's required to achieve it
  */
 export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
-  const [targetField, setTargetField] = useState<string>('netto_busta');
+  const [targetField, setTargetField] = useState<string>(''); // ডিফল্ট খালি রাখা হলো যাতে শুরুতে সিলেক্টেড না থাকে
   const [targetValue, setTargetValue] = useState<string>('');
   const [currentInputs, setCurrentInputs] = useState<{ [key: string]: string }>({});
-  const [adjustmentField, setAdjustmentField] = useState<string>('totale_competenze');
+  const [adjustmentField, setAdjustmentField] = useState<string>('');
   const [requiredValue, setRequiredValue] = useState<number | null>(null);
 
   const calculator = UNIFIED_CALCULATOR;
@@ -28,6 +28,11 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
   };
 
   const handleCalculateTarget = () => {
+    if (!targetField) {
+      alert('দয়া করে বাম দিক থেকে একটি ফিল্ড সিলেক্ট করুন');
+      return;
+    }
+
     // Validate target value
     if (!targetValue || parseFloat(targetValue) === 0) {
       alert('Please enter a target value');
@@ -35,9 +40,7 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
     }
 
     // Check if all required fields are filled
-    const inputFields = calculator.fields.filter(
-      (f: any) => f.id !== targetField && f.id !== adjustmentField
-    );
+    const inputFields = getRelevantInputFields();
     
     const missingFields = inputFields.filter((f: any) => {
       const value = currentInputs[f.id];
@@ -84,13 +87,26 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
     return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
   };
 
-  const availableAdjustmentFields = calculator.fields.filter(
-    (f: any) => f.id !== targetField
-  );
+  // ফর্মুলা অনুযায়ী কোন ফিল্ডগুলোর জন্য ইনপุต লাগবে তা ডিফাইন করা (যেমন Netto in Busta বা Totale Competenze এর জন্য নির্দিষ্ট ফিল্ড)
+  const getRelevantInputFields = () => {
+    if (!targetField) return [];
 
-  const inputFields = calculator.fields.filter(
-    (f: any) => f.id !== targetField && f.id !== adjustmentField
-  );
+    // আপনার কনফিগারেশন বা ফর্মুলা অনুযায়ী নির্দিষ্ট ফিল্ড ম্যাপিং এখানে করতে পারেন। 
+    // যেমন Netto in Busta এর ক্ষেত্রে নির্দিষ্ট ৪টি ফিল্ড ফিল্টার করে দেওয়া:
+    if (targetField === 'netto_busta' || targetField === 'totale_competenze') {
+      // উদাহরণস্বরূপ ফর্মুলা অনুযায়ী প্রয়োজনীয় ফিল্ড আইডিগুলোর লিস্ট
+      return calculator.fields.filter(
+        (f: any) => f.id !== targetField && f.id !== adjustmentField
+      ); 
+      // নোটিশ: আপনার প্রজেক্টের ফর্মুলা ম্যাপিং লজিক যদি calculator অবজেক্টে থাকে তবে সেখান থেকেও ফিল্টার করতে পারেন।
+    }
+
+    return calculator.fields.filter(
+      (f: any) => f.id !== targetField && f.id !== adjustmentField
+    );
+  };
+
+  const inputFields = getRelevantInputFields();
 
   return (
     <div className="space-y-6">
@@ -108,127 +124,113 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
       </div>
 
       {/* Calculator */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        {/* Step 1: Target Field */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            1. Select your target field:
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {calculator.fields.map((field: any) => (
-              <button
-                key={field.id}
-                onClick={() => {
-                  setTargetField(field.id);
-                  setRequiredValue(null);
-                  if (adjustmentField === field.id) {
-                    const otherField = calculator.fields.find((f: any) => f.id !== field.id);
-                    if (otherField) setAdjustmentField(otherField.id);
-                  }
-                }}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  targetField === field.id
-                    ? 'border-purple-600 bg-purple-50 shadow-md'
-                    : 'border-gray-200 hover:border-purple-300'
-                }`}
-              >
-                <span className="font-medium text-gray-800 text-sm">{field.label}</span>
-              </button>
-            ))}
+      <div className="bg-white rounded-lg shadow-md p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Left Side: Select Field */}
+        <div>
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              1. Select the field to calculate (output):
+            </label>
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+              {calculator.fields.map((field: any) => (
+                <button
+                  key={field.id}
+                  onClick={() => {
+                    setTargetField(field.id);
+                    setAdjustmentField(field.id); // ఆటో the calculated target
+                    setRequiredValue(null);
+                    setCurrentInputs({});
+                  }}
+                  className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
+                    targetField === field.id
+                      ? 'border-purple-600 bg-purple-50 shadow-md'
+                      : 'border-gray-200 hover:border-purple-300'
+                  }`}
+                >
+                  <span className="font-medium text-gray-800 text-sm">{field.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Step 2: Target Value */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            2. Set your target value for {getFieldLabel(targetField)}:
-          </label>
-          <div className="relative max-w-md">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
-            <input
-              type="number"
-              step="0.01"
-              value={targetValue}
-              onChange={(e) => {
-                setTargetValue(e.target.value);
-                setRequiredValue(null);
-              }}
-              placeholder="0.00"
-              className="w-full pl-8 pr-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-semibold text-lg"
-            />
-          </div>
-        </div>
+        {/* Right Side: Enter Known Values / Dynamic Inputs */}
+        <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-800 mb-4">
+            Enter the known values:
+          </h3>
 
-        {/* Step 3: Adjustment Field */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            3. Select which field to adjust:
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {availableAdjustmentFields.map((field: any) => (
-              <button
-                key={field.id}
-                onClick={() => {
-                  setAdjustmentField(field.id);
-                  setRequiredValue(null);
-                  const newInputs = { ...currentInputs };
-                  delete newInputs[field.id];
-                  setCurrentInputs(newInputs);
-                }}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  adjustmentField === field.id
-                    ? 'border-orange-600 bg-orange-50 shadow-md'
-                    : 'border-gray-200 hover:border-orange-300'
-                }`}
-              >
-                <span className="font-medium text-gray-800 text-sm">{field.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Step 4: Input Current Values */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            4. Enter current values for other fields:
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {inputFields.map((field: any) => (
-              <div key={field.id}>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  {field.label}
+          {!targetField ? (
+            <div className="text-center py-12 text-gray-500 font-medium">
+              ⚠️ দয়া করে বাম দিক থেকে একটি ফিল্ড সিলেক্ট করুন।
+            </div>
+          ) : inputFields.length === 0 ? (
+            <div className="text-center py-12 text-red-500 font-medium">
+              ❌ এই ফিল্ডের জন্য কোনো ফর্মুলা পাওয়া যায়নি।
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2">
+              {/* Target Value Input */}
+              <div>
+                <label className="block text-xs font-semibold text-purple-900 mb-1">
+                  Target Value for {getFieldLabel(targetField)}:
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
                   <input
                     type="number"
                     step="0.01"
-                    value={currentInputs[field.id] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    value={targetValue}
+                    onChange={(e) => {
+                      setTargetValue(e.target.value);
+                      setRequiredValue(null);
+                    }}
                     placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full pl-8 pr-4 py-2.5 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white font-semibold"
                   />
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Formula-based Required Input Fields */}
+              {inputFields.map((field: any) => (
+                <div key={field.id}>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    {field.label}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={currentInputs[field.id] || ''}
+                      onChange={(e) => handleInputChange(field.id, e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleCalculateTarget}
+                  className="flex-1 bg-purple-600 text-white py-2.5 px-4 rounded-lg hover:bg-purple-700 transition-colors font-semibold shadow-md text-sm"
+                >
+                  Calculate Required Value
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleCalculateTarget}
-            className="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold shadow-md"
-          >
-            Calculate Required Value
-          </button>
-          <button
-            onClick={handleReset}
-            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
-          >
-            Reset
-          </button>
-        </div>
       </div>
 
       {/* Professional Target Result Display */}
@@ -241,7 +243,6 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
           </div>
           
           <div className="p-6">
-            {/* Target Goal */}
             <div className="mb-5 pb-5 border-b border-gray-300">
               <p className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Your Target Goal</p>
               <div className="flex items-baseline gap-2">
@@ -250,17 +251,11 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
               </div>
             </div>
 
-            {/* Required Value - Clean & Prominent */}
             <div className="bg-gray-50 rounded border-2 border-gray-400 p-5">
               <p className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wide">Required Value to Reach Target</p>
               <div className="mb-4">
                 <p className="text-sm font-semibold text-gray-700 mb-2">{getFieldLabel(adjustmentField)}</p>
-                <p className="text-4xl font-bold text-gray-900">{formatCurrency(requiredValue)}</p>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-300">
-                <p className="text-sm text-gray-700">
-                  Set <strong>{getFieldLabel(adjustmentField)}</strong> to <strong>{formatCurrency(requiredValue)}</strong> to achieve your target of <strong>{formatCurrency(parseFloat(targetValue))}</strong>
-                </p>
+                <p className="text-4xl font-bold text-gray-900">{formatCurrency(requiredValue)}</s>
               </div>
             </div>
           </div>
