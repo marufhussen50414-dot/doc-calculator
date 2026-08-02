@@ -11,7 +11,7 @@ interface TargetCalculatorProps {
  * Allows users to set a target value and see what's required to achieve it
  */
 export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
-  const [targetField, setTargetField] = useState<string>(''); // ডিফল্ট খালি রাখা হলো যাতে শুরুতে সিলেক্টেড না থাকে
+  const [targetField, setTargetField] = useState<string>('');
   const [targetValue, setTargetValue] = useState<string>('');
   const [currentInputs, setCurrentInputs] = useState<{ [key: string]: string }>({});
   const [adjustmentField, setAdjustmentField] = useState<string>('');
@@ -33,13 +33,11 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
       return;
     }
 
-    // Validate target value
     if (!targetValue || parseFloat(targetValue) === 0) {
       alert('Please enter a target value');
       return;
     }
 
-    // Check if all required fields are filled
     const inputFields = getRelevantInputFields();
     
     const missingFields = inputFields.filter((f: any) => {
@@ -52,7 +50,6 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
       return;
     }
 
-    // Create inputs with target value
     const inputs: any = {};
     inputs[targetField] = parseFloat(targetValue);
     
@@ -60,7 +57,6 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
       inputs[key] = parseFloat(currentInputs[key]) || 0;
     });
 
-    // Calculate what the adjustment field needs to be
     const result = calculator.calculate(inputs, adjustmentField);
     
     if (result !== null) {
@@ -87,19 +83,8 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
     return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
   };
 
-  // ফর্মুলা অনুযায়ী কোন ফিল্ডগুলোর জন্য ইনপุต লাগবে তা ডিফাইন করা (যেমন Netto in Busta বা Totale Competenze এর জন্য নির্দিষ্ট ফিল্ড)
   const getRelevantInputFields = () => {
     if (!targetField) return [];
-
-    // আপনার কনফিগারেশন বা ফর্মুলা অনুযায়ী নির্দিষ্ট ফিল্ড ম্যাপিং এখানে করতে পারেন। 
-    // যেমন Netto in Busta এর ক্ষেত্রে নির্দিষ্ট ৪টি ফিল্ড ফিল্টার করে দেওয়া:
-    if (targetField === 'netto_busta' || targetField === 'totale_competenze') {
-      // উদাহরণস্বরূপ ফর্মুলা অনুযায়ী প্রয়োজনীয় ফিল্ড আইডিগুলোর লিস্ট
-      return calculator.fields.filter(
-        (f: any) => f.id !== targetField && f.id !== adjustmentField
-      ); 
-      // নোটিশ: আপনার প্রজেক্টের ফর্মুলা ম্যাপিং লজিক যদি calculator অবজেক্টে থাকে তবে সেখান থেকেও ফিল্টার করতে পারেন।
-    }
 
     return calculator.fields.filter(
       (f: any) => f.id !== targetField && f.id !== adjustmentField
@@ -138,7 +123,7 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
                   key={field.id}
                   onClick={() => {
                     setTargetField(field.id);
-                    setAdjustmentField(field.id); // ఆటో the calculated target
+                    setAdjustmentField(field.id);
                     setRequiredValue(null);
                     setCurrentInputs({});
                   }}
@@ -255,7 +240,7 @@ export const TargetCalculator: React.FC<TargetCalculatorProps> = () => {
               <p className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wide">Required Value to Reach Target</p>
               <div className="mb-4">
                 <p className="text-sm font-semibold text-gray-700 mb-2">{getFieldLabel(adjustmentField)}</p>
-                <p className="text-4xl font-bold text-gray-900">{formatCurrency(requiredValue)}</s>
+                <p className="text-4xl font-bold text-gray-900">{formatCurrency(requiredValue)}</p>
               </div>
             </div>
           </div>
