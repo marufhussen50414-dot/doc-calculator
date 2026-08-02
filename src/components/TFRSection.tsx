@@ -226,7 +226,10 @@ export const TFRSection: React.FC = () => {
                   <strong>Monthly TFR:</strong> TFR MESE = (RETRIBUZIONE UTILE TFR ÷ 13.5) + CONTR. AGG. TFR
                 </div>
                 <div className="bg-white p-2 rounded">
-                  <strong>Company Liability:</strong> TFR SPETTANTE = F.DO TFR 31/12 AP + TFR ANNUO PROGR. - ANTICIPAZIONI - TFR A F.DO PENSIONE
+                  <strong>Company Liability / Spettante:</strong> F.do TFR al 31/12 AP + TFR Annuo Progr. = TFR Spettante Azienda
+                </div>
+                <div className="bg-white p-2 rounded">
+                  <strong>Detailed Company Liability:</strong> TFR SPETTANTE = F.DO TFR 31/12 AP + TFR ANNUO PROGR. - ANTICIPAZIONI - TFR A F.DO PENSIONE
                 </div>
               </div>
             </details>
