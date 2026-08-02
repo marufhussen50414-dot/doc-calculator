@@ -60,19 +60,19 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* ভবিষ্যতে নতুন ফর্মুলা যোগ করতে চাইলে নিচে ঠিক এভাবে Formula 2, Formula 3 ব্লক বাড়িয়ে নিতে পারেন */}
-          {/* 
+          {/* Formula 2 (TFR Spettante Azienda) */}
           <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-indigo-900 mb-4">
-              Formula 2
+              Formula 2 (TFR Calculation)
             </h3>
             <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto shadow-sm">
               <div className="text-gray-700">
-                -- আপনার পরবর্তী ফর্মুলা এখানে লিখবেন --
+                <span className="font-bold text-emerald-600">F.do TFR al 31/12 AP</span> +{' '}
+                <span className="font-bold text-teal-600">TFR Annuo Progr.</span> ={' '}
+                <span className="font-bold text-indigo-600">TFR Spettante Azienda</span>
               </div>
             </div>
           </div>
-          */}
 
         </div>
 
