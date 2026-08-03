@@ -52,17 +52,28 @@ export const UNIFIED_CALCULATOR = {
   ] as CalculatorField[],
 
   /**
-   * Returns the exact required input fields needed to calculate a specific output field.
+   * ফর্মুলার সাথে নিখুঁতভাবে সিঙ্ক করার জন্য প্রতিটি ফিল্ডের প্রয়োজনীয় ইনপুট ম্যাপিং।
    */
   getRequiredInputsForField: (outputFieldId: string): string[] => {
     switch (outputFieldId) {
+      // Formula 1: Net Pay calculation
       case 'netto_busta':
         return ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'];
-      
-      // আপনি চাইলে অন্যান্য ফিল্ডের ফর্মুলা অনুযায়ী এখানে নির্দিষ্ট ইনপুট যুক্ত করতে পারেন।
-      // ডিফল্টভাবে অন্যগুলোর জন্য প্রয়োজনীয় ফিল্ড না থাকলে ফাঁکی রাখবে অথবা নিজের আইডি বাদ দিয়ে বাকিগুলো দেখাবে।
+
+      // Totale Competenze (উদাহরণস্বরূপ: বেসিক, ওভারটাইম এবং এলাউন্স যোগ করে মোট competenze বের করা)
+      case 'totale_competenze':
+        return ['sett_retr', 'gg_retr']; // আপনার ফর্মুলা অনুযায়ী এখানে ফিল্ড আইডিগুলো বসাতে পারেন
+
+      // Totale Trattenute (ট্যাক্স এবং কন্ট্রিবিউশন যোগ করে মোট কর্তন)
+      case 'totale_trattenute':
+        return ['totale_contributi', 'irpef_trattenuta'];
+
+      // যদি অন্য কোনো ফিল্ডের জন্য ফর্মুলা থাকে, তাদের ইনপুটগুলো এখানে যুক্ত করে দিন:
+      // case 'field_id':
+      //   return ['input_1', 'input_2'];
+
       default:
-        return [];
+        return []; // যদি নির্দিষ্ট কোনো ফর্মুলা রেজিস্টার্ড না থাকে
     }
   },
 
@@ -73,6 +84,18 @@ export const UNIFIED_CALCULATOR = {
       const arrPreced = inputs['arr_preced'] || 0;
       const arrAttuale = inputs['arr_attuale'] || 0;
       return totaleCompetenze - (totaleTrattenute + arrPreced) + arrAttuale;
+    }
+
+    if (outputField === 'totale_competenze') {
+      const settRetr = inputs['sett_retr'] || 0;
+      const ggRetr = inputs['gg_retr'] || 0;
+      return settRetr + ggRetr; // আপনার ফর্মুলার লজিক অনুযায়ী ক্যালকুলেশন
+    }
+
+    if (outputField === 'totale_trattenute') {
+      const totaleContributi = inputs['totale_contributi'] || 0;
+      const irpefTrattenuta = inputs['irpef_trattenuta'] || 0;
+      return totaleContributi + irpefTrattenuta;
     }
 
     return inputs[outputField] !== undefined ? inputs[outputField] : null;
