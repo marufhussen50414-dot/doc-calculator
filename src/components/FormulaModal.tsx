@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1 and its sub-formulas in a compact layout.
+ * Displays Formula 1, Formula 2, and their sub-formulas in a compact layout.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -19,7 +19,7 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
         {/* Header */}
         <div className="sticky top-0 bg-indigo-600 text-white p-6 rounded-t-lg">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">📐 Formula 1 and Calculation Logic</h2>
+            <h2 className="text-2xl font-bold">📐 Formulas and Calculation Logic</h2>
             <button
               onClick={onClose}
               className="text-white hover:text-gray-200 transition-colors"
@@ -43,7 +43,7 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Main Formula & Sub-formulas inside one single block */}
+          {/* Formula 1 & Sub-formulas */}
           <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-indigo-900 mb-3">
               Formula 1
@@ -60,7 +60,7 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
               </div>
             </div>
 
-            {/* Sub-formulas / Backward Calculations right inside the same box */}
+            {/* Sub-formulas / Backward Calculations */}
             <div className="mt-4 border-t border-indigo-200 pt-4">
               <h4 className="text-sm font-bold text-indigo-900 mb-3">
                 Sub-Formulas (Backward Calculation):
@@ -84,6 +84,40 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <div className="bg-white p-2.5 rounded border border-gray-200">
                   <span className="font-semibold text-gray-700">To calculate ARR. ATTUALE:</span>
                   <div className="text-gray-900 mt-1">ARR. ATTUALE = NETTO + TRATTENUTE + ARR. PRECED. - COMPETENZE</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 2 (TFR Calculation) & Sub-formulas */}
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-emerald-900 mb-3">
+              Formula 2 (TFR Calculation)
+            </h3>
+            
+            {/* Main Formula Box */}
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-emerald-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-emerald-700">TFR Spettante Azienda</span> ={' '}
+                <span className="font-bold text-gray-700">F.do TFR al 31/12 AP</span> +{' '}
+                <span className="font-bold text-teal-600">TFR Annuo Progr.</span>
+              </div>
+            </div>
+
+            {/* Sub-formulas / Backward Calculations */}
+            <div className="mt-4 border-t border-emerald-200 pt-4">
+              <h4 className="text-sm font-bold text-emerald-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate F.do TFR al 31/12 AP:</span>
+                  <div className="text-gray-900 mt-1">F.do TFR al 31/12 AP = TFR Spettante Azienda - TFR Annuo Progr.</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate TFR Annuo Progr.:</span>
+                  <div className="text-gray-900 mt-1">TFR Annuo Progr. = TFR Spettante Azienda - F.do TFR al 31/12 AP</div>
                 </div>
               </div>
             </div>
