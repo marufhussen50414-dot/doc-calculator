@@ -606,3 +606,33 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
     </div>
   );
 };
+
+
+
+
+
+
+
+
+
+
+
+const formulaDetails = UNIFIED_CALCULATOR.getFormulaDetails(selectedField);
+
+{formulaDetails && (
+  <div className="p-4 bg-gray-50 rounded-lg border mb-4 shadow-sm">
+    {/* Main Formula */}
+    <p className="font-bold text-blue-900 text-sm mb-3">
+      Main Formula: {formulaDetails.mainFormulaTitle}
+    </p>
+
+    {/* Sub-formulas in Black Color */}
+    <div className="border-t pt-2 mt-2 space-y-1">
+      {formulaDetails.subFormulas && formulaDetails.subFormulas.map((sub, index) => (
+        <div key={index} className="text-black text-xs ml-2 font-medium">
+          <span className="font-bold text-gray-700">{sub.label}:</span> {sub.formula}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
