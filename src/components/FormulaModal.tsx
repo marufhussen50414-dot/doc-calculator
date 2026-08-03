@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays calculation formulas and backward calculation logic in a modal overlay.
+ * Displays Formula 1 and its sub-formulas in a compact layout.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -43,12 +43,14 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Main Formula */}
+          {/* Main Formula & Sub-formulas inside one single block */}
           <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-indigo-900 mb-4">
+            <h3 className="text-lg font-semibold text-indigo-900 mb-3">
               Formula 1
             </h3>
-            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto">
+            
+            {/* Main Formula Box */}
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-indigo-100 shadow-sm">
               <div className="text-gray-700">
                 <span className="font-bold text-indigo-600">NETTO IN BUSTA</span> ={' '}
                 <span className="font-bold text-green-600">TOTALE COMPETENZE</span> -{' '}
@@ -57,51 +59,31 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <span className="font-bold text-blue-600">ARR. ATTUALE</span>
               </div>
             </div>
-          </div>
 
-          {/* Reverse Calculations */}
-          <div className="bg-purple-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-purple-900 mb-4">
-              Reverse Formulas (Backward Calculation)
-            </h3>
-            <div className="space-y-4">
-              {/* Calculate TOTALE COMPETENZE */}
-              <div className="bg-white p-4 rounded-md">
-                <h4 className="font-semibold text-gray-800 mb-2">
-                  To calculate TOTALE COMPETENZE:
-                </h4>
-                <div className="bg-gray-50 p-3 rounded font-mono text-sm overflow-x-auto">
-                  COMPETENZE = NETTO + (TRATTENUTE + ARR. PRECED.) - ARR. ATTUALE
+            {/* Sub-formulas / Backward Calculations right inside the same box */}
+            <div className="mt-4 border-t border-indigo-200 pt-4">
+              <h4 className="text-sm font-bold text-indigo-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate TOTALE COMPETENZE:</span>
+                  <div className="text-gray-900 mt-1">COMPETENZE = NETTO + (TRATTENUTE + ARR. PRECED.) - ARR. ATTUALE</div>
                 </div>
-              </div>
 
-              {/* Calculate TOTALE TRATTENUTE */}
-              <div className="bg-white p-4 rounded-md">
-                <h4 className="font-semibold text-gray-800 mb-2">
-                  To calculate TOTALE TRATTENUTE:
-                </h4>
-                <div className="bg-gray-50 p-3 rounded font-mono text-sm overflow-x-auto">
-                  TRATTENUTE = COMPETENZE - NETTO - ARR. PRECED. + ARR. ATTUALE
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate TOTALE TRATTENUTE:</span>
+                  <div className="text-gray-900 mt-1">TRATTENUTE = COMPETENZE - NETTO - ARR. PRECED. + ARR. ATTUALE</div>
                 </div>
-              </div>
 
-              {/* Calculate ARR. PRECED. */}
-              <div className="bg-white p-4 rounded-md">
-                <h4 className="font-semibold text-gray-800 mb-2">
-                  To calculate ARR. PRECED.:
-                </h4>
-                <div className="bg-gray-50 p-3 rounded font-mono text-sm overflow-x-auto">
-                  ARR. PRECED. = COMPETENZE - NETTO - TRATTENUTE + ARR. ATTUALE
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate ARR. PRECED.:</span>
+                  <div className="text-gray-900 mt-1">ARR. PRECED. = COMPETENZE - NETTO - TRATTENUTE + ARR. ATTUALE</div>
                 </div>
-              </div>
 
-              {/* Calculate ARR. ATTUALE */}
-              <div className="bg-white p-4 rounded-md">
-                <h4 className="font-semibold text-gray-800 mb-2">
-                  To calculate ARR. ATTUALE:
-                </h4>
-                <div className="bg-gray-50 p-3 rounded font-mono text-sm overflow-x-auto">
-                  ARR. ATTUALE = NETTO + TRATTENUTE + ARR. PRECED. - COMPETENZE
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate ARR. ATTUALE:</span>
+                  <div className="text-gray-900 mt-1">ARR. ATTUALE = NETTO + TRATTENUTE + ARR. PRECED. - COMPETENZE</div>
                 </div>
               </div>
             </div>
