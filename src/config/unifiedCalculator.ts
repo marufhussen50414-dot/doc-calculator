@@ -6,23 +6,23 @@ export interface CalculatorField {
 
 interface FormulaConfig {
   inputs: string[];
-  mainFormulaTitle: string;
+  formulaName: string; // যেমন: Formula 1, Formula 2
   subFormulas?: { label: string; formula: string }[];
   calculate: (inputs: { [key: string]: number }) => number;
 }
 
 const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   // -------------------------------------------------------------
-  // Formula 1: NETTO IN BUSTA & Sub-formulas
+  // Formula 1: NETTO IN BUSTA
   // -------------------------------------------------------------
   netto_busta: {
     inputs: ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'],
-    mainFormulaTitle: 'NETTO IN BUSTA = TOTALE COMPETENZE - (TOTALE TRATTENUTE + ARR. PRECED.) + ARR. ATTUALE',
+    formulaName: 'Formula 1',
     subFormulas: [
-      { label: 'Sub-Formula 1', formula: 'TOTALE COMPETENZE (Earnings total)' },
-      { label: 'Sub-Formula 2', formula: 'TOTALE TRATTENUTE (Deductions total)' },
-      { label: 'Sub-Formula 3', formula: 'ARR. PRECED. (Previous roundings)' },
-      { label: 'Sub-Formula 4', formula: 'ARR. ATTUALE (Current roundings)' }
+      { label: 'Sub-Formula 1', formula: 'TOTALE COMPETENZE' },
+      { label: 'Sub-Formula 2', formula: 'TOTALE TRATTENUTE' },
+      { label: 'Sub-Formula 3', formula: 'ARR. PRECED.' },
+      { label: 'Sub-Formula 4', formula: 'ARR. ATTUALE' }
     ],
     calculate: (inputs) => {
       const tc = inputs['totale_competenze'] || 0;
@@ -34,14 +34,14 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   },
 
   // -------------------------------------------------------------
-  // Formula 2: TFR Spettante Azienda & Sub-formulas
+  // Formula 2: TFR Calculation
   // -------------------------------------------------------------
   tfr_spettante_azienda: {
     inputs: ['f_do_tfr_ap', 'tfr_annuo_progr'],
-    mainFormulaTitle: 'TFR Spettante Azienda = F.do TFR al 31/12 AP + TFR Annuo Progr.',
+    formulaName: 'Formula 2',
     subFormulas: [
-      { label: 'Sub-Formula 1', formula: 'F.do TFR al 31/12 AP (Previous year closing TFR fund)' },
-      { label: 'Sub-Formula 2', formula: 'TFR Annuo Progr. (Annual progressive TFR accrual)' }
+      { label: 'Sub-Formula 1', formula: 'F.do TFR al 31/12 AP' },
+      { label: 'Sub-Formula 2', formula: 'TFR Annuo Progr.' }
     ],
     calculate: (inputs) => {
       const fdo = inputs['f_do_tfr_ap'] || 0;
