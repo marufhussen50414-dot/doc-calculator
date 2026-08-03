@@ -12,14 +12,17 @@ type CalculatorMode = 'standard' | 'target' | 'multi';
 
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
-  const [outputField, setOutputField] = useState<string | null>(null); // Initially null
-  const [outputFields, setOutputFields] = useState<Set<string>>(new Set()); // Initially empty
+  const [outputField, setOutputField] = useState<string | null>(null);
+  const [outputFields, setOutputFields] = useState<Set<string>>(new Set());
   const [inputs, setInputs] = useState<{ [key: string]: string | number }>({});
   const [results, setResults] = useState<{ [key: string]: number }>({});
   const [showResult, setShowResult] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // New State for Rounding Toggle (Default: OFF)
+  const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
   const calculator = UNIFIED_CALCULATOR;
   
@@ -75,7 +78,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getRequiredFields = (outputFieldId: string): string[] => {
-    return calculator.getRequiredInputsForField(outputFieldId);
+    let required = calculator.getRequiredInputsForField(outputFieldId);
+    // If Rounding is ENABLED, filter out arr_preced and arr_attuale
+    if (enableRounding) {
+      required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
+    }
+    return required;
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
@@ -169,22 +177,46 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getFieldLabel = (fieldId: string): string => {
-    return calculator.fields.find(f => f.id === fieldId)?.label || fieldId;
+    return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
+        <div className="flex justify-between items-center mb-6">
           <button
             onClick={onBack}
-            className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+            className="flex items-center text-indigo-600 hover:text-indigo-850 transition-colors font-medium"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back to Home
           </button>
+
+          {/* Rounding Toggle Switch at Top Corner */}
+          <div className="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+            <span className="text-sm font-semibold text-gray-700 mr-3">Rounding:</span>
+            <button
+              onClick={() => {
+                setEnableRounding(!enableRounding);
+                setInputs({});
+                setShowResult(false);
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  enableRounding ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className="ml-2 text-xs font-medium text-gray-600">
+              {enableRounding ? 'ON' : 'OFF'}
+            </span>
+          </div>
         </div>
 
         {/* Mode Selector */}
@@ -328,7 +360,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      {/* LEFT COLUMN: Output Selection & Search */}
       <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 sticky top-6">
         <label className="block text-sm font-semibold text-gray-700 mb-3">
           Select the field to calculate (output):
@@ -372,7 +403,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Required Input Fields or Prompt */}
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           {!outputField ? (
@@ -397,7 +427,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {requiredFieldIds.map((fieldId: string) => {
                     const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                     UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                                       UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
 
                     const isRequired = true;
@@ -408,7 +438,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div key={fieldId} className="relative">
                         <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
                           {fieldObj.label}
-                          <span className="text-red-500 ml-1 font-bold text-sm">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
@@ -495,7 +524,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      {/* LEFT COLUMN: Multi Output Selection */}
       <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 sticky top-6">
         <label className="block text-sm font-semibold text-gray-700 mb-3">Select fields to calculate:</label>
         
@@ -524,7 +552,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Required Input Fields for Selected Outputs */}
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           {outputFields.size === 0 ? (
@@ -547,7 +574,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {requiredFieldIds.map((fieldId: string) => {
                     const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                     UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                                       UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
 
                     const isRequired = true;
@@ -558,7 +585,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                       <div key={fieldId} className="relative">
                         <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
                           {fieldObj.label}
-                          <span className="text-red-500 ml-1 font-bold text-sm">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
