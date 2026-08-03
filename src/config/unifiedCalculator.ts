@@ -4,6 +4,69 @@ export interface CalculatorField {
   category: string;
 }
 
+// ফর্মুলার নির্ভরতা এবং হিসাবের লজিক রেজিস্ট্রি
+interface FormulaConfig {
+  inputs: string[];
+  calculate: (inputs: { [key: string]: number }) => number;
+}
+
+const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
+  // 43. NETTO IN BUSTA (Formula 1)
+  netto_busta: {
+    inputs: ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'],
+    calculate: (inputs) => {
+      const tc = inputs['totale_competenze'] || 0;
+      const tt = inputs['totale_trattenute'] || 0;
+      const ap = inputs['arr_preced'] || 0;
+      const aa = inputs['arr_attuale'] || 0;
+      return tc - (tt + ap) + aa;
+    }
+  },
+
+  // 39. TOTALE COMPETENZE
+  totale_competenze: {
+    inputs: ['sett_retr', 'gg_retr', 'gg_lav'],
+    calculate: (inputs) => {
+      const sr = inputs['sett_retr'] || 0;
+      const gr = inputs['gg_retr'] || 0;
+      const gl = inputs['gg_lav'] || 0;
+      return sr + gr + gl;
+    }
+  },
+
+  // 40. TOTALE TRATTENUTE
+  totale_trattenute: {
+    inputs: ['totale_contributi', 'irpef_trattenuta'],
+    calculate: (inputs) => {
+      const tc = inputs['totale_contributi'] || 0;
+      const it = inputs['irpef_trattenuta'] || 0;
+      return tc + it;
+    }
+  },
+
+  // 9. TOTALE CONTRIBUTI
+  totale_contributi: {
+    inputs: ['impon_contributivo_mese', 'contributi_anno'],
+    calculate: (inputs) => {
+      const icm = inputs['impon_contributivo_mese'] || 0;
+      const ca = inputs['contributi_anno'] || 0;
+      return icm + ca;
+    }
+  },
+
+  // 18. IRPEF NETTA (Monthly)
+  irpef_netta_mese: {
+    inputs: ['irpef_lorda_mese', 'detr_lav_dipendente_mese', 'detr_coniuge_mese'],
+    calculate: (inputs) => {
+      const ilm = inputs['irpef_lorda_mese'] || 0;
+      const dldm = inputs['detr_lav_dipendente_mese'] || 0;
+      const dcm = inputs['detr_coniuge_mese'] || 0;
+      return Math.max(0, ilm - (dldm + dcm));
+    }
+  }
+  // আপনি চাইলে এখানে অন্য ফিল্ডগুলোর ফর্মুলা এবং ইনপুট এভাবে খুব সহজেই যুক্ত করতে পারবেন।
+};
+
 export const UNIFIED_CALCULATOR = {
   fields: [
     { id: 'sett_retr', label: '1. SETT. RETR.', category: 'Working Days' },
@@ -52,29 +115,26 @@ export const UNIFIED_CALCULATOR = {
   ] as CalculatorField[],
 
   /**
-   * Returns the exact required input fields needed to calculate a specific output field.
+   * ডাইনামিক্যালি চেক করবে কোন ফিল্ডের জন্য কোন ইনপুটগুলো প্রয়োজন
    */
   getRequiredInputsForField: (outputFieldId: string): string[] => {
-    switch (outputFieldId) {
-      case 'netto_busta':
-        return ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'];
-      
-      // আপনি চাইলে অন্যান্য ফিল্ডের ফর্মুলা অনুযায়ী এখানে নির্দিষ্ট ইনপুট যুক্ত করতে পারেন।
-      // ডিফল্টভাবে অন্যগুলোর জন্য প্রয়োজনীয় ফিল্ড না থাকলে ফাঁکی রাখবে অথবা নিজের আইডি বাদ দিয়ে বাকিগুলো দেখাবে।
-      default:
-        return [];
+    const config = FORMULA_REGISTRY[outputFieldId];
+    if (config) {
+      return config.inputs;
     }
+    return []; // যদি ফর্মুলা রেজিস্টারে না থাকে, কোনো ইনপুট দেখাবে না
   },
 
+  /**
+   * স্বয়ংক্রিয়ভাবে ফর্মুলা ডিটেক্ট করে সঠিক ক্যালকুলেশন সম্পন্ন করবে
+   */
   calculate: (inputs: { [key: string]: number }, outputField: string): number | null => {
-    if (outputField === 'netto_busta') {
-      const totaleCompetenze = inputs['totale_competenze'] || 0;
-      const totaleTrattenute = inputs['totale_trattenute'] || 0;
-      const arrPreced = inputs['arr_preced'] || 0;
-      const arrAttuale = inputs['arr_attuale'] || 0;
-      return totaleCompetenze - (totaleTrattenute + arrPreced) + arrAttuale;
+    const config = FORMULA_REGISTRY[outputField];
+    if (config) {
+      return config.calculate(inputs);
     }
-
+    
+    // যদি নির্দিষ্ট কোনো ফর্মুলা রেজিস্টার করা না থাকে, তবে ইনপুট ফিল্ডের নিজস্ব ভ্যালু রিটার্ন করবে
     return inputs[outputField] !== undefined ? inputs[outputField] : null;
   }
 };
