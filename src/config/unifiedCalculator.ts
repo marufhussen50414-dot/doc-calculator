@@ -6,23 +6,23 @@ export interface CalculatorField {
 
 interface FormulaConfig {
   inputs: string[];
-  formulaName: string; // যেমন: Formula 1, Formula 2
-  subFormulas?: { label: string; formula: string }[];
+  mainFormulaTitle: string; // মূল ফর্মুলা
+  subFormulas?: { label: string; formula: string }[]; // সাব-ফর্মুলাগুলো
   calculate: (inputs: { [key: string]: number }) => number;
 }
 
 const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   // -------------------------------------------------------------
-  // Formula 1: NETTO IN BUSTA
+  // Formula 1: NETTO IN BUSTA & Sub-formulas
   // -------------------------------------------------------------
   netto_busta: {
     inputs: ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'],
-    formulaName: 'Formula 1',
+    mainFormulaTitle: 'NETTO IN BUSTA = TOTALE COMPETENZE - (TOTALE TRATTENUTE + (± ARR. PRECED.)) ± ARR. ATTUALE',
     subFormulas: [
-      { label: 'Sub-Formula 1', formula: 'TOTALE COMPETENZE' },
-      { label: 'Sub-Formula 2', formula: 'TOTALE TRATTENUTE' },
-      { label: 'Sub-Formula 3', formula: 'ARR. PRECED.' },
-      { label: 'Sub-Formula 4', formula: 'ARR. ATTUALE' }
+      { label: 'Sub-Formula 1', formula: 'TOTALE COMPETENZE = Netto - Arr. Attuale + Totale Trattenute + Arr. Preced.' },
+      { label: 'Sub-Formula 2', formula: 'TOTALE TRATTENUTE = Totale Competenze - Arr. Preced. + Arr. Attuale - Netto' },
+      { label: 'Sub-Formula 3', formula: 'ARR. PRECED. = Totale Competenze - Totale Trattenute + Arr. Attuale - Netto' },
+      { label: 'Sub-Formula 4', formula: 'ARR. ATTUALE = Netto - Totale Competenze + Totale Trattenute + Arr. Preced.' }
     ],
     calculate: (inputs) => {
       const tc = inputs['totale_competenze'] || 0;
@@ -38,10 +38,10 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   // -------------------------------------------------------------
   tfr_spettante_azienda: {
     inputs: ['f_do_tfr_ap', 'tfr_annuo_progr'],
-    formulaName: 'Formula 2',
+    mainFormulaTitle: 'TFR Spettante Azienda = F.do TFR al 31/12 AP + TFR Annuo Progr.',
     subFormulas: [
-      { label: 'Sub-Formula 1', formula: 'F.do TFR al 31/12 AP' },
-      { label: 'Sub-Formula 2', formula: 'TFR Annuo Progr.' }
+      { label: 'Sub-Formula 1', formula: 'F.do TFR al 31/12 AP = TFR Spettante - TFR Annuo Progr.' },
+      { label: 'Sub-Formula 2', formula: 'TFR Annuo Progr. = TFR Spettante - F.do TFR al 31/12 AP' }
     ],
     calculate: (inputs) => {
       const fdo = inputs['f_do_tfr_ap'] || 0;
