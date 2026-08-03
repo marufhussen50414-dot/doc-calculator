@@ -51,6 +51,21 @@ export const UNIFIED_CALCULATOR = {
     { id: 'netto_busta', label: '43. NETTO IN BUSTA', category: 'Net Pay' }
   ] as CalculatorField[],
 
+  /**
+   * Returns the exact required input fields needed to calculate a specific output field.
+   */
+  getRequiredInputsForField: (outputFieldId: string): string[] => {
+    switch (outputFieldId) {
+      case 'netto_busta':
+        return ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'];
+      
+      // আপনি চাইলে অন্যান্য ফিল্ডের ফর্মুলা অনুযায়ী এখানে নির্দিষ্ট ইনপুট যুক্ত করতে পারেন।
+      // ডিফল্টভাবে অন্যগুলোর জন্য প্রয়োজনীয় ফিল্ড না থাকলে ফাঁکی রাখবে অথবা নিজের আইডি বাদ দিয়ে বাকিগুলো দেখাবে।
+      default:
+        return [];
+    }
+  },
+
   calculate: (inputs: { [key: string]: number }, outputField: string): number | null => {
     if (outputField === 'netto_busta') {
       const totaleCompetenze = inputs['totale_competenze'] || 0;
