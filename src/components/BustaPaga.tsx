@@ -194,43 +194,71 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
 
-        {/* Mode Selector - Aligned to the right using flex justify-end */}
+        {/* Top Header Section: Rounding Box on Left, Calculation Mode Box on Right */}
         <div className="flex justify-end mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-4xl">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <button
-                onClick={() => handleModeChange('standard')}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="text-2xl mb-2">🎯</div>
-                <div className="font-semibold text-gray-800">Standard</div>
-                <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
-              </button>
+          <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+            {/* Rounding Box (Placed to the left of Calculation Mode) */}
+            <div className="md:col-span-4 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
+              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">Rounding:</span>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setEnableRounding(!enableRounding)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        enableRounding ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className="ml-2 text-xs font-medium text-gray-600 w-8">
+                    {enableRounding ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-              <button
-                onClick={() => handleModeChange('target')}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="text-2xl mb-2">🎪</div>
-                <div className="font-semibold text-gray-800">Target</div>
-                <div className="text-xs text-gray-600 mt-1">Set a goal</div>
-              </button>
+            {/* Calculation Mode Box */}
+            <div className="md:col-span-8 bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => handleModeChange('standard')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-xl mb-1">🎯</div>
+                  <div className="font-semibold text-gray-800 text-sm">Standard</div>
+                  <div className="text-[10px] text-gray-600 mt-0.5">Calculate single field</div>
+                </button>
 
-              <button
-                onClick={() => handleModeChange('multi')}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="text-2xl mb-2">🔢</div>
-                <div className="font-semibold text-gray-800">Multi</div>
-                <div className="text-xs text-gray-600 mt-1">Calculate multiple fields</div>
-              </button>
+                <button
+                  onClick={() => handleModeChange('target')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-xl mb-1">🎪</div>
+                  <div className="font-semibold text-gray-800 text-sm">Target</div>
+                  <div className="text-[10px] text-gray-600 mt-0.5">Set a goal</div>
+                </button>
+
+                <button
+                  onClick={() => handleModeChange('multi')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-xl mb-1">🔢</div>
+                  <div className="font-semibold text-gray-800 text-sm">Multi</div>
+                  <div className="text-[10px] text-gray-600 mt-0.5">Calculate multiple</div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -259,8 +287,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onReset={handleReset}
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
-            enableRounding={enableRounding}
-            setEnableRounding={setEnableRounding}
           />
         ) : (
           <StandardModeCalculator
@@ -280,8 +306,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onReset={handleReset}
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
-            enableRounding={enableRounding}
-            setEnableRounding={setEnableRounding}
           />
         )}
 
@@ -320,8 +344,6 @@ interface StandardModeCalculatorProps {
   onReset: () => void;
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
-  enableRounding: boolean;
-  setEnableRounding: (val: boolean) => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -340,38 +362,12 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onReset,
   formatCurrency,
   getFieldLabel,
-  enableRounding,
-  setEnableRounding,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-5 space-y-6">
-        {/* Rounding Box */}
-        <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-700">Rounding:</span>
-          <div className="flex items-center">
-            <button
-              onClick={() => {
-                setEnableRounding(!enableRounding);
-              }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  enableRounding ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span className="ml-2 text-xs font-medium text-gray-600 w-8">
-              {enableRounding ? 'ON' : 'OFF'}
-            </span>
-          </div>
-        </div>
-
         <div className="bg-white rounded-lg shadow-md p-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Select the field to calculate (output):
@@ -512,8 +508,6 @@ interface MultiModeCalculatorProps {
   onReset: () => void;
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
-  enableRounding: boolean;
-  setEnableRounding: (val: boolean) => void;
 }
 
 const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
@@ -532,8 +526,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   onReset,
   formatCurrency,
   getFieldLabel,
-  enableRounding,
-  setEnableRounding,
 }) => {
   const requiredFieldIds = Array.from(
     new Set(Array.from(outputFields).flatMap(field => getRequiredFields(field)))
@@ -542,28 +534,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-5 space-y-6">
-        {/* Rounding box for Multi Mode */}
-        <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-700">Rounding:</span>
-          <div className="flex items-center">
-            <button
-              onClick={() => setEnableRounding(!enableRounding)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  enableRounding ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span className="ml-2 text-xs font-medium text-gray-600 w-8">
-              {enableRounding ? 'ON' : 'OFF'}
-            </span>
-          </div>
-        </div>
-
         <div className="bg-white rounded-lg shadow-md p-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">Select fields to calculate:</label>
           
