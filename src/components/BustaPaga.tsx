@@ -12,8 +12,8 @@ type CalculatorMode = 'standard' | 'target' | 'multi';
 
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
-  const [outputField, setOutputField] = useState<string>('netto_busta');
-  const [outputFields, setOutputFields] = useState<Set<string>>(new Set(['netto_busta']));
+  const [outputField, setOutputField] = useState<string | null>(null); // Initially null
+  const [outputFields, setOutputFields] = useState<Set<string>>(new Set()); // Initially empty
   const [inputs, setInputs] = useState<{ [key: string]: string | number }>({});
   const [results, setResults] = useState<{ [key: string]: number }>({});
   const [showResult, setShowResult] = useState(false);
@@ -48,15 +48,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setShowResult(false);
     setAttempted(false);
     setResults({});
-    setInputs({}); // Reset inputs when output changes to avoid stale values
+    setInputs({});
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
     const newOutputFields = new Set(outputFields);
     if (newOutputFields.has(fieldId)) {
-      if (newOutputFields.size > 1) {
-        newOutputFields.delete(fieldId);
-      }
+      newOutputFields.delete(fieldId);
     } else {
       newOutputFields.add(fieldId);
     }
@@ -76,9 +74,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return numericInputs;
   };
 
-  /**
-   * Fetches exact required fields based on formula dependencies.
-   */
   const getRequiredFields = (outputFieldId: string): string[] => {
     return calculator.getRequiredInputsForField(outputFieldId);
   };
@@ -93,6 +88,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const handleCalculate = () => {
+    if (!outputField) return;
     setAttempted(true);
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
@@ -109,6 +105,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const handleMultiCalculate = () => {
+    if (outputFields.size === 0) return;
     setAttempted(true);
 
     const allRequiredFields = new Set<string>();
@@ -152,8 +149,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setShowResult(false);
     setAttempted(false);
     if (mode === 'standard') {
-      setOutputField('netto_busta');
-      setOutputFields(new Set(['netto_busta']));
+      setOutputField(null);
+      setOutputFields(new Set());
+    } else if (mode === 'multi') {
+      setOutputFields(new Set());
     }
   };
 
@@ -294,7 +293,7 @@ interface StandardModeCalculatorProps {
   filteredFields: any[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  outputField: string;
+  outputField: string | null;
   inputs: { [key: string]: string | number };
   results: { [key: string]: number };
   showResult: boolean;
@@ -325,7 +324,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
-  const requiredFieldIds = getRequiredFields(outputField);
+  const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -353,79 +352,97 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
         </div>
 
         <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '550px' }}>
-          {filteredFields.map((field: any) => (
-            <button
-              key={field.id}
-              onClick={() => onOutputFieldChange(field.id)}
-              className={`p-3.5 rounded-lg border-2 text-left transition-all ${
-                outputField === field.id ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
-              }`}
-            >
-              <span className="font-medium text-sm">{field.label}</span>
-            </button>
-          ))}
+          {filteredFields.map((field: any) => {
+            const isSelected = outputField === field.id;
+
+            return (
+              <button
+                key={field.id}
+                onClick={() => onOutputFieldChange(field.id)}
+                className={`p-3.5 rounded-lg border-2 text-left transition-all ${
+                  isSelected 
+                    ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200' 
+                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
+                }`}
+              >
+                <span className="font-medium text-sm">{field.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Only Required Input Fields */}
+      {/* RIGHT COLUMN: Required Input Fields or Prompt */}
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-4">
-            Enter the required values for {getFieldLabel(outputField)}:
-          </label>
-
-          {requiredFieldIds.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              এই ফিল্ডের জন্য কোনো নির্দিষ্ট ইনপুটের প্রয়োজন নেই। সরাসরি Calculate করতে পারেন।
+          {!outputField ? (
+            <div className="text-center py-16 text-gray-500">
+              <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+              <p className="text-base font-medium text-gray-700">Please select a field from the left list first.</p>
+              <p className="text-xs text-gray-400 mt-1">Required inputs will appear here automatically.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {requiredFieldIds.map((fieldId: string) => {
-                const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                 UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
-                if (!fieldObj) return null;
+            <>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                Enter the required values for {getFieldLabel(outputField)}:
+              </label>
 
-                const isRequired = true;
-                const isEmpty = !inputs[fieldId];
-                const showError = attempted && isRequired && isEmpty;
+              {requiredFieldIds.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No specific inputs are required for this field. You can calculate directly.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {requiredFieldIds.map((fieldId: string) => {
+                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                                     UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                    if (!fieldObj) return null;
 
-                return (
-                  <div key={fieldId} className="relative">
-                    <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
-                      {fieldObj.label}
-                      <span className="text-red-500 ml-1 font-bold text-sm">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                      <input
-                        id={fieldId}
-                        type="number"
-                        step="0.01"
-                        value={inputs[fieldId] || ''}
-                        onChange={(e) => onInputChange(fieldId, e.target.value)}
-                        placeholder="0.00"
-                        className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
-                          showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    const isRequired = true;
+                    const isEmpty = !inputs[fieldId];
+                    const showError = attempted && isRequired && isEmpty;
+
+                    return (
+                      <div key={fieldId} className="relative">
+                        <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                          {fieldObj.label}
+                          <span className="text-red-500 ml-1 font-bold text-sm">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            id={fieldId}
+                            type="number"
+                            step="0.01"
+                            value={inputs[fieldId] || ''}
+                            onChange={(e) => onInputChange(fieldId, e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                              showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex gap-4 mt-6">
+                <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 font-semibold shadow-md transition-colors">
+                  Calculate
+                </button>
+                <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors">
+                  Reset
+                </button>
+              </div>
+            </>
           )}
-
-          <div className="flex gap-4 mt-6">
-            <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 font-semibold shadow-md transition-colors">
-              Calculate
-            </button>
-            <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors">
-              Reset
-            </button>
-          </div>
         </div>
 
-        {showResult && results[outputField] !== undefined && (
+        {showResult && outputField && results[outputField] !== undefined && (
           <div className="bg-white rounded-lg border-2 border-gray-800 shadow-md p-6 text-center animate-fadeIn">
             <p className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">{getFieldLabel(outputField)}</p>
             <p className="text-4xl font-extrabold text-gray-900">{formatCurrency(results[outputField])}</p>
@@ -472,7 +489,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
-  // Collect unique required fields for all selected output fields
   const requiredFieldIds = Array.from(
     new Set(Array.from(outputFields).flatMap(field => getRequiredFields(field)))
   );
@@ -511,57 +527,69 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
       {/* RIGHT COLUMN: Required Input Fields for Selected Outputs */}
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-4">Enter the required values:</label>
-
-          {requiredFieldIds.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              নির্বাচিত ফিল্ডগুলোর জন্য কোনো ইনপুটের প্রয়োজন নেই।
+          {outputFields.size === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+              <p className="text-base font-medium text-gray-700">Please select at least one field from the left list.</p>
+              <p className="text-xs text-gray-400 mt-1">Required inputs will appear here automatically.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {requiredFieldIds.map((fieldId: string) => {
-                const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                 UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
-                if (!fieldObj) return null;
+            <>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">Enter the required values:</label>
 
-                const isRequired = true;
-                const isEmpty = !inputs[fieldId];
-                const showError = attempted && isRequired && isEmpty;
+              {requiredFieldIds.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No inputs are required for the selected fields.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {requiredFieldIds.map((fieldId: string) => {
+                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                                     UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                    if (!fieldObj) return null;
 
-                return (
-                  <div key={fieldId} className="relative">
-                    <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
-                      {fieldObj.label}
-                      <span className="text-red-500 ml-1 font-bold text-sm">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                      <input
-                        id={fieldId}
-                        type="number"
-                        step="0.01"
-                        value={inputs[fieldId] || ''}
-                        onChange={(e) => onInputChange(fieldId, e.target.value)}
-                        placeholder="0.00"
-                        className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm ${
-                          showError ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    const isRequired = true;
+                    const isEmpty = !inputs[fieldId];
+                    const showError = attempted && isRequired && isEmpty;
+
+                    return (
+                      <div key={fieldId} className="relative">
+                        <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                          {fieldObj.label}
+                          <span className="text-red-500 ml-1 font-bold text-sm">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            id={fieldId}
+                            type="number"
+                            step="0.01"
+                            value={inputs[fieldId] || ''}
+                            onChange={(e) => onInputChange(fieldId, e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm ${
+                              showError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex gap-4 mt-6">
+                <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold shadow-md">
+                  Calculate All
+                </button>
+                <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold">
+                  Reset
+                </button>
+              </div>
+            </>
           )}
-
-          <div className="flex gap-4 mt-6">
-            <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold shadow-md">
-              Calculate All
-            </button>
-            <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold">
-              Reset
-            </button>
-          </div>
         </div>
 
         {showResult && Object.keys(results).length > 0 && (
