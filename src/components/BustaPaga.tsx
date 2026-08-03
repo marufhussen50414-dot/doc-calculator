@@ -194,13 +194,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
 
-        {/* Top Header Section: Rounding Box on Left, Calculation Mode Box on Right */}
+        {/* Top Header Section: Equal height boxes for Settings & Calculation Mode */}
         <div className="flex justify-end mb-8">
           <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
-            {/* Rounding Box (Placed to the left of Calculation Mode) */}
+            {/* Settings / Rounding Box (Matched height & padding) */}
             <div className="md:col-span-4 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
-              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
                 <span className="text-sm font-semibold text-gray-700">Rounding:</span>
                 <div className="flex items-center">
                   <button
@@ -222,41 +222,41 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
               </div>
             </div>
 
-            {/* Calculation Mode Box */}
-            <div className="md:col-span-8 bg-white rounded-lg shadow-md p-6">
+            {/* Calculation Mode Box (Restored to original size) */}
+            <div className="md:col-span-8 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
               <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => handleModeChange('standard')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-4 rounded-lg border-2 transition-all ${
                     mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                   }`}
                 >
-                  <div className="text-xl mb-1">🎯</div>
+                  <div className="text-2xl mb-2">🎯</div>
                   <div className="font-semibold text-gray-800 text-sm">Standard</div>
-                  <div className="text-[10px] text-gray-600 mt-0.5">Calculate single field</div>
+                  <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
                 </button>
 
                 <button
                   onClick={() => handleModeChange('target')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-4 rounded-lg border-2 transition-all ${
                     mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                   }`}
                 >
-                  <div className="text-xl mb-1">🎪</div>
+                  <div className="text-2xl mb-2">🎪</div>
                   <div className="font-semibold text-gray-800 text-sm">Target</div>
-                  <div className="text-[10px] text-gray-600 mt-0.5">Set a goal</div>
+                  <div className="text-xs text-gray-600 mt-1">Set a goal</div>
                 </button>
 
                 <button
                   onClick={() => handleModeChange('multi')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-4 rounded-lg border-2 transition-all ${
                     mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                   }`}
                 >
-                  <div className="text-xl mb-1">🔢</div>
+                  <div className="text-2xl mb-2">🔢</div>
                   <div className="font-semibold text-gray-800 text-sm">Multi</div>
-                  <div className="text-[10px] text-gray-600 mt-0.5">Calculate multiple</div>
+                  <div className="text-xs text-gray-600 mt-1">Calculate multiple fields</div>
                 </button>
               </div>
             </div>
