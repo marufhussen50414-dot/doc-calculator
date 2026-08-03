@@ -194,71 +194,69 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
 
-        {/* Top Header Section: Equal height boxes for Settings & Calculation Mode */}
-        <div className="flex justify-end mb-8">
-          <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
-            {/* Settings / Rounding Box (Matched height & padding) */}
-            <div className="md:col-span-4 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
-              <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
-                <span className="text-sm font-semibold text-gray-700">Rounding:</span>
-                <div className="flex items-center">
-                  <button
-                    onClick={() => setEnableRounding(!enableRounding)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                      enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
+        {/* Top Header Section matched perfectly with the 5/7 grid columns of the main content */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
+          {/* Settings Box - Aligned with Left Column (col-span-5) */}
+          <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
+            <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
+              <span className="text-sm font-semibold text-gray-700">Rounding:</span>
+              <div className="flex items-center">
+                <button
+                  onClick={() => setEnableRounding(!enableRounding)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      enableRounding ? 'translate-x-6' : 'translate-x-1'
                     }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        enableRounding ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                  <span className="ml-2 text-xs font-medium text-gray-600 w-8">
-                    {enableRounding ? 'ON' : 'OFF'}
-                  </span>
-                </div>
+                  />
+                </button>
+                <span className="ml-2 text-xs font-medium text-gray-600 w-8">
+                  {enableRounding ? 'ON' : 'OFF'}
+                </span>
               </div>
             </div>
+          </div>
 
-            {/* Calculation Mode Box (Restored to original size) */}
-            <div className="md:col-span-8 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => handleModeChange('standard')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="text-2xl mb-2">🎯</div>
-                  <div className="font-semibold text-gray-800 text-sm">Standard</div>
-                  <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
-                </button>
+          {/* Calculation Mode Box - Aligned with Right Column (col-span-7) */}
+          <div className="lg:col-span-7 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => handleModeChange('standard')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-2xl mb-2">🎯</div>
+                <div className="font-semibold text-gray-800 text-sm">Standard</div>
+                <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
+              </button>
 
-                <button
-                  onClick={() => handleModeChange('target')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="text-2xl mb-2">🎪</div>
-                  <div className="font-semibold text-gray-800 text-sm">Target</div>
-                  <div className="text-xs text-gray-600 mt-1">Set a goal</div>
-                </button>
+              <button
+                onClick={() => handleModeChange('target')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-2xl mb-2">🎪</div>
+                <div className="font-semibold text-gray-800 text-sm">Target</div>
+                <div className="text-xs text-gray-600 mt-1">Set a goal</div>
+              </button>
 
-                <button
-                  onClick={() => handleModeChange('multi')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="text-2xl mb-2">🔢</div>
-                  <div className="font-semibold text-gray-800 text-sm">Multi</div>
-                  <div className="text-xs text-gray-600 mt-1">Calculate multiple fields</div>
-                </button>
-              </div>
+              <button
+                onClick={() => handleModeChange('multi')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-2xl mb-2">🔢</div>
+                <div className="font-semibold text-gray-800 text-sm">Multi</div>
+                <div className="text-xs text-gray-600 mt-1">Calculate multiple fields</div>
+              </button>
             </div>
           </div>
         </div>
@@ -309,7 +307,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           />
         )}
 
-        <div className="mt-6 text-right max-w-4xl ml-auto pr-2">
+        <div className="mt-6 text-right max-w-7xl mx-auto pr-2">
           <button
             onClick={() => setShowFormulaModal(true)}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors text-sm font-medium"
