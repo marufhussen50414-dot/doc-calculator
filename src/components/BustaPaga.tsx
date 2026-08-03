@@ -79,7 +79,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
   const getRequiredFields = (outputFieldId: string): string[] => {
     let required = calculator.getRequiredInputsForField(outputFieldId);
-    if (enableRounding) {
+    // Rounding OFF হলে arr_preced এবং arr_attuale ফিল্ডগুলো বাদ যাবে (remove হবে)
+    if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
     return required;
@@ -194,7 +195,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
 
-        {/* Top Header Section matched perfectly with the 5/7 grid columns of the main content */}
+        {/* Top Header Section matched perfectly with the 5/7 grid columns */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
           {/* Settings Box - Aligned with Left Column (col-span-5) */}
           <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
@@ -203,7 +204,19 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
               <span className="text-sm font-semibold text-gray-700">Rounding:</span>
               <div className="flex items-center">
                 <button
-                  onClick={() => setEnableRounding(!enableRounding)}
+                  onClick={() => {
+                    const newRoundingState = !enableRounding;
+                    setEnableRounding(newRoundingState);
+                    // Rounding OFF হলে inputs থেকে রাউন্डिंग ফিল্ডগুলোর ভ্যালু স্বয়ংক্রিয়ভাবে মুছে ফেলা হবে
+                    if (!newRoundingState) {
+                      setInputs(prev => {
+                        const updated = { ...prev };
+                        delete updated['arr_preced'];
+                        delete updated['arr_attuale'];
+                        return updated;
+                      });
+                    }
+                  }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                     enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
                   }`}
