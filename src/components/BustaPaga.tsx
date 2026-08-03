@@ -194,8 +194,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
 
-        {/* Mode Selector */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 max-w-4xl mx-auto">
+        {/* Mode Selector - Shifted right using pl-12 or ml-auto/offset styling */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 max-w-4xl mx-auto ml-12">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <button
@@ -234,7 +234,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         </div>
 
         {mode === 'target' ? (
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto ml-12">
             <TargetCalculator onBack={() => setMode('standard')} />
           </div>
         ) : mode === 'multi' ? (
@@ -281,7 +281,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           />
         )}
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center ml-12">
           <button
             onClick={() => setShowFormulaModal(true)}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors text-sm font-medium"
@@ -342,9 +342,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start ml-12">
       <div className="lg:col-span-5 space-y-6">
-        {/* New Options Box aligned with left column */}
+        {/* Rounding Box */}
         <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
           <span className="text-sm font-semibold text-gray-700">Rounding:</span>
           <div className="flex items-center">
@@ -536,7 +536,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start ml-12">
       <div className="lg:col-span-5 space-y-6">
         {/* Rounding box for Multi Mode */}
         <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
