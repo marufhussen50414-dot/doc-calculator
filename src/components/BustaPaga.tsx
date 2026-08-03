@@ -194,48 +194,52 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
 
-        {/* Mode Selector - Shifted right using pl-12 or ml-auto/offset styling */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 max-w-4xl mx-auto ml-12">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <button
-              onClick={() => handleModeChange('standard')}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-2xl mb-2">🎯</div>
-              <div className="font-semibold text-gray-800">Standard</div>
-              <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
-            </button>
+        {/* Mode Selector - Aligned to the right using flex justify-end */}
+        <div className="flex justify-end mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-4xl">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <button
+                onClick={() => handleModeChange('standard')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  mode === 'standard' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-2xl mb-2">🎯</div>
+                <div className="font-semibold text-gray-800">Standard</div>
+                <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
+              </button>
 
-            <button
-              onClick={() => handleModeChange('target')}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-2xl mb-2">🎪</div>
-              <div className="font-semibold text-gray-800">Target</div>
-              <div className="text-xs text-gray-600 mt-1">Set a goal</div>
-            </button>
+              <button
+                onClick={() => handleModeChange('target')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-2xl mb-2">🎪</div>
+                <div className="font-semibold text-gray-800">Target</div>
+                <div className="text-xs text-gray-600 mt-1">Set a goal</div>
+              </button>
 
-            <button
-              onClick={() => handleModeChange('multi')}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-2xl mb-2">🔢</div>
-              <div className="font-semibold text-gray-800">Multi</div>
-              <div className="text-xs text-gray-600 mt-1">Calculate multiple fields</div>
-            </button>
+              <button
+                onClick={() => handleModeChange('multi')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  mode === 'multi' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-2xl mb-2">🔢</div>
+                <div className="font-semibold text-gray-800">Multi</div>
+                <div className="text-xs text-gray-600 mt-1">Calculate multiple fields</div>
+              </button>
+            </div>
           </div>
         </div>
 
         {mode === 'target' ? (
-          <div className="max-w-4xl mx-auto ml-12">
-            <TargetCalculator onBack={() => setMode('standard')} />
+          <div className="flex justify-end">
+            <div className="w-full max-w-4xl">
+              <TargetCalculator onBack={() => setMode('standard')} />
+            </div>
           </div>
         ) : mode === 'multi' ? (
           <MultiModeCalculator
@@ -281,7 +285,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           />
         )}
 
-        <div className="mt-6 text-center ml-12">
+        <div className="mt-6 text-right max-w-4xl ml-auto pr-2">
           <button
             onClick={() => setShowFormulaModal(true)}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors text-sm font-medium"
@@ -342,7 +346,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start ml-12">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-5 space-y-6">
         {/* Rounding Box */}
         <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
@@ -536,7 +540,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start ml-12">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-5 space-y-6">
         {/* Rounding box for Multi Mode */}
         <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
