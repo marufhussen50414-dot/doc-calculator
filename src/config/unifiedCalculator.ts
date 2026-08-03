@@ -33,8 +33,56 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     }
   },
 
+  totale_competenze: {
+    inputs: ['netto_busta', 'totale_trattenute', 'arr_preced', 'arr_attuale'],
+    mainFormulaTitle: 'TOTALE COMPETENZE = NETTO IN BUSTA + (TOTALE TRATTENUTE + ARR. PRECED.) - ARR. ATTUALE',
+    calculate: (inputs) => {
+      const netto = inputs['netto_busta'] || 0;
+      const tt = inputs['totale_trattenute'] || 0;
+      const ap = inputs['arr_preced'] || 0;
+      const aa = inputs['arr_attuale'] || 0;
+      return netto + (tt + ap) - aa;
+    }
+  },
+
+  totale_trattenute: {
+    inputs: ['totale_competenze', 'netto_busta', 'arr_preced', 'arr_attuale'],
+    mainFormulaTitle: 'TOTALE TRATTENUTE = TOTALE COMPETENZE - NETTO IN BUSTA - ARR. PRECED. + ARR. ATTUALE',
+    calculate: (inputs) => {
+      const tc = inputs['totale_competenze'] || 0;
+      const netto = inputs['netto_busta'] || 0;
+      const ap = inputs['arr_preced'] || 0;
+      const aa = inputs['arr_attuale'] || 0;
+      return tc - netto - ap + aa;
+    }
+  },
+
+  arr_preced: {
+    inputs: ['totale_competenze', 'netto_busta', 'totale_trattenute', 'arr_attuale'],
+    mainFormulaTitle: 'ARR. PRECED. = TOTALE COMPETENZE - NETTO IN BUSTA - TOTALE TRATTENUTE + ARR. ATTUALE',
+    calculate: (inputs) => {
+      const tc = inputs['totale_competenze'] || 0;
+      const netto = inputs['netto_busta'] || 0;
+      const tt = inputs['totale_trattenute'] || 0;
+      const aa = inputs['arr_attuale'] || 0;
+      return tc - netto - tt + aa;
+    }
+  },
+
+  arr_attuale: {
+    inputs: ['netto_busta', 'totale_competenze', 'totale_trattenute', 'arr_preced'],
+    mainFormulaTitle: 'ARR. ATTUALE = NETTO IN BUSTA + TOTALE TRATTENUTE + ARR. PRECED. - TOTALE COMPETENZE',
+    calculate: (inputs) => {
+      const netto = inputs['netto_busta'] || 0;
+      const tc = inputs['totale_competenze'] || 0;
+      const tt = inputs['totale_trattenute'] || 0;
+      const ap = inputs['arr_preced'] || 0;
+      return netto + tt + ap - tc;
+    }
+  },
+
   // -------------------------------------------------------------
-  // Formula 2: TFR Calculation
+  // Formula 2: TFR Calculation & Sub-formulas
   // -------------------------------------------------------------
   tfr_spettante_azienda: {
     inputs: ['f_do_tfr_ap', 'tfr_annuo_progr'],
@@ -47,6 +95,26 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
       const fdo = inputs['f_do_tfr_ap'] || 0;
       const tfrProg = inputs['tfr_annuo_progr'] || 0;
       return fdo + tfrProg;
+    }
+  },
+
+  f_do_tfr_ap: {
+    inputs: ['tfr_spettante_azienda', 'tfr_annuo_progr'],
+    mainFormulaTitle: 'F.do TFR al 31/12 AP = TFR Spettante Azienda - TFR Annuo Progr.',
+    calculate: (inputs) => {
+      const tfrSpettante = inputs['tfr_spettante_azienda'] || 0;
+      const tfrProg = inputs['tfr_annuo_progr'] || 0;
+      return tfrSpettante - tfrProg;
+    }
+  },
+
+  tfr_annuo_progr: {
+    inputs: ['tfr_spettante_azienda', 'f_do_tfr_ap'],
+    mainFormulaTitle: 'TFR Annuo Progr. = TFR Spettante Azienda - F.do TFR al 31/12 AP',
+    calculate: (inputs) => {
+      const tfrSpettante = inputs['tfr_spettante_azienda'] || 0;
+      const fdo = inputs['f_do_tfr_ap'] || 0;
+      return tfrSpettante - fdo;
     }
   }
 };
