@@ -10,11 +10,6 @@ interface BustaPagaProps {
 
 type CalculatorMode = 'standard' | 'target' | 'multi';
 
-/**
- * Busta Paga Calculator Component
- * 
- * Updated validation logic: Only marks required fields that belong to the active formula.
- */
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
   const [outputField, setOutputField] = useState<string>('netto_busta');
@@ -53,9 +48,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setShowResult(false);
     setAttempted(false);
     setResults({});
-    const newInputs = { ...inputs };
-    delete newInputs[fieldId];
-    setInputs(newInputs);
+    setInputs({}); // Reset inputs when output changes to avoid stale values
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -69,12 +62,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
     setOutputFields(newOutputFields);
     setAttempted(false);
-    
-    const newInputs = { ...inputs };
-    newOutputFields.forEach(field => {
-      delete newInputs[field];
-    });
-    setInputs(newInputs);
+    setInputs({});
     setShowResult(false);
     setResults({});
   };
@@ -89,19 +77,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   /**
-   * CORRECTED: Define exact required fields based on the formula requirement 
-   * instead of locking all input fields blindly.
+   * Fetches exact required fields based on formula dependencies.
    */
   const getRequiredFields = (outputFieldId: string): string[] => {
-    if (outputFieldId === 'netto_busta') {
-      // Netto in busta requires these core fields based on its formula
-      return ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'];
-    }
-    
-    // For other fields, fall back to general inputs except the output itself
-    return calculator.fields
-      .filter((f: any) => f.id !== outputFieldId && f.category !== 'TFR')
-      .map((f: any) => f.id);
+    return calculator.getRequiredInputsForField(outputFieldId);
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
@@ -388,34 +367,42 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Input Fields, Calculate, Reset & Results */}
+      {/* RIGHT COLUMN: Only Required Input Fields */}
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           <label className="block text-sm font-semibold text-gray-700 mb-4">
-            Enter the known values:
+            Enter the required values for {getFieldLabel(outputField)}:
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredFields
-              .filter((field: any) => field.id !== outputField)
-              .map((field: any) => {
-                const isRequired = requiredFieldIds.includes(field.id);
-                const isEmpty = !inputs[field.id];
+
+          {requiredFieldIds.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              এই ফিল্ডের জন্য কোনো নির্দিষ্ট ইনপুটের প্রয়োজন নেই। সরাসরি Calculate করতে পারেন।
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {requiredFieldIds.map((fieldId: string) => {
+                const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                                 UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                if (!fieldObj) return null;
+
+                const isRequired = true;
+                const isEmpty = !inputs[fieldId];
                 const showError = attempted && isRequired && isEmpty;
 
                 return (
-                  <div key={field.id} className="relative">
-                    <label htmlFor={field.id} className="block text-xs font-semibold text-gray-700 mb-1">
-                      {field.label}
-                      {showError && <span className="text-red-500 ml-1 font-bold text-sm">*</span>}
+                  <div key={fieldId} className="relative">
+                    <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                      {fieldObj.label}
+                      <span className="text-red-500 ml-1 font-bold text-sm">*</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                       <input
-                        id={field.id}
+                        id={fieldId}
                         type="number"
                         step="0.01"
-                        value={inputs[field.id] || ''}
-                        onChange={(e) => onInputChange(field.id, e.target.value)}
+                        value={inputs[fieldId] || ''}
+                        onChange={(e) => onInputChange(fieldId, e.target.value)}
                         placeholder="0.00"
                         className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
                           showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
@@ -425,7 +412,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
 
           <div className="flex gap-4 mt-6">
             <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 font-semibold shadow-md transition-colors">
@@ -484,7 +472,10 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
 }) => {
-  const requiredFieldIds = Array.from(outputFields).flatMap(field => getRequiredFields(field));
+  // Collect unique required fields for all selected output fields
+  const requiredFieldIds = Array.from(
+    new Set(Array.from(outputFields).flatMap(field => getRequiredFields(field)))
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -517,32 +508,40 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Multi Input Fields & Results */}
+      {/* RIGHT COLUMN: Required Input Fields for Selected Outputs */}
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-4">Enter the known values:</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredFields
-              .filter((field: any) => !outputFields.has(field.id))
-              .map((field: any) => {
-                const isRequired = requiredFieldIds.includes(field.id);
-                const isEmpty = !inputs[field.id];
+          <label className="block text-sm font-semibold text-gray-700 mb-4">Enter the required values:</label>
+
+          {requiredFieldIds.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              নির্বাচিত ফিল্ডগুলোর জন্য কোনো ইনপুটের প্রয়োজন নেই।
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {requiredFieldIds.map((fieldId: string) => {
+                const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                                 UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                if (!fieldObj) return null;
+
+                const isRequired = true;
+                const isEmpty = !inputs[fieldId];
                 const showError = attempted && isRequired && isEmpty;
 
                 return (
-                  <div key={field.id} className="relative">
-                    <label htmlFor={field.id} className="block text-xs font-semibold text-gray-700 mb-1">
-                      {field.label}
-                      {showError && <span className="text-red-500 ml-1 font-bold text-sm">*</span>}
+                  <div key={fieldId} className="relative">
+                    <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                      {fieldObj.label}
+                      <span className="text-red-500 ml-1 font-bold text-sm">*</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                       <input
-                        id={field.id}
+                        id={fieldId}
                         type="number"
                         step="0.01"
-                        value={inputs[field.id] || ''}
-                        onChange={(e) => onInputChange(field.id, e.target.value)}
+                        value={inputs[fieldId] || ''}
+                        onChange={(e) => onInputChange(fieldId, e.target.value)}
                         placeholder="0.00"
                         className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm ${
                           showError ? 'border-red-500 bg-red-50' : 'border-gray-300'
@@ -552,7 +551,8 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
 
           <div className="flex gap-4 mt-6">
             <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold shadow-md">
