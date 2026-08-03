@@ -21,7 +21,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   
-  // New State for Rounding Toggle (Default: OFF)
+  // Rounding State (Default: OFF)
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
   const calculator = UNIFIED_CALCULATOR;
@@ -79,7 +79,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
   const getRequiredFields = (outputFieldId: string): string[] => {
     let required = calculator.getRequiredInputsForField(outputFieldId);
-    // If Rounding is ENABLED, filter out arr_preced and arr_attuale
     if (enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
@@ -193,30 +192,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             </svg>
             Back to Home
           </button>
-
-          {/* Rounding Toggle Switch at Top Corner */}
-          <div className="flex items-center bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-            <span className="text-sm font-semibold text-gray-700 mr-3">Rounding:</span>
-            <button
-              onClick={() => {
-                setEnableRounding(!enableRounding);
-                setInputs({});
-                setShowResult(false);
-              }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  enableRounding ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span className="ml-2 text-xs font-medium text-gray-600">
-              {enableRounding ? 'ON' : 'OFF'}
-            </span>
-          </div>
         </div>
 
         {/* Mode Selector */}
@@ -280,6 +255,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onReset={handleReset}
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
+            enableRounding={enableRounding}
+            setEnableRounding={setEnableRounding}
           />
         ) : (
           <StandardModeCalculator
@@ -299,6 +276,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onReset={handleReset}
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
+            enableRounding={enableRounding}
+            setEnableRounding={setEnableRounding}
           />
         )}
 
@@ -337,6 +316,8 @@ interface StandardModeCalculatorProps {
   onReset: () => void;
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
+  enableRounding: boolean;
+  setEnableRounding: (val: boolean) => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -355,51 +336,79 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onReset,
   formatCurrency,
   getFieldLabel,
+  enableRounding,
+  setEnableRounding,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 sticky top-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
-          Select the field to calculate (output):
-        </label>
-        
-        <div className="mb-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search fields..."
-              className="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
-            />
+      <div className="lg:col-span-5 space-y-6">
+        {/* New Options Box aligned with left column */}
+        <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700">Rounding:</span>
+          <div className="flex items-center">
+            <button
+              onClick={() => {
+                setEnableRounding(!enableRounding);
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  enableRounding ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className="ml-2 text-xs font-medium text-gray-600 w-8">
+              {enableRounding ? 'ON' : 'OFF'}
+            </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '550px' }}>
-          {filteredFields.map((field: any) => {
-            const isSelected = outputField === field.id;
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Select the field to calculate (output):
+          </label>
+          
+          <div className="mb-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search fields..."
+                className="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+              />
+            </div>
+          </div>
 
-            return (
-              <button
-                key={field.id}
-                onClick={() => onOutputFieldChange(field.id)}
-                className={`p-3.5 rounded-lg border-2 text-left transition-all ${
-                  isSelected 
-                    ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200' 
-                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
-                }`}
-              >
-                <span className="font-medium text-sm">{field.label}</span>
-              </button>
-            );
-          })}
+          <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
+            {filteredFields.map((field: any) => {
+              const isSelected = outputField === field.id;
+
+              return (
+                <button
+                  key={field.id}
+                  onClick={() => onOutputFieldChange(field.id)}
+                  className={`p-3.5 rounded-lg border-2 text-left transition-all ${
+                    isSelected 
+                      ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200' 
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
+                  }`}
+                >
+                  <span className="font-medium text-sm">{field.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -499,6 +508,8 @@ interface MultiModeCalculatorProps {
   onReset: () => void;
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
+  enableRounding: boolean;
+  setEnableRounding: (val: boolean) => void;
 }
 
 const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
@@ -517,6 +528,8 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   onReset,
   formatCurrency,
   getFieldLabel,
+  enableRounding,
+  setEnableRounding,
 }) => {
   const requiredFieldIds = Array.from(
     new Set(Array.from(outputFields).flatMap(field => getRequiredFields(field)))
@@ -524,31 +537,55 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 sticky top-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">Select fields to calculate:</label>
-        
-        <div className="mb-4">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search fields..."
-            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-2.5 max-h-[550px] overflow-y-auto pr-1">
-          {filteredFields.map((field: any) => (
+      <div className="lg:col-span-5 space-y-6">
+        {/* Rounding box for Multi Mode */}
+        <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700">Rounding:</span>
+          <div className="flex items-center">
             <button
-              key={field.id}
-              onClick={() => onOutputToggle(field.id)}
-              className={`p-3.5 rounded-lg border-2 text-left transition-all ${
-                outputFields.has(field.id) ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900' : 'border-gray-200 text-gray-800'
+              onClick={() => setEnableRounding(!enableRounding)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
               }`}
             >
-              <span className="font-medium text-sm">{field.label}</span>
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  enableRounding ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
             </button>
-          ))}
+            <span className="ml-2 text-xs font-medium text-gray-600 w-8">
+              {enableRounding ? 'ON' : 'OFF'}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">Select fields to calculate:</label>
+          
+          <div className="mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search fields..."
+              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-2.5 max-h-[470px] overflow-y-auto pr-1">
+            {filteredFields.map((field: any) => (
+              <button
+                key={field.id}
+                onClick={() => onOutputToggle(field.id)}
+                className={`p-3.5 rounded-lg border-2 text-left transition-all ${
+                  outputFields.has(field.id) ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900' : 'border-gray-200 text-gray-800'
+                }`}
+              >
+                <span className="font-medium text-sm">{field.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
