@@ -4,14 +4,21 @@ export interface CalculatorField {
   category: string;
 }
 
-// ফর্মুলার নির্ভরতা এবং হিসাবের লজিক রেজিস্ট্রি
+// প্রতিটি ফর্মুলার জন্য ফরওয়ার্ড এবং রিভার্স (Reverse) ক্যালকুলেশন লজিক
 interface FormulaConfig {
   inputs: string[];
+  // মূল ফর্মুলা অনুযায়ী আউটপুট ক্যালকুলেট করার ফাংশন
   calculate: (inputs: { [key: string]: number }) => number;
+  
+  // রিভার্স ক্যালকুলেশন: যদি কোনো সাব-ইনপুট বের করতে হয়
+  solveFor?: { [targetInput: string]: (inputs: { [key: string]: number }, targetValue: number) => number };
 }
 
 const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
-  // 43. NETTO IN BUSTA (Formula 1)
+  // -------------------------------------------------------------
+  // Formula 1: NETTO IN BUSTA
+  // NETTO IN BUSTA = TOTALE COMPETENZE - (TOTALE TRATTENUTE + ARR. PRECED.) + ARR. ATTUALE
+  // -------------------------------------------------------------
   netto_busta: {
     inputs: ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'],
     calculate: (inputs) => {
@@ -20,51 +27,49 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
       const ap = inputs['arr_preced'] || 0;
       const aa = inputs['arr_attuale'] || 0;
       return tc - (tt + ap) + aa;
+    },
+    solveFor: {
+      // যদি TOTALE COMPETENZE বের করতে হয়
+      totale_competenze: (inputs, netto) => {
+        const tt = inputs['totale_trattenute'] || 0;
+        const ap = inputs['arr_preced'] || 0;
+        const aa = inputs['arr_attuale'] || 0;
+        return netto - aa + (tt + ap);
+      },
+      // যদি ARR. PRECED. বের করতে হয়
+      arr_preced: (inputs, netto) => {
+        const tc = inputs['totale_competenze'] || 0;
+        const tt = inputs['totale_trattenute'] || 0;
+        const aa = inputs['arr_attuale'] || 0;
+        return tc - tt + aa - netto;
+      }
     }
   },
 
-  // 39. TOTALE COMPETENZE
-  totale_competenze: {
-    inputs: ['sett_retr', 'gg_retr', 'gg_lav'],
+  // -------------------------------------------------------------
+  // Formula 2 (TFR Calculation)
+  // TFR Spettante Azienda = F.do TFR al 31/12 AP + TFR Annuo Progr.
+  // -------------------------------------------------------------
+  tfr_spettante_azienda: {
+    inputs: ['f_do_tfr_ap', 'tfr_annuo_progr'],
     calculate: (inputs) => {
-      const sr = inputs['sett_retr'] || 0;
-      const gr = inputs['gg_retr'] || 0;
-      const gl = inputs['gg_lav'] || 0;
-      return sr + gr + gl;
-    }
-  },
-
-  // 40. TOTALE TRATTENUTE
-  totale_trattenute: {
-    inputs: ['totale_contributi', 'irpef_trattenuta'],
-    calculate: (inputs) => {
-      const tc = inputs['totale_contributi'] || 0;
-      const it = inputs['irpef_trattenuta'] || 0;
-      return tc + it;
-    }
-  },
-
-  // 9. TOTALE CONTRIBUTI
-  totale_contributi: {
-    inputs: ['impon_contributivo_mese', 'contributi_anno'],
-    calculate: (inputs) => {
-      const icm = inputs['impon_contributivo_mese'] || 0;
-      const ca = inputs['contributi_anno'] || 0;
-      return icm + ca;
-    }
-  },
-
-  // 18. IRPEF NETTA (Monthly)
-  irpef_netta_mese: {
-    inputs: ['irpef_lorda_mese', 'detr_lav_dipendente_mese', 'detr_coniuge_mese'],
-    calculate: (inputs) => {
-      const ilm = inputs['irpef_lorda_mese'] || 0;
-      const dldm = inputs['detr_lav_dipendente_mese'] || 0;
-      const dcm = inputs['detr_coniuge_mese'] || 0;
-      return Math.max(0, ilm - (dldm + dcm));
+      const fdo = inputs['f_do_tfr_ap'] || 0;
+      const tfrProg = inputs['tfr_annuo_progr'] || 0;
+      return fdo + tfrProg;
+    },
+    solveFor: {
+      // যদি F.do TFR al 31/12 AP বের করতে হয়
+      f_do_tfr_ap: (inputs, tfrSpettante) => {
+        const tfrProg = inputs['tfr_annuo_progr'] || 0;
+        return tfrSpettante - tfrProg;
+      },
+      // যদি TFR Annuo Progr. বের করতে হয়
+      tfr_annuo_progr: (inputs, tfrSpettante) => {
+        const fdo = inputs['f_do_tfr_ap'] || 0;
+        return tfrSpettante - fdo;
+      }
     }
   }
-  // আপনি চাইলে এখানে অন্য ফিল্ডগুলোর ফর্মুলা এবং ইনপুট এভাবে খুব সহজেই যুক্ত করতে পারবেন।
 };
 
 export const UNIFIED_CALCULATOR = {
@@ -114,32 +119,33 @@ export const UNIFIED_CALCULATOR = {
     { id: 'netto_busta', label: '43. NETTO IN BUSTA', category: 'Net Pay' }
   ] as CalculatorField[],
 
-  /**
-   * ডাইনামিক্যালি চেক করবে কোন ফিল্ডের জন্য কোন ইনপুটগুলো প্রয়োজন
-   */
   getRequiredInputsForField: (outputFieldId: string): string[] => {
     const config = FORMULA_REGISTRY[outputFieldId];
     if (config) {
       return config.inputs;
     }
-    return []; // যদি ফর্মুলা রেজিস্টারে না থাকে, কোনো ইনপুট দেখাবে না
+    return [];
   },
 
-  /**
-   * স্বয়ংক্রিয়ভাবে ফর্মুলা ডিটেক্ট করে সঠিক ক্যালকুলেশন সম্পন্ন করবে
-   */
   calculate: (inputs: { [key: string]: number }, outputField: string): number | null => {
     const config = FORMULA_REGISTRY[outputField];
     if (config) {
       return config.calculate(inputs);
     }
-    
-    // যদি নির্দিষ্ট কোনো ফর্মুলা রেজিস্টার করা না থাকে, তবে ইনপুট ফিল্ডের নিজস্ব ভ্যালু রিটার্ন করবে
     return inputs[outputField] !== undefined ? inputs[outputField] : null;
+  },
+
+  // নতুন ফিচার: যদি কোনো নির্দিষ্ট ইনপুট ফিল্ড বের করতে হয় (Reverse Solve)
+  solveForField: (outputField: string, targetInput: string, inputs: { [key: string]: number }, targetValue: number): number | null => {
+    const config = FORMULA_REGISTRY[outputField];
+    if (config && config.solveFor && config.solveFor[targetInput]) {
+      return config.solveFor[targetInput](inputs, targetValue);
+    }
+    return null;
   }
 };
 
-export const searchFields = (query: string) => {
+export const searchFields =(query: string) => {
   if (!query) return UNIFIED_CALCULATOR.fields;
   const lowerQuery = query.toLowerCase();
   return UNIFIED_CALCULATOR.fields.filter(
