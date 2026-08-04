@@ -30,15 +30,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
-  // TFR Anno Progr মোড স্টেট
-  const [tfrAnnuoMode, setTfrAnnuoMode] = useState<'formula' | 'custom'>('formula');
+  // TFR Anno Progr কাস্টম স্টেট
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
     { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
   ]);
 
-  // Imponibile Fiscale Anno বিশেষ অপশন স্টেট
-  const [imponibileAnnoMode, setImponibileAnnoMode] = useState<'formula' | 'custom'>('formula');
+  // Imponibile Fiscale Anno কাস্টম স্টেট
   const [customImponibileFields, setCustomImponibileFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
     { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
@@ -79,8 +77,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAttempted(false);
     setResults({});
     setInputs({});
-    setTfrAnnuoMode('formula');
-    setImponibileAnnoMode('formula');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -122,12 +118,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
-    if (outputFieldId === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+    if (outputFieldId === 'tfr_annuo_progr') {
       const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
     }
 
-    if (outputFieldId === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
+    if (outputFieldId === 'imponibile_fiscale_anno') {
       const hasValue = customImponibileFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_imponibile_fields'] };
     }
@@ -149,14 +145,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
     
-    if (outputField === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+    if (outputField === 'tfr_annuo_progr') {
       const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
       setResults({ [outputField]: totalSum });
       setShowResult(true);
       return;
     }
 
-    if (outputField === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
+    if (outputField === 'imponibile_fiscale_anno') {
       const totalSum = customImponibileFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
       setResults({ [outputField]: totalSum });
       setShowResult(true);
@@ -396,8 +392,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
             enableRounding={enableRounding}
-            tfrAnnuoMode={tfrAnnuoMode}
-            onTfrAnnuoModeChange={setTfrAnnuoMode}
             customDynamicFields={customDynamicFields}
             onCustomFieldChange={(id, val) => {
               setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: val } : f));
@@ -408,8 +402,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' }
               ]);
             }}
-            imponibileAnnoMode={imponibileAnnoMode}
-            onImponibileAnnoModeChange={setImponibileAnnoMode}
             customImponibileFields={customImponibileFields}
             onCustomImponibileFieldChange={(id, val) => {
               setCustomImponibileFields(customImponibileFields.map(f => f.id === id ? { ...f, value: val } : f));
@@ -459,13 +451,9 @@ interface StandardModeCalculatorProps {
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
-  tfrAnnuoMode: 'formula' | 'custom';
-  onTfrAnnuoModeChange: (mode: 'formula' | 'custom') => void;
   customDynamicFields: CustomDynamicField[];
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
-  imponibileAnnoMode: 'formula' | 'custom';
-  onImponibileAnnoModeChange: (mode: 'formula' | 'custom') => void;
   customImponibileFields: CustomDynamicField[];
   onCustomImponibileFieldChange: (id: string, value: string) => void;
   onAddImponibileField: () => void;
@@ -488,13 +476,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
   enableRounding,
-  tfrAnnuoMode,
-  onTfrAnnuoModeChange,
   customDynamicFields,
   onCustomFieldChange,
   onAddCustomField,
-  imponibileAnnoMode,
-  onImponibileAnnoModeChange,
   customImponibileFields,
   onCustomImponibileFieldChange,
   onAddImponibileField,
@@ -577,128 +561,76 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TFR ANNUO PROGR অপشن */}
+              {/* TFR ANNUO PROGR কাস্টম সাম সেকশন */}
               {isTfrAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="tfrAnnuoMode" 
-                        checked={tfrAnnuoMode === 'formula'} 
-                        onChange={() => onTfrAnnuoModeChange('formula')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Standard Formula</span>
-                    </label>
-
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="tfrAnnuoMode" 
-                        checked={tfrAnnuoMode === 'custom'} 
-                        onChange={() => onTfrAnnuoModeChange('custom')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Alternative Sum (TFR Mese / Annuo Progr.)</span>
-                    </label>
-                  </div>
-
-                  {tfrAnnuoMode === 'custom' && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
-                        </span>
-                        <button
-                          onClick={onAddCustomField}
-                          type="button"
-                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                        >
-                          <span>+ Add Value</span>
-                        </button>
-                      </div>
-
-                      {customDynamicFields.map((field) => (
-                        <div key={field.id} className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ))}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-gray-600">
+                        বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+                      </span>
+                      <button
+                        onClick={onAddCustomField}
+                        type="button"
+                        className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                      >
+                        <span>+ Add Value</span>
+                      </button>
                     </div>
-                  )}
+
+                    {customDynamicFields.map((field) => (
+                      <div key={field.id} className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={field.value}
+                          onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* IMPONIBILE FISCALE ANNO অপশন */}
+              {/* IMPONIBILE FISCALE ANNO কাস্টম সাম সেকশন */}
               {isImponibileAnnoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="imponibileAnnoMode" 
-                        checked={imponibileAnnoMode === 'formula'} 
-                        onChange={() => onImponibileAnnoModeChange('formula')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Standard Formula</span>
-                    </label>
-
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="imponibileAnnoMode" 
-                        checked={imponibileAnnoMode === 'custom'} 
-                        onChange={() => onImponibileAnnoModeChange('custom')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Alternative Sum (Previous Months + Current Month)</span>
-                    </label>
-                  </div>
-
-                  {imponibileAnnoMode === 'custom' && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          আগের মাসগুলোর মোট Imponibile Anno এবং চলতি মাসের Imponibile Mese যোগ করুন:
-                        </span>
-                        <button
-                          onClick={onAddImponibileField}
-                          type="button"
-                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                        >
-                          <span>+ Add Value</span>
-                        </button>
-                      </div>
-
-                      {customImponibileFields.map((field) => (
-                        <div key={field.id} className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomImponibileFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ))}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-gray-600">
+                        আগের মাসগুলোর মোট Imponibile Anno এবং চলতি মাসের Imponibile Mese যোগ করুন:
+                      </span>
+                      <button
+                        onClick={onAddImponibileField}
+                        type="button"
+                        className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                      >
+                        <span>+ Add Value</span>
+                      </button>
                     </div>
-                  )}
+
+                    {customImponibileFields.map((field) => (
+                      <div key={field.id} className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={field.value}
+                          onChange={(e) => onCustomImponibileFieldChange(field.id, e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* সাধারণ বা ফর্মুলা ইনপুট সেকশন */}
-              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && (!isImponibileAnnoField || imponibileAnnoMode === 'formula')) && (
+              {/* অন্যান্য সাধারণ ফিল্ডের জন্য */}
+              {(!isTfrAnnuoField && !isImponibileAnnoField) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm">
