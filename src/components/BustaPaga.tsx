@@ -10,6 +10,13 @@ interface BustaPagaProps {
 
 type CalculatorMode = 'standard' | 'target' | 'multi';
 
+// কাস্টম ডাইনামিক ফিল্ড ইন্টারফেস
+interface CustomDynamicField {
+  id: string;
+  label: string;
+  value: string;
+}
+
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
   const [outputField, setOutputField] = useState<string | null>(null);
@@ -26,6 +33,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   
   // Rounding State (Default: OFF)
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
+
+  // TFR Annuo Progr বিশেষ অপশন স্টেট (formula অথবা custom)
+  const [tfrAnnuoMode, setTfrAnnuoMode] = useState<'formula' | 'custom'>('formula');
+  const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
+    { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
+  ]);
 
   const calculator = UNIFIED_CALCULATOR;
   
@@ -49,11 +63,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const handleOutputFieldChange = (fieldId: string) => {
-    // যদি রাউন্ডিং OFF থাকে এবং ফিল্ডটি রাউন্ডিং সম্পর্কিত হয় (যেমন arr_preced বা arr_attuale)
     const isRoundingField = fieldId === 'arr_preced' || fieldId === 'arr_attuale';
     if (!enableRounding && isRoundingField) {
       setToastMessage("Please turn ON 'Rounding' to select and calculate this field.");
-      setTimeout(() => setToastMessage(null), 4000); // ৪ সেকেন্ড পর মেসেজ মিলিয়ে যাবে
+      setTimeout(() => setToastMessage(null), 4000);
       return;
     }
 
@@ -63,6 +76,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAttempted(false);
     setResults({});
     setInputs({});
+    setTfrAnnuoMode('formula'); // ফিল্ড পরিবর্তন করলে ডিফল্ট ফর্মুলা মোডে ফিরে যাবে
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -104,6 +118,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
+    // যদি TFR ANNUO PROGR. ফিল্ড হয় এবং কাস্টম মোড সিলেক্ট করা থাকে
+    if (outputFieldId === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+      const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
+    }
+
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -121,6 +141,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
     
+    // যদি কাস্টম মোড হয়, তবে সবগুলো কাস্টম ইনপুটের যোগফল বের করবে
+    if (outputField === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+      const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+      setResults({ [outputField]: totalSum });
+      setShowResult(true);
+      return;
+    }
+
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
     if (calculatedResult !== null) {
@@ -173,6 +201,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setResults({});
     setShowResult(false);
     setAttempted(false);
+    setCustomDynamicFields([
+      { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
+      { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
+    ]);
     if (mode === 'standard') {
       setOutputField(null);
       setOutputFields(new Set());
@@ -241,7 +273,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                         delete updated['arr_attuale'];
                         return updated;
                       });
-                      // যদি রাউন্ডিং অফ করার সময় কারেন্ট আউটপুট ফিল্ডটি রাউন্ডিং ফিল্ড হয়, তবে রিসেট করে দেওয়া ভালো
                       if (outputField === 'arr_preced' || outputField === 'arr_attuale') {
                         setOutputField(null);
                         setShowResult(false);
@@ -349,6 +380,18 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
             enableRounding={enableRounding}
+            tfrAnnuoMode={tfrAnnuoMode}
+            onTfrAnnuoModeChange={setTfrAnnuoMode}
+            customDynamicFields={customDynamicFields}
+            onCustomFieldChange={(id, val) => {
+              setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddCustomField={() => {
+              setCustomDynamicFields([
+                ...customDynamicFields,
+                { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' }
+              ]);
+            }}
           />
         )}
 
@@ -388,6 +431,11 @@ interface StandardModeCalculatorProps {
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
+  tfrAnnuoMode: 'formula' | 'custom';
+  onTfrAnnuoModeChange: (mode: 'formula' | 'custom') => void;
+  customDynamicFields: CustomDynamicField[];
+  onCustomFieldChange: (id: string, value: string) => void;
+  onAddCustomField: () => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -407,8 +455,14 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
   enableRounding,
+  tfrAnnuoMode,
+  onTfrAnnuoModeChange,
+  customDynamicFields,
+  onCustomFieldChange,
+  onAddCustomField,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
+  const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -484,44 +538,113 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {requiredFieldIds.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 text-sm">
-                  No specific inputs are required for this field. You can calculate directly.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {requiredFieldIds.map((fieldId: string) => {
-                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                       UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
-                    if (!fieldObj) return null;
+              {/* যদি ফিল্ডটি TFR ANNUO PROGR হয়, তবে উপরে দুটি অপশন রেডিও বাটন আকারে দেখাবে */}
+              {isTfrAnnuoField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="tfrAnnuoMode" 
+                        checked={tfrAnnuoMode === 'formula'} 
+                        onChange={() => onTfrAnnuoModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
 
-                    const isRequired = true;
-                    const isEmpty = !inputs[fieldId];
-                    const showError = attempted && isRequired && isEmpty;
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="tfrAnnuoMode" 
+                        checked={tfrAnnuoMode === 'custom'} 
+                        onChange={() => onTfrAnnuoModeChange('custom')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Sum (TFR Mese / Annuo Progr.)</span>
+                    </label>
+                  </div>
 
-                    return (
-                      <div key={fieldId} className="relative">
-                        <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
-                          {fieldObj.label}
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            id={fieldId}
-                            type="number"
-                            step="0.01"
-                            value={inputs[fieldId] || ''}
-                            onChange={(e) => onInputChange(fieldId, e.target.value)}
-                            placeholder="0.00"
-                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
-                              showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
-                            }`}
-                          />
-                        </div>
+                  {/* যদি অলটারনেটিভ বা কাস্টম মোড সিলেক্ট করা থাকে */}
+                  {tfrAnnuoMode === 'custom' && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-gray-600">
+                          বর্টমান মাসের TFR Mese / আগের মাসের TFR Mese বা Annuo Progr. যোগ করুন:
+                        </span>
+                        {/* প্লাস বাটন নতুন রো যোগ করার জন্য */}
+                        <button
+                          onClick={onAddCustomField}
+                          type="button"
+                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
                       </div>
-                    );
-                  })}
+
+                      {customDynamicFields.map((field) => (
+                        <div key={field.id} className="relative">
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={field.value}
+                              onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                              placeholder="0.00"
+                              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* স্ট্যান্ডার্ড ফর্মুলা মোড বা অন্যান্য ফিল্ডের জন্য ইনপুট */}
+              {(!isTfrAnnuoField || tfrAnnuoMode === 'formula') && (
+                <>
+                  {requiredFieldIds.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 text-sm">
+                      No specific inputs are required for this field. You can calculate directly.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {requiredFieldIds.map((fieldId: string) => {
+                        const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                                              UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                        if (!fieldObj) return null;
+
+                        const isRequired = true;
+                        const isEmpty = !inputs[fieldId];
+                        const showError = attempted && isRequired && isEmpty;
+
+                        return (
+                          <div key={fieldId} className="relative">
+                            <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                              {fieldObj.label}
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                id={fieldId}
+                                type="number"
+                                step="0.01"
+                                value={inputs[fieldId] || ''}
+                                onChange={(e) => onInputChange(fieldId, e.target.value)}
+                                placeholder="0.00"
+                                className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                                  showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                                }`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="flex gap-4 mt-6">
@@ -659,7 +782,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {requiredFieldIds.map((fieldId: string) => {
                     const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                       UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                                          UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
 
                     const isRequired = true;
