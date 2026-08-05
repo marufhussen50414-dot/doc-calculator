@@ -398,14 +398,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             }}
             onAddCustomField={() => {
               setCustomDynamicFields([
-                { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' },
-                ...customDynamicFields
+                ...customDynamicFields,
+                { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' }
               ]);
-            }}
-            onRemoveCustomField={(id) => {
-              if (customDynamicFields.length > 2) {
-                setCustomDynamicFields(customDynamicFields.filter(f => f.id !== id));
-              }
             }}
             customImponibileFields={customImponibileFields}
             onCustomImponibileFieldChange={(id, val) => {
@@ -413,14 +408,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             }}
             onAddImponibileField={() => {
               setCustomImponibileFields([
-                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' },
-                ...customImponibileFields
+                ...customImponibileFields,
+                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
               ]);
-            }}
-            onRemoveImponibileField={(id) => {
-              if (customImponibileFields.length > 2) {
-                setCustomImponibileFields(customImponibileFields.filter(f => f.id !== id));
-              }
             }}
           />
         )}
@@ -464,11 +454,9 @@ interface StandardModeCalculatorProps {
   customDynamicFields: CustomDynamicField[];
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
-  onRemoveCustomField: (id: string) => void;
   customImponibileFields: CustomDynamicField[];
   onCustomImponibileFieldChange: (id: string, value: string) => void;
   onAddImponibileField: () => void;
-  onRemoveImponibileField: (id: string) => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -491,11 +479,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   customDynamicFields,
   onCustomFieldChange,
   onAddCustomField,
-  onRemoveCustomField,
   customImponibileFields,
   onCustomImponibileFieldChange,
   onAddImponibileField,
-  onRemoveImponibileField,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
@@ -579,9 +565,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               {isTfrAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-gray-600">
-                        বর্তমান বা আগের মাসের মানগুলো যোগ করুন (নতুন মান উপরে যোগ হবে):
+                        বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
                       </span>
                       <button
                         onClick={onAddCustomField}
@@ -592,36 +578,19 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       </button>
                     </div>
 
-                    {customDynamicFields.map((field, index) => {
-                      const canDelete = customDynamicFields.length > 2 && index < customDynamicFields.length - 2;
-                      return (
-                        <div key={field.id} className="flex items-center space-x-2">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={field.value}
-                              onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                              placeholder="0.00"
-                              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          {canDelete && (
-                            <button
-                              onClick={() => onRemoveCustomField(field.id)}
-                              type="button"
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                              title="Delete this value"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {customDynamicFields.map((field) => (
+                      <div key={field.id} className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={field.value}
+                          onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -630,9 +599,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               {isImponibileAnnoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-gray-600">
-                        আগের মাসের মোট Anno এবং চলতি মাসের Mese যোগ করুন (নতুন মান উপরে যোগ হবে):
+                        আগের মাসগুলোর মোট Imponibile Anno এবং চলতি মাসের Imponibile Mese যোগ করুন:
                       </span>
                       <button
                         onClick={onAddImponibileField}
@@ -643,36 +612,19 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       </button>
                     </div>
 
-                    {customImponibileFields.map((field, index) => {
-                      const canDelete = customImponibileFields.length > 2 && index < customImponibileFields.length - 2;
-                      return (
-                        <div key={field.id} className="flex items-center space-x-2">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={field.value}
-                              onChange={(e) => onCustomImponibileFieldChange(field.id, e.target.value)}
-                              placeholder="0.00"
-                              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          {canDelete && (
-                            <button
-                              onClick={() => onRemoveImponibileField(field.id)}
-                              type="button"
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                              title="Delete this value"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {customImponibileFields.map((field) => (
+                      <div key={field.id} className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={field.value}
+                          onChange={(e) => onCustomImponibileFieldChange(field.id, e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
