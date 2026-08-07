@@ -126,7 +126,7 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     mainFormulaTitle: 'IRPEF LORDA (Monthly) = Imponibile Fiscale Mese × 23%',
     calculate: (inputs) => {
       const imp = inputs['imponibile_fiscale_mese'] || 0;
-      // ছবির নিয়он অনুযায়ী সরাসরি পার্সেন্টেজ হিসাব (× 23 / 100)
+      // ছবির নিয়он অনুযায়ী সরাসরি পার্সেন্টেজ হিসাব (× 23 / 100)
       return (imp * 23) / 100;
     }
   },
@@ -137,6 +137,20 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     calculate: (inputs) => {
       const imp = inputs['imponibile_fiscale_anno'] || 0;
       return (imp * 23) / 100;
+    }
+  },
+
+  // -------------------------------------------------------------
+  // Formula 4: IRPEF + IMP. SOST.
+  // -------------------------------------------------------------
+  irpef_imp_sost: {
+    inputs: ['irpef_lorda_mese', 'detr_lav_dipendente_mese', 'imposta_sostitutiva_mese'],
+    mainFormulaTitle: 'IRPEF + IMP. SOST. = IRPEF LORDA - DETR. LAV. DIPENDENTE + IMPOSTA SOSTITUTIVA',
+    calculate: (inputs) => {
+      const lorda = inputs['irpef_lorda_mese'] || 0;
+      const detr = inputs['detr_lav_dipendente_mese'] || 0;
+      const sost = inputs['imposta_sostitutiva_mese'] || 0;
+      return lorda - detr + sost;
     }
   }
 };
@@ -162,6 +176,7 @@ export const UNIFIED_CALCULATOR = {
     { id: 'detr_oneri_mese', label: '17. DETR. ONERI (Monthly)', category: 'Taxes - Monthly' },
     { id: 'irpef_netta_mese', label: '18. IRPEF NETTA (Monthly)', category: 'Taxes - Monthly' },
     { id: 'irpef_imp_sost', label: '19. IRPEF + IMP. SOST.', category: 'Taxes - Monthly' },
+    { id: 'imposta_sostitutiva_mese', label: 'IMPOSTA SOSTITUTIVA (Monthly)', category: 'Taxes - Monthly' },
     { id: 'imponibile_fiscale_anno', label: '20. IMPONIBILE FISCALE (Anno)', category: 'Taxes - Annual' },
     { id: 'irpef_lorda_anno', label: '21. IRPEF LORDA (Anno)', category: 'Taxes - Annual' },
     { id: 'detr_lav_dipendente_anno', label: '22. DETR. LAV. DIPENDENTE (Anno)', category: 'Taxes - Annual' },
