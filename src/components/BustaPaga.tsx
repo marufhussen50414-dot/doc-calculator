@@ -44,12 +44,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
   ]);
 
-  // জেনেরিক বা ইনপুটবিহীন ফিল্ডের জন্য কাস্টম মোড স্টেট (যেমন IRPEF Lorda)
-  const [genericCustomMode, setGenericCustomMode] = useState<'formula' | 'custom'>('formula');
-  const [customGenericFields, setCustomGenericFields] = useState<CustomDynamicField[]>([
-    { id: '1', label: 'কাস্টম মান ১', value: '' }
-  ]);
-
   const calculator = UNIFIED_CALCULATOR;
   
   const filteredFields = useMemo(() => {
@@ -87,7 +81,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setInputs({});
     setTfrAnnuoMode('formula');
     setImponibileAnnoMode('formula');
-    setGenericCustomMode('formula');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -140,12 +133,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     const required = getRequiredFields(outputFieldId);
-    
-    if (required.length === 0 && genericCustomMode === 'custom') {
-      const hasValue = customGenericFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
-      return { valid: hasValue, missing: hasValue ? [] : ['custom_generic_fields'] };
-    }
-
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
       return value === undefined || value === '' || value === null;
@@ -176,21 +163,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    const required = getRequiredFields(outputField);
-    if (required.length === 0 && genericCustomMode === 'custom') {
-      const totalSum = customGenericFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
-      setResults({ [outputField]: totalSum });
-      setShowResult(true);
-      return;
-    }
-
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
     if (calculatedResult !== null) {
       setResults({ [outputField]: calculatedResult });
-      setShowResult(true);
-    } else {
-      setResults({ [outputField]: 0 });
       setShowResult(true);
     }
   };
@@ -217,14 +193,21 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResults: { [key: string]: number } = {};
+    let allSuccessful = true;
 
     outputFields.forEach(field => {
       const result = calculator.calculate(numericInputs, field);
-      calculatedResults[field] = result !== null ? result : 0;
+      if (result !== null) {
+        calculatedResults[field] = result;
+      } else {
+        allSuccessful = false;
+      }
     });
 
-    setResults(calculatedResults);
-    setShowResult(true);
+    if (allSuccessful && Object.keys(calculatedResults).length > 0) {
+      setResults(calculatedResults);
+      setShowResult(true);
+    }
   };
 
   const handleReset = () => {
@@ -239,9 +222,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setCustomImponibileFields([
       { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
       { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
-    ]);
-    setCustomGenericFields([
-      { id: '1', label: 'কাস্টম মান ১', value: '' }
     ]);
     if (mode === 'standard') {
       setOutputField(null);
@@ -378,9 +358,25 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             </div>
           </div>
         ) : mode === 'multi' ? (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <p className="text-gray-600">Multi Mode Calculator View Loaded.</p>
-          </div>
+          <MultiModeCalculator
+            calculator={calculator}
+            filteredFields={filteredFields}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            outputFields={outputFields}
+            inputs={inputs}
+            results={results}
+            showResult={showResult}
+            attempted={attempted}
+            getRequiredFields={getRequiredFields}
+            onOutputToggle={handleMultiOutputToggle}
+            onInputChange={handleInputChange}
+            onCalculate={handleMultiCalculate}
+            onReset={handleReset}
+            formatCurrency={formatCurrency}
+            getFieldLabel={getFieldLabel}
+            enableRounding={enableRounding}
+          />
         ) : (
           <StandardModeCalculator
             calculator={calculator}
@@ -409,7 +405,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onAddCustomField={() => {
               setCustomDynamicFields([
                 ...customDynamicFields,
-                { id: Date.now().toString(), label: 'অতিরিক্ত মান', value: '' }
+                { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' }
               ]);
             }}
             imponibileAnnoMode={imponibileAnnoMode}
@@ -421,19 +417,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onAddImponibileField={() => {
               setCustomImponibileFields([
                 ...customImponibileFields,
-                { id: Date.now().toString(), label: 'অতিরিক্ত মান', value: '' }
-              ]);
-            }}
-            genericCustomMode={genericCustomMode}
-            onGenericCustomModeChange={setGenericCustomMode}
-            customGenericFields={customGenericFields}
-            onCustomGenericFieldChange={(id, val) => {
-              setCustomGenericFields(customGenericFields.map(f => f.id === id ? { ...f, value: val } : f));
-            }}
-            onAddGenericField={() => {
-              setCustomGenericFields([
-                ...customGenericFields,
-                { id: Date.now().toString(), label: 'কাস্টম মান', value: '' }
+                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
               ]);
             }}
           />
@@ -485,11 +469,6 @@ interface StandardModeCalculatorProps {
   customImponibileFields: CustomDynamicField[];
   onCustomImponibileFieldChange: (id: string, value: string) => void;
   onAddImponibileField: () => void;
-  genericCustomMode: 'formula' | 'custom';
-  onGenericCustomModeChange: (mode: 'formula' | 'custom') => void;
-  customGenericFields: CustomDynamicField[];
-  onCustomGenericFieldChange: (id: string, value: string) => void;
-  onAddGenericField: () => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -519,16 +498,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   customImponibileFields,
   onCustomImponibileFieldChange,
   onAddImponibileField,
-  genericCustomMode,
-  onGenericCustomModeChange,
-  customGenericFields,
-  onCustomGenericFieldChange,
-  onAddGenericField,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
   const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
-  const hasNoRequiredFields = requiredFieldIds.length === 0 && !isTfrAnnuoField && !isImponibileAnnoField;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -627,14 +600,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         onChange={() => onTfrAnnuoModeChange('custom')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Alternative Sum</span>
+                      <span>Alternative Sum (TFR Mese / Annuo Progr.)</span>
                     </label>
                   </div>
 
                   {tfrAnnuoMode === 'custom' && (
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">মানগুলো যোগ করুন:</span>
+                        <span className="text-xs font-medium text-gray-600">
+                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+                        </span>
                         <button
                           onClick={onAddCustomField}
                           type="button"
@@ -685,14 +660,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         onChange={() => onImponibileAnnoModeChange('custom')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Alternative Sum</span>
+                      <span>Alternative Sum (Previous Months + Current Month)</span>
                     </label>
                   </div>
 
                   {imponibileAnnoMode === 'custom' && (
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">মানগুলো যোগ করুন:</span>
+                        <span className="text-xs font-medium text-gray-600">
+                          আগের মাসগুলোর মোট Imponibile Anno এবং চলতি মাসের Imponibile Mese যোগ করুন:
+                        </span>
                         <button
                           onClick={onAddImponibileField}
                           type="button"
@@ -720,114 +697,288 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* জেনেরিক ফিল্ডের কাস্টম মোড */}
-              {hasNoRequiredFields && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="genericCustomMode" 
-                        checked={genericCustomMode === 'formula'} 
-                        onChange={() => onGenericCustomModeChange('formula')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Standard Formula</span>
-                    </label>
+              {/* সাধারণ বা ফর্মুলা ইনপুট সেকশন */}
+              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && (!isImponibileAnnoField || imponibileAnnoMode === 'formula')) && (
+                <>
+                  {requiredFieldIds.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 text-sm">
+                      No specific inputs are required for this field. You can calculate directly.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {requiredFieldIds.map((fieldId: string) => {
+                        const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                                         UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                        if (!fieldObj) return null;
 
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="genericCustomMode" 
-                        checked={genericCustomMode === 'custom'} 
-                        onChange={() => onGenericCustomModeChange('custom')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Custom Input</span>
-                    </label>
-                  </div>
+                        const isRequired = true;
+                        const isEmpty = !inputs[fieldId];
+                        const showError = attempted && isRequired && isEmpty;
 
-                  {genericCustomMode === 'custom' && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">কাস্টম মান যোগ করুন:</span>
-                        <button
-                          onClick={onAddGenericField}
-                          type="button"
-                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                        >
-                          <span>+ Add Value</span>
-                        </button>
-                      </div>
-
-                      {customGenericFields.map((field) => (
-                        <div key={field.id} className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomGenericFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ))}
+                        return (
+                          <div key={fieldId} className="relative">
+                            <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                              {fieldObj.label}
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                id={fieldId}
+                                type="number"
+                                step="0.01"
+                                value={inputs[fieldId] || ''}
+                                onChange={(e) => onInputChange(fieldId, e.target.value)}
+                                placeholder="0.00"
+                                className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                                  showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                                }`}
+                              />
+                            </div>
+                            {showError && (
+                              <span className="text-[10px] text-red-500 mt-1 block font-medium">This field is required</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                </div>
+                </>
               )}
 
-              {/* Standard inputs form fields rendered if required */}
-              {!hasNoRequiredFields && !isTfrAnnuoField && !isImponibileAnnoField && requiredFieldIds.length > 0 && (
-                <div className="space-y-4 mb-6">
-                  {requiredFieldIds.map((fieldId) => (
-                    <div key={fieldId}>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        {getFieldLabel(fieldId)}
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs[fieldId] ?? ''}
-                          onChange={(e) => onInputChange(fieldId, e.target.value)}
-                          placeholder="0.00"
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex space-x-3 pt-2">
-                <button
-                  onClick={onCalculate}
-                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-indigo-700 transition-colors shadow-md"
-                >
-                  Calculate
-                </button>
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
                 <button
                   onClick={onReset}
-                  className="bg-gray-200 text-gray-700 py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition"
                 >
                   Reset
                 </button>
+                <button
+                  onClick={onCalculate}
+                  className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition shadow-sm"
+                >
+                  Calculate
+                </button>
               </div>
-
-              {showResult && attempted && (
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="text-xs font-medium text-green-800 uppercase tracking-wide">Result</div>
-                  <div className="text-2xl font-bold text-green-900 mt-1">
-                    {formatCurrency(results[outputField] || 0)}
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
+
+        {showResult && Object.keys(results).length > 0 && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2">Calculation Result</h3>
+            {Object.entries(results).map(([fieldId, value]) => (
+              <div key={fieldId} className="flex justify-between items-center py-2 border-b border-emerald-100 last:border-b-0">
+                <span className="text-sm font-medium text-emerald-900">{getFieldLabel(fieldId)}</span>
+                <span className="text-xl font-bold text-emerald-700">{formatCurrency(value)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface MultiModeCalculatorProps {
+  calculator: any;
+  filteredFields: any[];
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  outputFields: Set<string>;
+  inputs: { [key: string]: string | number };
+  results: { [key: string]: number };
+  showResult: boolean;
+  attempted: boolean;
+  getRequiredFields: (outputFieldId: string) => string[];
+  onOutputToggle: (fieldId: string) => void;
+  onInputChange: (fieldId: string, value: string) => void;
+  onCalculate: () => void;
+  onReset: () => void;
+  formatCurrency: (value: number) => string;
+  getFieldLabel: (fieldId: string) => string;
+  enableRounding: boolean;
+}
+
+const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
+  filteredFields,
+  searchQuery,
+  onSearchChange,
+  outputFields,
+  inputs,
+  results,
+  showResult,
+  attempted,
+  getRequiredFields,
+  onOutputToggle,
+  onInputChange,
+  onCalculate,
+  onReset,
+  formatCurrency,
+  getFieldLabel,
+  enableRounding,
+}) => {
+  const allRequiredFieldIds = useMemo(() => {
+    const set = new Set<string>();
+    outputFields.forEach(fieldId => {
+      const required = getRequiredFields(fieldId);
+      required.forEach(r => set.add(r));
+    });
+    return Array.from(set);
+  }, [outputFields, getRequiredFields]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="lg:col-span-5 space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Select fields to calculate (Multi Output):
+          </label>
+          
+          <div className="mb-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search fields..."
+                className="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
+            {filteredFields.map((field: any) => {
+              const isSelected = outputFields.has(field.id);
+              const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
+              const isDisabled = !enableRounding && isRoundingField;
+
+              return (
+                <button
+                  key={field.id}
+                  onClick={() => onOutputToggle(field.id)}
+                  className={`p-3.5 rounded-lg border-2 text-left transition-all flex items-center justify-between ${
+                    isDisabled
+                      ? 'border-gray-200 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed'
+                      : isSelected 
+                      ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200' 
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
+                  }`}
+                >
+                  <span className="font-medium text-sm">{field.label}</span>
+                  <div className="flex items-center space-x-2">
+                    {isDisabled && (
+                      <span className="text-[10px] uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-bold">
+                        Off
+                      </span>
+                    )}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={isDisabled}
+                      onChange={() => {}}
+                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 pointer-events-none"
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="lg:col-span-7 space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          {outputFields.size === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4" />
+              </svg>
+              <p className="text-base font-medium text-gray-700">Please select one or more fields from the left.</p>
+              <p className="text-xs text-gray-400 mt-1">Required combined inputs will appear here automatically.</p>
+            </div>
+          ) : (
+            <>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                Enter the required values for selected fields:
+              </label>
+
+              {allRequiredFieldIds.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No specific inputs are required for these fields. You can calculate directly.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {allRequiredFieldIds.map((fieldId: string) => {
+                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                                     UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                    if (!fieldObj) return null;
+
+                    const isRequired = true;
+                    const isEmpty = !inputs[fieldId];
+                    const showError = attempted && isRequired && isEmpty;
+
+                    return (
+                      <div key={fieldId} className="relative">
+                        <label htmlFor={`multi-${fieldId}`} className="block text-xs font-semibold text-gray-700 mb-1">
+                          {fieldObj.label}
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            id={`multi-${fieldId}`}
+                            type="number"
+                            step="0.01"
+                            value={inputs[fieldId] || ''}
+                            onChange={(e) => onInputChange(fieldId, e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                              showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                            }`}
+                          />
+                        </div>
+                        {showError && (
+                          <span className="text-[10px] text-red-500 mt-1 block font-medium">This field is required</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
+                <button
+                  onClick={onReset}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={onCalculate}
+                  className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition shadow-sm"
+                >
+                  Calculate All
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {showResult && Object.keys(results).length > 0 && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2">Calculation Results</h3>
+            {Object.entries(results).map(([fieldId, value]) => (
+              <div key={fieldId} className="flex justify-between items-center py-2 border-b border-emerald-100 last:border-b-0">
+                <span className="text-sm font-medium text-emerald-900">{getFieldLabel(fieldId)}</span>
+                <span className="text-xl font-bold text-emerald-700">{formatCurrency(value)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
