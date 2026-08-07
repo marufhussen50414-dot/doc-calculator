@@ -3,6 +3,7 @@ import { CalculatorInputs } from '../types';
 import { UNIFIED_CALCULATOR, searchFields } from '../config/unifiedCalculator';
 import { FormulaModal } from './FormulaModal';
 import { TargetCalculator } from './TargetCalculator';
+import { MultiModeCalculator } from './MultiModeCalculator';
 
 interface BustaPagaProps {
   onBack: () => void;
@@ -472,6 +473,7 @@ interface StandardModeCalculatorProps {
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
+  calculator,
   filteredFields,
   searchQuery,
   onSearchChange,
@@ -577,7 +579,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TFR ANNUO PROGR অপ션 */}
+              {/* TFR ANNUO PROGR অপশন */}
               {isTfrAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -637,7 +639,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* IMPONIBILE FISCALE ANNO অপ션 */}
+              {/* IMPONIBILE FISCALE ANNO অপশন */}
               {isImponibileAnnoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -708,7 +710,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {requiredFieldIds.map((fieldId: string) => {
                         const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                         UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                                         calculator.fields.find((f: any) => f.id === fieldId);
                         if (!fieldObj) return null;
 
                         const isRequired = true;
@@ -735,7 +737,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                               />
                             </div>
                             {showError && (
-                              <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                              <span className="text-[10px] text-red-500 mt-0.5 block">This field is required</span>
                             )}
                           </div>
                         );
@@ -745,232 +747,33 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </>
               )}
 
-              <div className="mt-6 flex space-x-3">
+              <div className="mt-6 flex items-center space-x-3">
                 <button
                   onClick={onCalculate}
-                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md text-sm"
+                  type="button"
+                  className="flex-1 bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition shadow-md text-sm"
                 >
                   Calculate
                 </button>
                 <button
                   onClick={onReset}
-                  className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition text-sm"
+                  type="button"
+                  className="bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-300 transition text-sm"
                 >
                   Reset
                 </button>
               </div>
 
-              {showResult && (
-                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <div className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">Result:</div>
-                  <div className="text-2xl font-bold text-emerald-900">
-                    {formatCurrency(results[outputField] || 0)}
+              {showResult && results[outputField] !== undefined && (
+                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-green-700 uppercase tracking-wider">Result</span>
+                    <h3 className="text-xl font-bold text-green-900 mt-0.5">
+                      {formatCurrency(results[outputField])}
+                    </h3>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface MultiModeCalculatorProps {
-  calculator: any;
-  filteredFields: any[];
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  outputFields: Set<string>;
-  inputs: { [key: string]: string | number };
-  results: { [key: string]: number };
-  showResult: boolean;
-  attempted: boolean;
-  getRequiredFields: (outputFieldId: string) => string[];
-  onOutputToggle: (fieldId: string) => void;
-  onInputChange: (fieldId: string, value: string) => void;
-  onCalculate: () => void;
-  onReset: () => void;
-  formatCurrency: (value: number) => string;
-  getFieldLabel: (fieldId: string) => string;
-  enableRounding: boolean;
-}
-
-const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
-  filteredFields,
-  searchQuery,
-  onSearchChange,
-  outputFields,
-  inputs,
-  results,
-  showResult,
-  attempted,
-  getRequiredFields,
-  onOutputToggle,
-  onInputChange,
-  onCalculate,
-  onReset,
-  formatCurrency,
-  getFieldLabel,
-  enableRounding,
-}) => {
-  const allRequiredFields = useMemo(() => {
-    const unionSet = new Set<string>();
-    outputFields.forEach(fieldId => {
-      const reqs = getRequiredFields(fieldId);
-      reqs.forEach(r => unionSet.add(r));
-    });
-    return Array.from(unionSet);
-  }, [outputFields, getRequiredFields]);
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      <div className="lg:col-span-5 space-y-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Select fields to calculate (Multiple):
-          </label>
-          
-          <div className="mb-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search fields..."
-                className="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
-            {filteredFields.map((field: any) => {
-              const isSelected = outputFields.has(field.id);
-              const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
-              const isDisabled = !enableRounding && isRoundingField;
-
-              return (
-                <button
-                  key={field.id}
-                  onClick={() => onOutputToggle(field.id)}
-                  className={`p-3.5 rounded-lg border-2 text-left transition-all flex items-center justify-between ${
-                    isDisabled
-                      ? 'border-gray-200 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed'
-                      : isSelected 
-                      ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200' 
-                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
-                  }`}
-                >
-                  <span className="font-medium text-sm">{field.label}</span>
-                  <div className="flex items-center space-x-2">
-                    {isDisabled && (
-                      <span className="text-[10px] uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-bold">
-                        Off
-                      </span>
-                    )}
-                    <div className={`w-5 h-5 rounded flex items-center justify-center border ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white'}`}>
-                      {isSelected && <span className="text-xs font-bold">✓</span>}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div className="lg:col-span-7 space-y-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          {outputFields.size === 0 ? (
-            <div className="text-center py-16 text-gray-500">
-              <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4" />
-              </svg>
-              <p className="text-base font-medium text-gray-700">Please select one or more fields from the left.</p>
-              <p className="text-xs text-gray-400 mt-1">Unified required inputs will appear here automatically.</p>
-            </div>
-          ) : (
-            <>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">
-                Enter required values for selected fields:
-              </label>
-
-              {allRequiredFields.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 text-sm">
-                  No specific inputs are required for these fields. You can calculate directly.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {allRequiredFields.map((fieldId: string) => {
-                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                     UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
-                    if (!fieldObj) return null;
-
-                    const isEmpty = !inputs[fieldId];
-                    const showError = attempted && isEmpty;
-
-                    return (
-                      <div key={fieldId} className="relative">
-                        <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
-                          {fieldObj.label}
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            id={fieldId}
-                            type="number"
-                            step="0.01"
-                            value={inputs[fieldId] || ''}
-                            onChange={(e) => onInputChange(fieldId, e.target.value)}
-                            placeholder="0.00"
-                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
-                              showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
-                            }`}
-                          />
-                        </div>
-                        {showError && (
-                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="mt-6 flex space-x-3">
-                <button
-                  onClick={onCalculate}
-                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md text-sm"
-                >
-                  Calculate All Selected
-                </button>
-                <button
-                  onClick={onReset}
-                  className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition text-sm"
-                >
-                  Reset
-                </button>
-              </div>
-
-              {showResult && (
-                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-3">
-                  <div className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-2">Calculated Results:</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {Array.from(outputFields).map(fieldId => {
-                      const resValue = results[fieldId];
-                      if (resValue === undefined) return null;
-                      return (
-                        <div key={fieldId} className="bg-white p-3 rounded border border-emerald-200 shadow-sm">
-                          <div className="text-xs text-gray-500 mb-1 font-medium">{getFieldLabel(fieldId)}</div>
-                          <div className="text-lg font-bold text-emerald-900">{formatCurrency(resValue)}</div>
-                        </div>
-                      );
-                    })}
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">
+                    ✓
                   </div>
                 </div>
               )}
