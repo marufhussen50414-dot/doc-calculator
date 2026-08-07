@@ -123,19 +123,42 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* Formula 4 (IRPEF + IMP. SOST.) */}
+          {/* Formula 4 (IRPEF + IMP. SOST.) & Sub-formulas */}
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-purple-900 mb-3">
               Formula 4 (IRPEF + IMP. SOST.)
             </h3>
             
             {/* Main Formula Box */}
-            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto border border-purple-100 shadow-sm">
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-purple-100 shadow-sm">
               <div className="text-gray-700">
                 <span className="font-bold text-purple-700">IRPEF + IMP. SOST.</span> ={' '}
                 <span className="font-bold text-gray-700">IRPEF LORDA</span> -{' '}
                 <span className="font-bold text-pink-600">DETR. LAV. DIPENDENTE</span> +{' '}
                 <span className="font-bold text-indigo-600">IMPOSTA SOSTITUTIVA</span>
+              </div>
+            </div>
+
+            {/* Sub-formulas / Backward Calculations */}
+            <div className="mt-4 border-t border-purple-200 pt-4">
+              <h4 className="text-sm font-bold text-purple-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate IRPEF LORDA:</span>
+                  <div className="text-gray-900 mt-1">IRPEF LORDA = (IRPEF + IMP. SOST.) + DETR. LAV. DIPENDENTE - IMPOSTA SOSTITUTIVA</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate DETR. LAV. DIPENDENTE:</span>
+                  <div className="text-gray-900 mt-1">DETR. LAV. DIPENDENTE = IRPEF LORDA - (IRPEF + IMP. SOST.) + IMPOSTA SOSTITUTIVA</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate IMPOSTA SOSTITUTIVA:</span>
+                  <div className="text-gray-900 mt-1">IMPOSTA SOSTITUTIVA = (IRPEF + IMP. SOST.) - IRPEF LORDA + DETR. LAV. DIPENDENTE</div>
+                </div>
               </div>
             </div>
           </div>
