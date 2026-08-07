@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1, Formula 2, and their sub-formulas in a compact layout.
+ * Displays Formula 1, Formula 2, Formula 4, and their sub-formulas in a compact layout.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -119,6 +119,23 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                   <span className="font-semibold text-gray-700">To calculate TFR Annuo Progr.:</span>
                   <div className="text-gray-900 mt-1">TFR Annuo Progr. = TFR Spettante Azienda - F.do TFR al 31/12 AP</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 4 (IRPEF + IMP. SOST.) */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-purple-900 mb-3">
+              Formula 4 (IRPEF + IMP. SOST.)
+            </h3>
+            
+            {/* Main Formula Box */}
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto border border-purple-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-purple-700">IRPEF + IMP. SOST.</span> ={' '}
+                <span className="font-bold text-gray-700">IRPEF LORDA</span> -{' '}
+                <span className="font-bold text-pink-600">DETR. LAV. DIPENDENTE</span> +{' '}
+                <span className="font-bold text-indigo-600">IMPOSTA SOSTITUTIVA</span>
               </div>
             </div>
           </div>
