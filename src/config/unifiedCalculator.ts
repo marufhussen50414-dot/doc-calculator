@@ -119,15 +119,14 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   },
 
   // -------------------------------------------------------------
-  // Formula 3: IRPEF LORDA (Monthly) & Annual calculations
+  // Formula 3: IRPEF LORDA (Monthly) & Annual calculations (Full Decimals)
   // -------------------------------------------------------------
   irpef_lorda_mese: {
     inputs: ['imponibile_fiscale_mese'],
     mainFormulaTitle: 'IRPEF LORDA (Monthly) = Imponibile Fiscale Mese × Tax Rate',
     calculate: (inputs) => {
       const imp = inputs['imponibile_fiscale_mese'] || 0;
-      // এখানে প্রয়োজন অনুযায়ী আপনার ট্যাক্স ব্র্যাকেট লজিক বা পার্সেন্টেজ দিতে পারেন
-      return imp * 0.23; 
+      return imp * 0.23; // কোনো রাউন্ডিং ছাড়া একদম সম্পূর্ণ মান রিটার্ন করবে
     }
   },
 
