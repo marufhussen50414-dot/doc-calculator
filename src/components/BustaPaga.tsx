@@ -141,7 +141,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     const required = getRequiredFields(outputFieldId);
     
-    // যদি কোনো প্রয়োজনীয় ফিল্ড না থাকে এবং ইউজার কাস্টম মোডে থাকেন
     if (required.length === 0 && genericCustomMode === 'custom') {
       const hasValue = customGenericFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_generic_fields'] };
@@ -191,7 +190,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setResults({ [outputField]: calculatedResult });
       setShowResult(true);
     } else {
-      // যদি ক্যালকুলেটর সরাসরি ফল না দিতে পারে, একটি ফলব্যাক হিসেবে ইনপুটগুলোর যোগফল বা ডিফল্ট মান দেখাতে পারে
       setResults({ [outputField]: 0 });
       setShowResult(true);
     }
@@ -738,7 +736,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* যদি কোনো নির্দিষ্ট ফর্মুলা/ইনপুট না থাকে (যেমন IRPEF LORDA), তবে কাস্টম মান ইনপুটের অপশন */}
+              {/* জেনেরিক ফিল্ডের কাস্টম মোড */}
               {hasNoRequiredFields && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -796,7 +794,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* সাধারণ বা ফর্মুলা ইনপুট সেকশন */}
+              {/* সাধারণ ফর্মুলা ইনপুট সেকশন */}
               {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && 
                 (!isImponibileAnnoField || imponibileAnnoMode === 'formula') && 
                 (!hasNoRequiredFields || genericCustomMode === 'formula')) && (
@@ -1017,7 +1015,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {allRequiredFieldIds.map((fieldId: string) => {
-                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) => 
+                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
                                      UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
 
