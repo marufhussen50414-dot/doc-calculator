@@ -119,23 +119,24 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   },
 
   // -------------------------------------------------------------
-  // Formula 3: IRPEF LORDA (Monthly) & Annual calculations (Full Decimals)
+  // Formula 3: IRPEF LORDA (Monthly) & Annual calculations (2nd image style)
   // -------------------------------------------------------------
   irpef_lorda_mese: {
     inputs: ['imponibile_fiscale_mese'],
-    mainFormulaTitle: 'IRPEF LORDA (Monthly) = Imponibile Fiscale Mese × Tax Rate',
+    mainFormulaTitle: 'IRPEF LORDA (Monthly) = Imponibile Fiscale Mese × 23%',
     calculate: (inputs) => {
       const imp = inputs['imponibile_fiscale_mese'] || 0;
-      return imp * 0.23; // কোনো রাউন্ডিং ছাড়া একদম সম্পূর্ণ মান রিটার্ন করবে
+      // ছবির নিয়он অনুযায়ী সরাসরি পার্সেন্টেজ হিসাব (× 23 / 100)
+      return (imp * 23) / 100;
     }
   },
 
   irpef_lorda_anno: {
     inputs: ['imponibile_fiscale_anno'],
-    mainFormulaTitle: 'IRPEF LORDA (Anno) = Imponibile Fiscale Anno × Tax Rate',
+    mainFormulaTitle: 'IRPEF LORDA (Anno) = Imponibile Fiscale Anno × 23%',
     calculate: (inputs) => {
       const imp = inputs['imponibile_fiscale_anno'] || 0;
-      return imp * 0.23;
+      return (imp * 23) / 100;
     }
   }
 };
