@@ -119,14 +119,16 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   },
 
   // -------------------------------------------------------------
-  // Formula 3: IRPEF LORDA (Monthly) & Annual calculations (2nd image style)
+  // Formula 3: IRPEF LORDA (Monthly) & Annual calculations
   // -------------------------------------------------------------
   irpef_lorda_mese: {
     inputs: ['imponibile_fiscale_mese'],
     mainFormulaTitle: 'IRPEF LORDA (Monthly) = Imponibile Fiscale Mese × 23%',
+    subFormulas: [
+      { label: 'Sub-Formula (Backward)', formula: 'IRPEF LORDA = (IRPEF + IMP. SOST.) + DETR. LAV. DIPENDENTE - IMPOSTA SOSTITUTIVA' }
+    ],
     calculate: (inputs) => {
       const imp = inputs['imponibile_fiscale_mese'] || 0;
-      // ছবির নিয়он অনুযায়ী সরাসরি পার্সেন্টেজ হিসাব (× 23 / 100)
       return (imp * 23) / 100;
     }
   },
@@ -137,6 +139,23 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     calculate: (inputs) => {
       const imp = inputs['imponibile_fiscale_anno'] || 0;
       return (imp * 23) / 100;
+    }
+  },
+
+  // -------------------------------------------------------------
+  // Formula for DETR. LAV. DIPENDENTE (Monthly) [নতুন যুক্ত করা হলো]
+  // -------------------------------------------------------------
+  detr_lav_dipendente_mese: {
+    inputs: ['irpef_lorda_mese', 'irpef_imp_sost', 'imposta_sostitutiva_mese'],
+    mainFormulaTitle: 'DETR. LAV. DIPENDENTE = IRPEF LORDA - (IRPEF + IMP. SOST.) + IMPOSTA SOSTITUTIVA',
+    subFormulas: [
+      { label: 'Standard Formula', formula: 'DETR. LAV. DIPENDENTE (Standard calculation based on income)' }
+    ],
+    calculate: (inputs) => {
+      const lorda = inputs['irpef_lorda_mese'] || 0;
+      const impSostTot = inputs['irpef_imp_sost'] || 0;
+      const sost = inputs['imposta_sostitutiva_mese'] || 0;
+      return lorda - impSostTot + sost;
     }
   },
 
