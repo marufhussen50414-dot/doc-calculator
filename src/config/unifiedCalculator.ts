@@ -122,14 +122,6 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     }
   },
 
-  irpef_lorda_anno: {
-    inputs: ['imponibile_fiscale_anno'],
-    mainFormulaTitle: 'IRPEF LORDA (Anno) = Imponibile Fiscale Anno × 23%',
-    calculate: (inputs) => {
-      const imp = inputs['imponibile_fiscale_anno'] || 0;
-      return (imp * 23) / 100;
-    }
-  },
 
   detr_lav_dipendente_mese: {
     inputs: ['irpef_lorda_mese', 'irpef_imp_sost', 'imposta_sostitutiva_mese'],
