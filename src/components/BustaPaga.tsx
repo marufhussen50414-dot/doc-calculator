@@ -44,6 +44,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
   ]);
 
+  // IRPEF Lorda Anno বিশেষ অপশন স্টেট (নতুন টাস্ক)
+  const [irpefLordaMode, setIrpefLordaMode] = useState<'formula' | 'alternative'>('formula');
+
   const calculator = UNIFIED_CALCULATOR;
   
   const filteredFields = useMemo(() => {
@@ -81,6 +84,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setInputs({});
     setTfrAnnuoMode('formula');
     setImponibileAnnoMode('formula');
+    setIrpefLordaMode('formula');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -132,6 +136,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: hasValue, missing: hasValue ? [] : ['custom_imponibile_fields'] };
     }
 
+    if (outputFieldId === 'irpef_lorda_anno' && irpefLordaMode === 'alternative') {
+      const val = inputs['alt_base_value'];
+      const isValid = val !== undefined && val !== '' && !isNaN(parseFloat(String(val)));
+      return { valid: isValid, missing: isValid ? [] : ['alt_base_value'] };
+    }
+
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -159,6 +169,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     if (outputField === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
       const totalSum = customImponibileFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
       setResults({ [outputField]: totalSum });
+      setShowResult(true);
+      return;
+    }
+
+    if (outputField === 'irpef_lorda_anno' && irpefLordaMode === 'alternative') {
+      const altVal = parseFloat(String(inputs['alt_base_value'])) || 0;
+      // এখানে অল্টারনে티브 লজিক বা ক্যালকুলেশন বসাতে পারেন
+      setResults({ [outputField]: altVal });
       setShowResult(true);
       return;
     }
@@ -420,6 +438,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
               ]);
             }}
+            irpefLordaMode={irpefLordaMode}
+            onIrpefLordaModeChange={setIrpefLordaMode}
           />
         )}
 
@@ -469,6 +489,8 @@ interface StandardModeCalculatorProps {
   customImponibileFields: CustomDynamicField[];
   onCustomImponibileFieldChange: (id: string, value: string) => void;
   onAddImponibileField: () => void;
+  irpefLordaMode: 'formula' | 'alternative';
+  onIrpefLordaModeChange: (mode: 'formula' | 'alternative') => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -498,10 +520,13 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   customImponibileFields,
   onCustomImponibileFieldChange,
   onAddImponibileField,
+  irpefLordaMode,
+  onIrpefLordaModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
   const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
+  const isIrpefLordaField = outputField === 'irpef_lorda_anno';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -577,7 +602,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TFR ANNUO PROGR অপ션 */}
+              {/* TFR ANNUO PROGR অপশন */}
               {isTfrAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -637,7 +662,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* IMPONIBILE FISCALE ANNO অপ션 */}
+              {/* IMPONIBILE FISCALE ANNO অপশন */}
               {isImponibileAnnoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -697,8 +722,58 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
+              {/* IRPEF LORDA ANNO অপশন (নতুন টাস্ক) */}
+              {isIrpefLordaField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="irpefLordaMode" 
+                        checked={irpefLordaMode === 'formula'} 
+                        onChange={() => onIrpefLordaModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="irpefLordaMode" 
+                        checked={irpefLordaMode === 'alternative'} 
+                        onChange={() => onIrpefLordaModeChange('alternative')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Mode</span>
+                    </label>
+                  </div>
+
+                  {irpefLordaMode === 'alternative' && (
+                    <div className="mt-4 space-y-3">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Alternative Base Value
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['alt_base_value'] || ''}
+                          onChange={(e) => onInputChange('alt_base_value', e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* সাধারণ বা ফর্মুলা ইনপুট সেকশন */}
-              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && (!isImponibileAnnoField || imponibileAnnoMode === 'formula')) && (
+              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && 
+                (!isImponibileAnnoField || imponibileAnnoMode === 'formula') && 
+                (!isIrpefLordaField || irpefLordaMode === 'formula')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm">
