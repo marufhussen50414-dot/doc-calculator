@@ -44,7 +44,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
   ]);
 
-  // IRPEF Lorda Monthly বিশেষ অপশন স্টেট (সঠিক ফিল্ডে সেট করা হলো)
+  // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট (সঠিক ফিল্ডগুলো সহ)
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
 
   const calculator = UNIFIED_CALCULATOR;
@@ -136,11 +136,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: hasValue, missing: hasValue ? [] : ['custom_imponibile_fields'] };
     }
 
-    // সঠিক আইডি 'irpef_lorda_mese' চেক করা হলো
     if (outputFieldId === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
-      const val = inputs['alt_base_value'];
-      const isValid = val !== undefined && val !== '' && !isNaN(parseFloat(String(val)));
-      return { valid: isValid, missing: isValid ? [] : ['alt_base_value'] };
+      const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
+      const missingAlt = altFields.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missingAlt.length === 0, missing: missingAlt };
     }
 
     const required = getRequiredFields(outputFieldId);
@@ -175,8 +177,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
-      const altVal = parseFloat(String(inputs['alt_base_value'])) || 0;
-      setResults({ [outputField]: altVal });
+      // ফর্মুলা: (IRPEF + IMP. SOST.) + DETR. LAV. DIPENDENTE - IMPOSTA SOSTITUTIVA
+      const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
+      const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
+      const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
+      
+      const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost;
+      setResults({ [outputField]: calculatedAltResult });
       setShowResult(true);
       return;
     }
@@ -526,7 +533,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
   const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
-  // সঠিক ফিল্ড আইডি 'irpef_lorda_mese' চেক করা হচ্ছে
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
 
   return (
@@ -723,7 +729,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* IRPEF LORDA MONTHLY অপশন (সঠিক স্থানে যুক্ত করা হলো) */}
+              {/* IRPEF LORDA MONTHLY অপশন ও সঠিক সাব-ফর্মুলা ইনপুটসমূহ */}
               {isIrpefLordaMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -751,20 +757,56 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   </div>
 
                   {irpefLordaMonthlyMode === 'alternative' && (
-                    <div className="mt-4 space-y-3">
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Alternative Base Value
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs['alt_base_value'] || ''}
-                          onChange={(e) => onInputChange('alt_base_value', e.target.value)}
-                          placeholder="0.00"
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                        />
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          IRPEF + IMP. SOST.
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_irpef_imp_sost'] || ''}
+                            onChange={(e) => onInputChange('alt_irpef_imp_sost', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          DETR. LAV. DIPENDENTE
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_detr_lav_dip'] || ''}
+                            onChange={(e) => onInputChange('alt_detr_lav_dip', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          IMPOSTA SOSTITUTIVA
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_imposta_sost'] || ''}
+                            onChange={(e) => onInputChange('alt_imposta_sost', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
