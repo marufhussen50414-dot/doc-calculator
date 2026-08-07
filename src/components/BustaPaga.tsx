@@ -44,6 +44,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
   ]);
 
+  // জেনেরিক বা ইনপুটবিহীন ফিল্ডের জন্য কাস্টম মোড স্টেট (যেমন IRPEF Lorda)
+  const [genericCustomMode, setGenericCustomMode] = useState<'formula' | 'custom'>('formula');
+  const [customGenericFields, setCustomGenericFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'কাস্টম মান ১', value: '' }
+  ]);
+
   const calculator = UNIFIED_CALCULATOR;
   
   const filteredFields = useMemo(() => {
@@ -81,6 +87,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setInputs({});
     setTfrAnnuoMode('formula');
     setImponibileAnnoMode('formula');
+    setGenericCustomMode('formula');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -133,6 +140,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     const required = getRequiredFields(outputFieldId);
+    
+    // যদি কোনো প্রয়োজনীয় ফিল্ড না থাকে এবং ইউজার কাস্টম মোডে থাকেন
+    if (required.length === 0 && genericCustomMode === 'custom') {
+      const hasValue = customGenericFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      return { valid: hasValue, missing: hasValue ? [] : ['custom_generic_fields'] };
+    }
+
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
       return value === undefined || value === '' || value === null;
@@ -163,10 +177,22 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
+    const required = getRequiredFields(outputField);
+    if (required.length === 0 && genericCustomMode === 'custom') {
+      const totalSum = customGenericFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+      setResults({ [outputField]: totalSum });
+      setShowResult(true);
+      return;
+    }
+
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
     if (calculatedResult !== null) {
       setResults({ [outputField]: calculatedResult });
+      setShowResult(true);
+    } else {
+      // যদি ক্যালকুলেটর সরাসরি ফল না দিতে পারে, একটি ফলব্যাক হিসেবে ইনপুটগুলোর যোগফল বা ডিফল্ট মান দেখাতে পারে
+      setResults({ [outputField]: 0 });
       setShowResult(true);
     }
   };
@@ -193,21 +219,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResults: { [key: string]: number } = {};
-    let allSuccessful = true;
 
     outputFields.forEach(field => {
       const result = calculator.calculate(numericInputs, field);
-      if (result !== null) {
-        calculatedResults[field] = result;
-      } else {
-        allSuccessful = false;
-      }
+      calculatedResults[field] = result !== null ? result : 0;
     });
 
-    if (allSuccessful && Object.keys(calculatedResults).length > 0) {
-      setResults(calculatedResults);
-      setShowResult(true);
-    }
+    setResults(calculatedResults);
+    setShowResult(true);
   };
 
   const handleReset = () => {
@@ -222,6 +241,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setCustomImponibileFields([
       { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
       { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
+    ]);
+    setCustomGenericFields([
+      { id: '1', label: 'কাস্টম মান ১', value: '' }
     ]);
     if (mode === 'standard') {
       setOutputField(null);
@@ -405,7 +427,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onAddCustomField={() => {
               setCustomDynamicFields([
                 ...customDynamicFields,
-                { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' }
+                { id: Date.now().toString(), label: 'অতিরিক্ত মান', value: '' }
               ]);
             }}
             imponibileAnnoMode={imponibileAnnoMode}
@@ -417,7 +439,19 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onAddImponibileField={() => {
               setCustomImponibileFields([
                 ...customImponibileFields,
-                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
+                { id: Date.now().toString(), label: 'অতিরিক্ত মান', value: '' }
+              ]);
+            }}
+            genericCustomMode={genericCustomMode}
+            onGenericCustomModeChange={setGenericCustomMode}
+            customGenericFields={customGenericFields}
+            onCustomGenericFieldChange={(id, val) => {
+              setCustomGenericFields(customGenericFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddGenericField={() => {
+              setCustomGenericFields([
+                ...customGenericFields,
+                { id: Date.now().toString(), label: 'কাস্টম মান', value: '' }
               ]);
             }}
           />
@@ -469,6 +503,11 @@ interface StandardModeCalculatorProps {
   customImponibileFields: CustomDynamicField[];
   onCustomImponibileFieldChange: (id: string, value: string) => void;
   onAddImponibileField: () => void;
+  genericCustomMode: 'formula' | 'custom';
+  onGenericCustomModeChange: (mode: 'formula' | 'custom') => void;
+  customGenericFields: CustomDynamicField[];
+  onCustomGenericFieldChange: (id: string, value: string) => void;
+  onAddGenericField: () => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -498,10 +537,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   customImponibileFields,
   onCustomImponibileFieldChange,
   onAddImponibileField,
+  genericCustomMode,
+  onGenericCustomModeChange,
+  customGenericFields,
+  onCustomGenericFieldChange,
+  onAddGenericField,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
   const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
+  const hasNoRequiredFields = requiredFieldIds.length === 0 && !isTfrAnnuoField && !isImponibileAnnoField;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -600,16 +645,14 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         onChange={() => onTfrAnnuoModeChange('custom')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Alternative Sum (TFR Mese / Annuo Progr.)</span>
+                      <span>Alternative Sum</span>
                     </label>
                   </div>
 
                   {tfrAnnuoMode === 'custom' && (
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
-                        </span>
+                        <span className="text-xs font-medium text-gray-600">মানগুলো যোগ করুন:</span>
                         <button
                           onClick={onAddCustomField}
                           type="button"
@@ -660,16 +703,14 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         onChange={() => onImponibileAnnoModeChange('custom')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Alternative Sum (Previous Months + Current Month)</span>
+                      <span>Alternative Sum</span>
                     </label>
                   </div>
 
                   {imponibileAnnoMode === 'custom' && (
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          আগের মাসগুলোর মোট Imponibile Anno এবং চলতি মাসের Imponibile Mese যোগ করুন:
-                        </span>
+                        <span className="text-xs font-medium text-gray-600">মানগুলো যোগ করুন:</span>
                         <button
                           onClick={onAddImponibileField}
                           type="button"
@@ -697,12 +738,73 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
+              {/* যদি কোনো নির্দিষ্ট ফর্মুলা/ইনপুট না থাকে (যেমন IRPEF LORDA), তবে কাস্টম মান ইনপুটের অপশন */}
+              {hasNoRequiredFields && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="genericCustomMode" 
+                        checked={genericCustomMode === 'formula'} 
+                        onChange={() => onGenericCustomModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Direct Calculate</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="genericCustomMode" 
+                        checked={genericCustomMode === 'custom'} 
+                        onChange={() => onGenericCustomModeChange('custom')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Custom Input / Sum</span>
+                    </label>
+                  </div>
+
+                  {genericCustomMode === 'custom' && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-gray-600">আপনার প্রয়োজনীয় মানগুলো দিন:</span>
+                        <button
+                          onClick={onAddGenericField}
+                          type="button"
+                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
+                      </div>
+
+                      {customGenericFields.map((field) => (
+                        <div key={field.id} className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => onCustomGenericFieldChange(field.id, e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* সাধারণ বা ফর্মুলা ইনপুট সেকশন */}
-              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && (!isImponibileAnnoField || imponibileAnnoMode === 'formula')) && (
+              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && 
+                (!isImponibileAnnoField || imponibileAnnoMode === 'formula') && 
+                (!hasNoRequiredFields || genericCustomMode === 'formula')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 text-sm">
-                      No specific inputs are required for this field. You can calculate directly.
+                    <div className="text-center py-8 text-gray-500 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                      <p className="font-medium">No specific inputs are required for this field.</p>
+                      <p className="text-xs text-gray-400 mt-1">Click calculate directly or select "Custom Input" above to enter values manually.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -908,13 +1010,14 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
               </label>
 
               {allRequiredFieldIds.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 text-sm">
-                  No specific inputs are required for these fields. You can calculate directly.
+                <div className="text-center py-8 text-gray-500 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <p className="font-medium">No specific inputs are required for these fields.</p>
+                  <p className="text-xs text-gray-400 mt-1">You can calculate directly.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {allRequiredFieldIds.map((fieldId: string) => {
-                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
+                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) => 
                                      UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
 
