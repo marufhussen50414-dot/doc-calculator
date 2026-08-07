@@ -3,6 +3,7 @@ import { CalculatorInputs } from '../types';
 import { TFR_CALCULATOR } from '../config/tfrCalculator';
 
 type CalculatorMode = 'standard' | 'target' | 'multi';
+type FormulaType = 'standard' | 'alternative';
 
 interface TFRCalculatorProps {
   onBack?: () => void;
@@ -15,6 +16,7 @@ interface TFRCalculatorProps {
  */
 export const TFRCalculator: React.FC<TFRCalculatorProps> = () => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
+  const [formulaType, setFormulaType] = useState<FormulaType>('standard');
   const [outputField, setOutputField] = useState<string>('tfr_mese');
   const [outputFields, setOutputFields] = useState<Set<string>>(new Set(['tfr_mese']));
   const [inputs, setInputs] = useState<CalculatorInputs>({});
@@ -63,7 +65,7 @@ export const TFRCalculator: React.FC<TFRCalculatorProps> = () => {
   };
 
   const handleCalculate = () => {
-    const calculatedResult = calculator.calculate(inputs, outputField);
+    const calculatedResult = calculator.calculate(inputs, outputField, formulaType);
     if (calculatedResult !== null) {
       setResults({ [outputField]: calculatedResult });
       setShowResult(true);
@@ -75,7 +77,7 @@ export const TFRCalculator: React.FC<TFRCalculatorProps> = () => {
     let allSuccessful = true;
 
     outputFields.forEach(field => {
-      const result = calculator.calculate(inputs, field);
+      const result = calculator.calculate(inputs, field, formulaType);
       if (result !== null) {
         calculatedResults[field] = result;
       } else {
@@ -177,6 +179,35 @@ export const TFRCalculator: React.FC<TFRCalculatorProps> = () => {
               Calculate multiple fields
             </div>
           </button>
+        </div>
+      </div>
+
+      {/* Formula Type Selection (Radio Buttons) */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <label className="block text-sm font-semibold text-gray-700 mb-3">
+          Select Calculation Formula Option:
+        </label>
+        <div className="flex flex-col sm:flex-row gap-6">
+          <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700">
+            <input
+              type="radio"
+              name="formulaTypeSelection"
+              checked={formulaType === 'standard'}
+              onChange={() => setFormulaType('standard')}
+              className="text-green-600 focus:ring-green-500"
+            />
+            Standard Formula
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700">
+            <input
+              type="radio"
+              name="formulaTypeSelection"
+              checked={formulaType === 'alternative'}
+              onChange={() => setFormulaType('alternative')}
+              className="text-green-600 focus:ring-green-500"
+            />
+            Sub-Formula / Alternative (Backward Calc)
+          </label>
         </div>
       </div>
 
