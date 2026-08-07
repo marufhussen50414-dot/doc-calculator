@@ -6,24 +6,16 @@ export interface CalculatorField {
 
 interface FormulaConfig {
   inputs: string[];
-  mainFormulaTitle: string; // মূল ফর্মুলা
-  subFormulas?: { label: string; formula: string }[]; // সাব-ফর্মুলাগুলো
-  calculate: (inputs: { [key: string]: number }) => number;
+  alternativeInputs?: string[];
+  mainFormulaTitle: string;
+  alternativeFormulaTitle?: string;
+  calculate: (inputs: { [key: string]: number }, mode?: 'standard' | 'alternative') => number;
 }
 
 const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
-  // -------------------------------------------------------------
-  // Formula 1: NETTO IN BUSTA & Sub-formulas
-  // -------------------------------------------------------------
   netto_busta: {
     inputs: ['totale_competenze', 'totale_trattenute', 'arr_preced', 'arr_attuale'],
     mainFormulaTitle: 'NETTO IN BUSTA = TOTALE COMPETENZE - (TOTALE TRATTENUTE + (± ARR. PRECED.)) ± ARR. ATTUALE',
-    subFormulas: [
-      { label: 'Sub-Formula 1', formula: 'TOTALE COMPETENZE = Netto - Arr. Attuale + Totale Trattenute + Arr. Preced.' },
-      { label: 'Sub-Formula 2', formula: 'TOTALE TRATTENUTE = Totale Competenze - Arr. Preced. + Arr. Attuale - Netto' },
-      { label: 'Sub-Formula 3', formula: 'ARR. PRECED. = Totale Competenze - Totale Trattenute + Arr. Attuale - Netto' },
-      { label: 'Sub-Formula 4', formula: 'ARR. ATTUALE = Netto - Totale Competenze + Totale Trattenute + Arr. Preced.' }
-    ],
     calculate: (inputs) => {
       const tc = inputs['totale_competenze'] || 0;
       const tt = inputs['totale_trattenute'] || 0;
@@ -81,16 +73,9 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     }
   },
 
-  // -------------------------------------------------------------
-  // Formula 2: TFR Calculation & Sub-formulas
-  // -------------------------------------------------------------
   tfr_spettante_azienda: {
     inputs: ['f_do_tfr_ap', 'tfr_annuo_progr'],
     mainFormulaTitle: 'TFR Spettante Azienda = F.do TFR al 31/12 AP + TFR Annuo Progr.',
-    subFormulas: [
-      { label: 'Sub-Formula 1', formula: 'F.do TFR al 31/12 AP = TFR Spettante - TFR Annuo Progr.' },
-      { label: 'Sub-Formula 2', formula: 'TFR Annuo Progr. = TFR Spettante - F.do TFR al 31/12 AP' }
-    ],
     calculate: (inputs) => {
       const fdo = inputs['f_do_tfr_ap'] || 0;
       const tfrProg = inputs['tfr_annuo_progr'] || 0;
@@ -118,18 +103,22 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     }
   },
 
-  // -------------------------------------------------------------
-  // Formula 3: IRPEF LORDA (Monthly) & Annual calculations
-  // -------------------------------------------------------------
+  // IRPEF LORDA (Monthly) - দুটি অপশন সহ কনফিগারেশন
   irpef_lorda_mese: {
     inputs: ['imponibile_fiscale_mese'],
+    alternativeInputs: ['irpef_imp_sost', 'detr_lav_dipendente_mese', 'imposta_sostitutiva_mese'],
     mainFormulaTitle: 'IRPEF LORDA (Monthly) = Imponibile Fiscale Mese × 23%',
-    subFormulas: [
-      { label: 'Sub-Formula (Backward)', formula: 'IRPEF LORDA = (IRPEF + IMP. SOST.) + DETR. LAV. DIPENDENTE - IMPOSTA SOSTITUTIVA' }
-    ],
-    calculate: (inputs) => {
-      const imp = inputs['imponibile_fiscale_mese'] || 0;
-      return (imp * 23) / 100;
+    alternativeFormulaTitle: 'IRPEF LORDA = (IRPEF + IMP. SOST.) + DETR. LAV. DIPENDENTE - IMPOSTA SOSTITUTIVA',
+    calculate: (inputs, mode = 'standard') => {
+      if (mode === 'alternative') {
+        const impSostTot = inputs['irpef_imp_sost'] || 0;
+        const detr = inputs['detr_lav_dipendente_mese'] || 0;
+        const sost = inputs['imposta_sostitutiva_mese'] || 0;
+        return impSostTot + detr - sost;
+      } else {
+        const imp = inputs['imponibile_fiscale_mese'] || 0;
+        return (imp * 23) / 100;
+      }
     }
   },
 
@@ -142,15 +131,9 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     }
   },
 
-  // -------------------------------------------------------------
-  // Formula for DETR. LAV. DIPENDENTE (Monthly) [নতুন যুক্ত করা হলো]
-  // -------------------------------------------------------------
   detr_lav_dipendente_mese: {
     inputs: ['irpef_lorda_mese', 'irpef_imp_sost', 'imposta_sostitutiva_mese'],
     mainFormulaTitle: 'DETR. LAV. DIPENDENTE = IRPEF LORDA - (IRPEF + IMP. SOST.) + IMPOSTA SOSTITUTIVA',
-    subFormulas: [
-      { label: 'Standard Formula', formula: 'DETR. LAV. DIPENDENTE (Standard calculation based on income)' }
-    ],
     calculate: (inputs) => {
       const lorda = inputs['irpef_lorda_mese'] || 0;
       const impSostTot = inputs['irpef_imp_sost'] || 0;
@@ -159,9 +142,6 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     }
   },
 
-  // -------------------------------------------------------------
-  // Formula 4: IRPEF + IMP. SOST.
-  // -------------------------------------------------------------
   irpef_imp_sost: {
     inputs: ['irpef_lorda_mese', 'detr_lav_dipendente_mese', 'imposta_sostitutiva_mese'],
     mainFormulaTitle: 'IRPEF + IMP. SOST. = IRPEF LORDA - DETR. LAV. DIPENDENTE + IMPOSTA SOSTITUTIVA',
@@ -222,19 +202,19 @@ export const UNIFIED_CALCULATOR = {
     { id: 'netto_busta', label: '43. NETTO IN BUSTA', category: 'Net Pay' }
   ] as CalculatorField[],
 
-  getRequiredInputsForField: (outputFieldId: string): string[] => {
+  getRequiredInputsForField: (outputFieldId: string, mode: 'standard' | 'alternative' = 'standard'): string[] => {
     const config = FORMULA_REGISTRY[outputFieldId];
-    return config ? config.inputs : [];
+    if (!config) return [];
+    if (outputFieldId === 'irpef_lorda_mese' && mode === 'alternative') {
+      return config.alternativeInputs || [];
+    }
+    return config.inputs;
   },
 
-  getFormulaDetails: (outputFieldId: string) => {
-    return FORMULA_REGISTRY[outputFieldId] || null;
-  },
-
-  calculate: (inputs: { [key: string]: number }, outputField: string): number | null => {
+  calculate: (inputs: { [key: string]: number }, outputField: string, mode: 'standard' | 'alternative' = 'standard'): number | null => {
     const config = FORMULA_REGISTRY[outputField];
     if (config) {
-      return config.calculate(inputs);
+      return config.calculate(inputs, mode);
     }
     return inputs[outputField] !== undefined ? inputs[outputField] : null;
   }
