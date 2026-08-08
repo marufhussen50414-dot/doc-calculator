@@ -95,11 +95,9 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
 
   tfr_annuo_progr: {
     inputs: ['tfr_spettante_azienda', 'f_do_tfr_ap'],
-    alternativeInputs: [],
     mainFormulaTitle: 'TFR Annuo Progr. = TFR Spettante Azienda - F.do TFR al 31/12 AP',
-    alternativeFormulaTitle: 'Alternative Sum (TFR Mese / Annuo Progr.)',
-    calculate: (inputs, mode = 'standard', customValues = []) => {
-      if (mode === 'alternative' && customValues && customValues.length > 0) {
+    calculate: (inputs, _mode, customValues = []) => {
+      if (customValues && customValues.length > 0) {
         return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
       }
       const tfrSpettante = inputs['tfr_spettante_azienda'] || 0;
@@ -110,11 +108,9 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
 
   imponibile_fiscale_anno: {
     inputs: [],
-    alternativeInputs: [],
     mainFormulaTitle: 'IMPONIBILE FISCALE (Anno)',
-    alternativeFormulaTitle: 'Alternative Sum (Previous Months + Current Month)',
-    calculate: (_inputs, mode = 'standard', customValues = []) => {
-      if (mode === 'alternative' && customValues && customValues.length > 0) {
+    calculate: (_inputs, _mode, customValues = []) => {
+      if (customValues && customValues.length > 0) {
         return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
       }
       return 0;
@@ -129,18 +125,16 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
 
   detr_lav_dipendente_anno: {
     inputs: [],
-    alternativeInputs: [],
     mainFormulaTitle: 'DETR. LAV. DIPENDENTE (Anno)',
-    alternativeFormulaTitle: 'Alternative Sum (Previous Months + Current Month)',
-    calculate: (_inputs, mode = 'standard', customValues = []) => {
-      if (mode === 'alternative' && customValues && customValues.length > 0) {
+    calculate: (_inputs, _mode, customValues = []) => {
+      if (customValues && customValues.length > 0) {
         return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
       }
       return 0;
     }
   },
 
-  // IRPEF LORDA (Monthly) - দুটি অপশন সহ কনফিগারেশন
+  // IRPEF LORDA (Monthly) - শুধুমাত্র এখানেই দুটি অপশন থাকবে কারণ এর দুটি ভিন্ন লজিক রয়েছে
   irpef_lorda_mese: {
     inputs: ['imponibile_fiscale_mese'],
     alternativeInputs: ['irpef_imp_sost', 'detr_lav_dipendente_mese', 'imposta_sostitutiva_mese'],
