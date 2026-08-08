@@ -9,7 +9,7 @@ interface FormulaConfig {
   alternativeInputs?: string[];
   mainFormulaTitle: string;
   alternativeFormulaTitle?: string;
-  calculate: (inputs: { [key: string]: number }, mode?: 'standard' | 'alternative') => number;
+  calculate: (inputs: { [key: string]: number }, mode?: 'standard' | 'alternative', customValues?: number[]) => number;
 }
 
 const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
@@ -95,11 +95,48 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
 
   tfr_annuo_progr: {
     inputs: ['tfr_spettante_azienda', 'f_do_tfr_ap'],
+    alternativeInputs: [],
     mainFormulaTitle: 'TFR Annuo Progr. = TFR Spettante Azienda - F.do TFR al 31/12 AP',
-    calculate: (inputs) => {
+    alternativeFormulaTitle: 'Alternative Sum (TFR Mese / Annuo Progr.)',
+    calculate: (inputs, mode = 'standard', customValues = []) => {
+      if (mode === 'alternative' && customValues && customValues.length > 0) {
+        return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
+      }
       const tfrSpettante = inputs['tfr_spettante_azienda'] || 0;
       const fdo = inputs['f_do_tfr_ap'] || 0;
       return tfrSpettante - fdo;
+    }
+  },
+
+  imponibile_fiscale_anno: {
+    inputs: [],
+    alternativeInputs: [],
+    mainFormulaTitle: 'IMPONIBILE FISCALE (Anno)',
+    alternativeFormulaTitle: 'Alternative Sum (Previous Months + Current Month)',
+    calculate: (_inputs, mode = 'standard', customValues = []) => {
+      if (mode === 'alternative' && customValues && customValues.length > 0) {
+        return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
+      }
+      return 0;
+    }
+  },
+
+  irpef_lorda_anno: {
+    inputs: [],
+    mainFormulaTitle: 'IRPEF LORDA (Anno)',
+    calculate: () => 0
+  },
+
+  detr_lav_dipendente_anno: {
+    inputs: [],
+    alternativeInputs: [],
+    mainFormulaTitle: 'DETR. LAV. DIPENDENTE (Anno)',
+    alternativeFormulaTitle: 'Alternative Sum (Previous Months + Current Month)',
+    calculate: (_inputs, mode = 'standard', customValues = []) => {
+      if (mode === 'alternative' && customValues && customValues.length > 0) {
+        return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
+      }
+      return 0;
     }
   },
 
@@ -121,7 +158,6 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
       }
     }
   },
-
 
   detr_lav_dipendente_mese: {
     inputs: ['irpef_lorda_mese', 'irpef_imp_sost', 'imposta_sostitutiva_mese'],
@@ -197,16 +233,16 @@ export const UNIFIED_CALCULATOR = {
   getRequiredInputsForField: (outputFieldId: string, mode: 'standard' | 'alternative' = 'standard'): string[] => {
     const config = FORMULA_REGISTRY[outputFieldId];
     if (!config) return [];
-    if (outputFieldId === 'irpef_lorda_mese' && mode === 'alternative') {
-      return config.alternativeInputs || [];
+    if (mode === 'alternative' && config.alternativeInputs) {
+      return config.alternativeInputs;
     }
     return config.inputs;
   },
 
-  calculate: (inputs: { [key: string]: number }, outputField: string, mode: 'standard' | 'alternative' = 'standard'): number | null => {
+  calculate: (inputs: { [key: string]: number }, outputField: string, mode: 'standard' | 'alternative' = 'standard', customValues?: number[]): number | null => {
     const config = FORMULA_REGISTRY[outputField];
     if (config) {
-      return config.calculate(inputs, mode);
+      return config.calculate(inputs, mode, customValues);
     }
     return inputs[outputField] !== undefined ? inputs[outputField] : null;
   }
