@@ -44,7 +44,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
   ]);
 
-  // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট (সঠিক ফিল্ডগুলো সহ)
+  // Detr. Lav. Dipendente Anno বিশেষ অপশন স্টেট
+  const [detrLavAnnoMode, setDetrLavAnnoMode] = useState<'formula' | 'custom'>('formula');
+  const [customDetrLavAnnoFields, setCustomDetrLavAnnoFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'আগের মাসগুলোর Detr. Lav. Dipendente', value: '' },
+    { id: '2', label: 'চলতি মাসের Detr. Lav. Dipendente', value: '' }
+  ]);
+
+  // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
 
   const calculator = UNIFIED_CALCULATOR;
@@ -84,6 +91,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setInputs({});
     setTfrAnnuoMode('formula');
     setImponibileAnnoMode('formula');
+    setDetrLavAnnoMode('formula');
     setIrpefLordaMonthlyMode('formula');
   };
 
@@ -136,6 +144,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: hasValue, missing: hasValue ? [] : ['custom_imponibile_fields'] };
     }
 
+    if (outputFieldId === 'detr_lav_dipendente_anno' && detrLavAnnoMode === 'custom') {
+      const hasValue = customDetrLavAnnoFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      return { valid: hasValue, missing: hasValue ? [] : ['custom_detr_lav_anno_fields'] };
+    }
+
     if (outputFieldId === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
       const missingAlt = altFields.filter(fId => {
@@ -176,8 +189,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
+    if (outputField === 'detr_lav_dipendente_anno' && detrLavAnnoMode === 'custom') {
+      const totalSum = customDetrLavAnnoFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+      setResults({ [outputField]: totalSum });
+      setShowResult(true);
+      return;
+    }
+
     if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
-      // ফর্মুলা: (IRPEF + IMP. SOST.) + DETR. LAV. DIPENDENTE - IMPOSTA SOSTITUTIVA
       const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
       const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
       const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
@@ -247,6 +266,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setCustomImponibileFields([
       { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
       { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
+    ]);
+    setCustomDetrLavAnnoFields([
+      { id: '1', label: 'আগের মাসগুলোর Detr. Lav. Dipendente', value: '' },
+      { id: '2', label: 'চলتی মাসের Detr. Lav. Dipendente', value: '' }
     ]);
     if (mode === 'standard') {
       setOutputField(null);
@@ -445,6 +468,18 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
               ]);
             }}
+            detrLavAnnoMode={detrLavAnnoMode}
+            onDetrLavAnnoModeChange={setDetrLavAnnoMode}
+            customDetrLavAnnoFields={customDetrLavAnnoFields}
+            onCustomDetrLavAnnoFieldChange={(id, val) => {
+              setCustomDetrLavAnnoFields(customDetrLavAnnoFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddDetrLavAnnoField={() => {
+              setCustomDetrLavAnnoFields([
+                ...customDetrLavAnnoFields,
+                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Detr. Lav. Dipendente', value: '' }
+              ]);
+            }}
             irpefLordaMonthlyMode={irpefLordaMonthlyMode}
             onIrpefLordaMonthlyModeChange={setIrpefLordaMonthlyMode}
           />
@@ -496,6 +531,11 @@ interface StandardModeCalculatorProps {
   customImponibileFields: CustomDynamicField[];
   onCustomImponibileFieldChange: (id: string, value: string) => void;
   onAddImponibileField: () => void;
+  detrLavAnnoMode: 'formula' | 'custom';
+  onDetrLavAnnoModeChange: (mode: 'formula' | 'custom') => void;
+  customDetrLavAnnoFields: CustomDynamicField[];
+  onCustomDetrLavAnnoFieldChange: (id: string, value: string) => void;
+  onAddDetrLavAnnoField: () => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
 }
@@ -527,12 +567,18 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   customImponibileFields,
   onCustomImponibileFieldChange,
   onAddImponibileField,
+  detrLavAnnoMode,
+  onDetrLavAnnoModeChange,
+  customDetrLavAnnoFields,
+  onCustomDetrLavAnnoFieldChange,
+  onAddDetrLavAnnoField,
   irpefLordaMonthlyMode,
   onIrpefLordaMonthlyModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
   const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
+  const isDetrLavAnnoField = outputField === 'detr_lav_dipendente_anno';
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
 
   return (
@@ -729,7 +775,67 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* IRPEF LORDA MONTHLY অপশন ও সঠিক সাব-ফর্মুলা ইনপুটসমূহ */}
+              {/* DETR. LAV. DIPENDENTE ANNO অপশন */}
+              {isDetrLavAnnoField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="detrLavAnnoMode" 
+                        checked={detrLavAnnoMode === 'formula'} 
+                        onChange={() => onDetrLavAnnoModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input 
+                        type="radio" 
+                        name="detrLavAnnoMode" 
+                        checked={detrLavAnnoMode === 'custom'} 
+                        onChange={() => onDetrLavAnnoModeChange('custom')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Sum (Previous Months + Current Month)</span>
+                    </label>
+                  </div>
+
+                  {detrLavAnnoMode === 'custom' && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-gray-600">
+                          আগের মাসগুলোর এবং চলতি মাসের Detr. Lav. Dipendente মানগুলো যোগ করুন:
+                        </span>
+                        <button
+                          onClick={onAddDetrLavAnnoField}
+                          type="button"
+                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
+                      </div>
+
+                      {customDetrLavAnnoFields.map((field) => (
+                        <div key={field.id} className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => onCustomDetrLavAnnoFieldChange(field.id, e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* IRPEF LORDA MONTHLY অপশন */}
               {isIrpefLordaMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -813,9 +919,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* সাধারণ বা ফর্মুলা ইনপুট সেকশন */}
               {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && 
                 (!isImponibileAnnoField || imponibileAnnoMode === 'formula') && 
+                (!isDetrLavAnnoField || detrLavAnnoMode === 'formula') &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
