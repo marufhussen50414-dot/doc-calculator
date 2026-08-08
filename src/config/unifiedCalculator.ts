@@ -96,10 +96,7 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   tfr_annuo_progr: {
     inputs: ['tfr_spettante_azienda', 'f_do_tfr_ap'],
     mainFormulaTitle: 'TFR Annuo Progr. = TFR Spettante Azienda - F.do TFR al 31/12 AP',
-    calculate: (inputs, _mode, customValues = []) => {
-      if (customValues && customValues.length > 0) {
-        return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
-      }
+    calculate: (inputs) => {
       const tfrSpettante = inputs['tfr_spettante_azienda'] || 0;
       const fdo = inputs['f_do_tfr_ap'] || 0;
       return tfrSpettante - fdo;
@@ -109,12 +106,7 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   imponibile_fiscale_anno: {
     inputs: [],
     mainFormulaTitle: 'IMPONIBILE FISCALE (Anno)',
-    calculate: (_inputs, _mode, customValues = []) => {
-      if (customValues && customValues.length > 0) {
-        return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
-      }
-      return 0;
-    }
+    calculate: () => 0
   },
 
   irpef_lorda_anno: {
@@ -126,15 +118,10 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   detr_lav_dipendente_anno: {
     inputs: [],
     mainFormulaTitle: 'DETR. LAV. DIPENDENTE (Anno)',
-    calculate: (_inputs, _mode, customValues = []) => {
-      if (customValues && customValues.length > 0) {
-        return customValues.reduce((acc, val) => acc + (Number(val) || 0), 0);
-      }
-      return 0;
-    }
+    calculate: () => 0
   },
 
-  // IRPEF LORDA (Monthly) - শুধুমাত্র এখানেই দুটি অপশন থাকবে কারণ এর দুটি ভিন্ন লজিক রয়েছে
+  // শুধুমাত্র IRPEF LORDA (Monthly)-এর ক্ষেত্রে দুটি অপশন থাকবে
   irpef_lorda_mese: {
     inputs: ['imponibile_fiscale_mese'],
     alternativeInputs: ['irpef_imp_sost', 'detr_lav_dipendente_mese', 'imposta_sostitutiva_mese'],
