@@ -12,6 +12,7 @@ type CalculatorMode = 'standard' | 'target' | 'multi';
 
 interface CustomDynamicField {
   id: string;
+  label: string;
   value: string;
 }
 
@@ -25,21 +26,35 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [attempted, setAttempted] = useState(false);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  
-  // Toast Notification State for Disabled Click
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  
-  // Rounding State (Default: OFF)
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
-  // Dynamic Add Value State for Standard Mode Inputs
-  const [customDynamicInputs, setCustomDynamicInputs] = useState<CustomDynamicField[]>([
-    { id: '1', value: '' },
-    { id: '2', value: '' }
+  // TFR Anno Progr মোড স্টেট
+  const [tfrAnnuoMode, setTfrAnnuoMode] = useState<'formula' | 'custom'>('formula');
+  const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
+    { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
   ]);
 
+  // Imponibile Fiscale Anno বিশেষ অপশন স্টেট
+  const [imponibileAnnoMode, setImponibileAnnoMode] = useState<'formula' | 'custom'>('formula');
+  const [customImponibileFields, setCustomImponibileFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
+    { id: '2', label: 'চলتی মাসের Imponibile Fiscale Mese', value: '' }
+  ]);
+
+  // Detr. Lav. Dipendente Anno অপশন স্টেট
+  const [detrAnnoMode, setDetrAnnoMode] = useState<'formula' | 'custom'>('formula');
+  const [customDetrAnnoFields, setCustomDetrAnnoFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'আগের মাসের Detr. Lav. Dipendente Anno', value: '' },
+    { id: '2', label: 'চলتی মাসের Detr. Lav. Dipendente Mese', value: '' }
+  ]);
+
+  // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট
+  const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
+
   const calculator = UNIFIED_CALCULATOR;
-  
+
   const filteredFields = useMemo(() => {
     return searchFields(searchQuery);
   }, [searchQuery]);
@@ -66,17 +81,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
-
     setOutputField(fieldId);
     setOutputFields(new Set([fieldId]));
     setShowResult(false);
     setAttempted(false);
     setResults({});
     setInputs({});
-    setCustomDynamicInputs([
-      { id: '1', value: '' },
-      { id: '2', value: '' }
-    ]);
+    setTfrAnnuoMode('formula');
+    setImponibileAnnoMode('formula');
+    setDetrAnnoMode('formula');
+    setIrpefLordaMonthlyMode('formula');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -86,7 +100,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
-
     const newOutputFields = new Set(outputFields);
     if (newOutputFields.has(fieldId)) {
       newOutputFields.delete(fieldId);
@@ -118,9 +131,27 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
+    if (outputFieldId === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+      const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
+    }
+    if (outputFieldId === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
+      const hasValue = customImponibileFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      return { valid: hasValue, missing: hasValue ? [] : ['custom_imponibile_fields'] };
+    }
+    if (outputFieldId === 'detr_lav_dip_anno' && detrAnnoMode === 'custom') {
+      const hasValue = customDetrAnnoFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      return { valid: hasValue, missing: hasValue ? [] : ['custom_detr_anno_fields'] };
+    }
+    if (outputFieldId === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
+      const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
+      const missingAlt = altFields.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missingAlt.length === 0, missing: missingAlt };
+    }
     const required = getRequiredFields(outputFieldId);
-    
-    // যদি ফিল্ডগুলোর মধ্যে কোনো নির্দিষ্ট ফিল্ড থাকে অথবা সাধারণ নিয়ম চেক করতে হয়
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
       return value === undefined || value === '' || value === null;
@@ -131,24 +162,44 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const handleCalculate = () => {
     if (!outputField) return;
     setAttempted(true);
-
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
       return;
     }
-    
-    const numericInputs = convertInputsToNumbers(inputs);
 
-    // যদি কাস্টম ডায়নামিক ইনপুট ফিল্ডে ভ্যালু থাকে, সেগুলোর যোগফল বা ডেটা পাস করার লজিক
-    const hasCustomValues = customDynamicInputs.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
-    if (hasCustomValues && required.length === 0) {
-      const totalSum = customDynamicInputs.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+    if (outputField === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+      const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
       setResults({ [outputField]: totalSum });
       setShowResult(true);
       return;
     }
 
+    if (outputField === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
+      const totalSum = customImponibileFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+      setResults({ [outputField]: totalSum });
+      setShowResult(true);
+      return;
+    }
+
+    if (outputField === 'detr_lav_dip_anno' && detrAnnoMode === 'custom') {
+      const totalSum = customDetrAnnoFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+      setResults({ [outputField]: totalSum });
+      setShowResult(true);
+      return;
+    }
+
+    if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
+      const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
+      const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
+      const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
+      const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost;
+      setResults({ [outputField]: calculatedAltResult });
+      setShowResult(true);
+      return;
+    }
+
+    const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
     if (calculatedResult !== null) {
       setResults({ [outputField]: calculatedResult });
@@ -159,27 +210,22 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const handleMultiCalculate = () => {
     if (outputFields.size === 0) return;
     setAttempted(true);
-
     const allRequiredFields = new Set<string>();
     outputFields.forEach(field => {
       const required = getRequiredFields(field);
       required.forEach(r => allRequiredFields.add(r));
     });
-
     const missingFields = Array.from(allRequiredFields).filter(fieldId => {
       const value = inputs[fieldId];
       return value === undefined || value === '' || value === null;
     });
-
     if (missingFields.length > 0) {
       setShowResult(false);
       return;
     }
-
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResults: { [key: string]: number } = {};
     let allSuccessful = true;
-
     outputFields.forEach(field => {
       const result = calculator.calculate(numericInputs, field);
       if (result !== null) {
@@ -188,7 +234,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         allSuccessful = false;
       }
     });
-
     if (allSuccessful && Object.keys(calculatedResults).length > 0) {
       setResults(calculatedResults);
       setShowResult(true);
@@ -200,9 +245,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setResults({});
     setShowResult(false);
     setAttempted(false);
-    setCustomDynamicInputs([
-      { id: '1', value: '' },
-      { id: '2', value: '' }
+    setCustomDynamicFields([
+      { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
+      { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
+    ]);
+    setCustomImponibileFields([
+      { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
+      { id: '2', label: 'চলتی মাসের Imponibile Fiscale Mese', value: '' }
+    ]);
+    setCustomDetrAnnoFields([
+      { id: '1', label: 'আগের মাসের Detr. Lav. Dipendente Anno', value: '' },
+      { id: '2', label: 'চলتی মাসের Detr. Lav. Dipendente Mese', value: '' }
     ]);
     if (mode === 'standard') {
       setOutputField(null);
@@ -230,7 +283,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 relative">
-      
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-lg shadow-xl flex items-center space-x-3 border-l-4 border-amber-500 animate-bounce">
           <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,12 +291,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
-
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <button
             onClick={onBack}
-            className="flex items-center text-indigo-600 hover:text-indigo-850 transition-colors font-medium"
+            className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -252,7 +303,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             Back to Home
           </button>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
           <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
@@ -292,7 +342,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
               </div>
             </div>
           </div>
-
           <div className="lg:col-span-7 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
             <div className="grid grid-cols-3 gap-3">
@@ -306,18 +355,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 <div className="font-semibold text-gray-800 text-sm">Standard</div>
                 <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
               </button>
-
               <button
                 onClick={() => handleModeChange('target')}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                 }`}
               >
-                <div className="text-2xl mb-2">🎪</div>
+                <div className="text-2xl mb-2">🎯</div>
                 <div className="font-semibold text-gray-800 text-sm">Target</div>
                 <div className="text-xs text-gray-600 mt-1">Set a goal</div>
               </button>
-
               <button
                 onClick={() => handleModeChange('multi')}
                 className={`p-4 rounded-lg border-2 transition-all ${
@@ -377,8 +424,44 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
             enableRounding={enableRounding}
-            customDynamicInputs={customDynamicInputs}
-            setCustomDynamicInputs={setCustomDynamicInputs}
+            tfrAnnuoMode={tfrAnnuoMode}
+            onTfrAnnuoModeChange={setTfrAnnuoMode}
+            customDynamicFields={customDynamicFields}
+            onCustomFieldChange={(id, val) => {
+              setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddCustomField={() => {
+              setCustomDynamicFields([
+                ...customDynamicFields,
+                { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' }
+              ]);
+            }}
+            imponibileAnnoMode={imponibileAnnoMode}
+            onImponibileAnnoModeChange={setImponibileAnnoMode}
+            customImponibileFields={customImponibileFields}
+            onCustomImponibileFieldChange={(id, val) => {
+              setCustomImponibileFields(customImponibileFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddImponibileField={() => {
+              setCustomImponibileFields([
+                ...customImponibileFields,
+                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
+              ]);
+            }}
+            detrAnnoMode={detrAnnoMode}
+            onDetrAnnoModeChange={setDetrAnnoMode}
+            customDetrAnnoFields={customDetrAnnoFields}
+            onCustomDetrAnnoFieldChange={(id, val) => {
+              setCustomDetrAnnoFields(customDetrAnnoFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddCustomDetrAnnoField={() => {
+              setCustomDetrAnnoFields([
+                ...customDetrAnnoFields,
+                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Detr. Lav. Dipendente', value: '' }
+              ]);
+            }}
+            irpefLordaMonthlyMode={irpefLordaMonthlyMode}
+            onIrpefLordaMonthlyModeChange={setIrpefLordaMonthlyMode}
           />
         )}
 
@@ -394,7 +477,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
       </div>
-
       <FormulaModal isOpen={showFormulaModal} onClose={() => setShowFormulaModal(false)} />
     </div>
   );
@@ -418,8 +500,23 @@ interface StandardModeCalculatorProps {
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
-  customDynamicInputs: CustomDynamicField[];
-  setCustomDynamicInputs: React.Dispatch<React.SetStateAction<CustomDynamicField[]>>;
+  tfrAnnuoMode: 'formula' | 'custom';
+  onTfrAnnuoModeChange: (mode: 'formula' | 'custom') => void;
+  customDynamicFields: CustomDynamicField[];
+  onCustomFieldChange: (id: string, value: string) => void;
+  onAddCustomField: () => void;
+  imponibileAnnoMode: 'formula' | 'custom';
+  onImponibileAnnoModeChange: (mode: 'formula' | 'custom') => void;
+  customImponibileFields: CustomDynamicField[];
+  onCustomImponibileFieldChange: (id: string, value: string) => void;
+  onAddImponibileField: () => void;
+  detrAnnoMode: 'formula' | 'custom';
+  onDetrAnnoModeChange: (mode: 'formula' | 'custom') => void;
+  customDetrAnnoFields: CustomDynamicField[];
+  onCustomDetrAnnoFieldChange: (id: string, value: string) => void;
+  onAddCustomDetrAnnoField: () => void;
+  irpefLordaMonthlyMode: 'formula' | 'alternative';
+  onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -439,10 +536,29 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
   enableRounding,
-  customDynamicInputs,
-  setCustomDynamicInputs,
+  tfrAnnuoMode,
+  onTfrAnnuoModeChange,
+  customDynamicFields,
+  onCustomFieldChange,
+  onAddCustomField,
+  imponibileAnnoMode,
+  onImponibileAnnoModeChange,
+  customImponibileFields,
+  onCustomImponibileFieldChange,
+  onAddImponibileField,
+  detrAnnoMode,
+  onDetrAnnoModeChange,
+  customDetrAnnoFields,
+  onCustomDetrAnnoFieldChange,
+  onAddCustomDetrAnnoField,
+  irpefLordaMonthlyMode,
+  onIrpefLordaMonthlyModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
+  const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
+  const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
+  const isDetrAnnoField = outputField === 'detr_lav_dip_anno';
+  const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -451,7 +567,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Select the field to calculate (output):
           </label>
-          
           <div className="mb-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -468,13 +583,11 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               />
             </div>
           </div>
-
           <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
             {filteredFields.map((field: any) => {
               const isSelected = outputField === field.id;
               const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
               const isDisabled = !enableRounding && isRoundingField;
-
               return (
                 <button
                   key={field.id}
@@ -482,8 +595,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   className={`p-3.5 rounded-lg border-2 text-left transition-all ${
                     isDisabled
                       ? 'border-gray-200 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed'
-                      : isSelected 
-                      ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200' 
+                      : isSelected
+                      ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200'
                       : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
                   }`}
                 >
@@ -514,101 +627,337 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-700">
-                  বর্তমান বা আগের মাসের মানগুলো যোগ করুন ({getFieldLabel(outputField)}):
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomDynamicInputs([
-                      ...customDynamicInputs,
-                      { id: Date.now().toString(), value: '' }
-                    ]);
-                  }}
-                  className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-                >
-                  + Add Value
-                </button>
-              </div>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                Enter the required values for {getFieldLabel(outputField)}:
+              </label>
 
-              {/* Dynamic Inputs List */}
-              <div className="space-y-3 mb-6 max-h-56 overflow-y-auto pr-1">
-                {customDynamicInputs.map((item, index) => (
-                  <div key={item.id} className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.value}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setCustomDynamicInputs(customDynamicInputs.map(f => f.id === item.id ? { ...f, value: val } : f));
-                      }}
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
+              {/* TFR ANNUO PROGR অপশন */}
+              {isTfrAnnuoField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="tfrAnnuoMode"
+                        checked={tfrAnnuoMode === 'formula'}
+                        onChange={() => onTfrAnnuoModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="tfrAnnuoMode"
+                        checked={tfrAnnuoMode === 'custom'}
+                        onChange={() => onTfrAnnuoModeChange('custom')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Sum (TFR Mese / Annuo Progr.)</span>
+                    </label>
                   </div>
-                ))}
-              </div>
-
-              {requiredFieldIds.length > 0 && (
-                <div className="border-t pt-4 mt-4">
-                  <p className="text-xs font-semibold text-gray-500 mb-3">Other Required Fields:</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {requiredFieldIds.map((fieldId: string) => {
-                      const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                         UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
-                      if (!fieldObj) return null;
-
-                      const isRequired = true;
-                      const isEmpty = !inputs[fieldId];
-                      const showError = attempted && isRequired && isEmpty;
-
-                      return (
-                        <div key={fieldId} className="relative">
-                          <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
-                            {fieldObj.label}
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                            <input
-                              id={fieldId}
-                              type="number"
-                              step="0.01"
-                              value={inputs[fieldId] || ''}
-                              onChange={(e) => onInputChange(fieldId, e.target.value)}
-                              placeholder="0.00"
-                              className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
-                                showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
-                              }`}
-                            />
-                          </div>
+                  {tfrAnnuoMode === 'custom' && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-gray-600">
+                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+                        </span>
+                        <button
+                          onClick={onAddCustomField}
+                          type="button"
+                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
+                      </div>
+                      {customDynamicFields.map((field) => (
+                        <div key={field.id} className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div className="flex gap-4 mt-6">
-                <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 font-semibold shadow-md transition-colors">
+              {/* IMPONIBILE FISCALE ANNO অপশন */}
+              {isImponibileAnnoField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="imponibileAnnoMode"
+                        checked={imponibileAnnoMode === 'formula'}
+                        onChange={() => onImponibileAnnoModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="imponibileAnnoMode"
+                        checked={imponibileAnnoMode === 'custom'}
+                        onChange={() => onImponibileAnnoModeChange('custom')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Sum (Previous Months + Current Month)</span>
+                    </label>
+                  </div>
+                  {imponibileAnnoMode === 'custom' && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-gray-600">
+                          আগের মাসগুলোর মোট Imponibile Anno এবং চলতি মাসের Imponibile Mese যোগ করুন:
+                        </span>
+                        <button
+                          onClick={onAddImponibileField}
+                          type="button"
+                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
+                      </div>
+                      {customImponibileFields.map((field) => (
+                        <div key={field.id} className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => onCustomImponibileFieldChange(field.id, e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* DETR. LAV. DIPENDENTE (Anno) অপশন */}
+              {isDetrAnnoField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="detrAnnoMode"
+                        checked={detrAnnoMode === 'formula'}
+                        onChange={() => onDetrAnnoModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="detrAnnoMode"
+                        checked={detrAnnoMode === 'custom'}
+                        onChange={() => onDetrAnnoModeChange('custom')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Sum (Monthly Sums)</span>
+                    </label>
+                  </div>
+                  {detrAnnoMode === 'custom' && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-gray-600">
+                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+                        </span>
+                        <button
+                          onClick={onAddCustomDetrAnnoField}
+                          type="button"
+                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
+                      </div>
+                      {customDetrAnnoFields.map((field) => (
+                        <div key={field.id} className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => onCustomDetrAnnoFieldChange(field.id, e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* IRPEF LORDA MONTHLY অপশন */}
+              {isIrpefLordaMonthlyField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefLordaMonthlyMode"
+                        checked={irpefLordaMonthlyMode === 'formula'}
+                        onChange={() => onIrpefLordaMonthlyModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefLordaMonthlyMode"
+                        checked={irpefLordaMonthlyMode === 'alternative'}
+                        onChange={() => onIrpefLordaMonthlyModeChange('alternative')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Mode</span>
+                    </label>
+                  </div>
+                  {irpefLordaMonthlyMode === 'alternative' && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          IRPEF + IMP. SOST.
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_irpef_imp_sost'] || ''}
+                            onChange={(e) => onInputChange('alt_irpef_imp_sost', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          DETR. LAV. DIPENDENTE
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_detr_lav_dip'] || ''}
+                            onChange={(e) => onInputChange('alt_detr_lav_dip', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          IMPOSTA SOSTITUTIVA
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_imposta_sost'] || ''}
+                            onChange={(e) => onInputChange('alt_imposta_sost', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') &&
+                (!isImponibileAnnoField || imponibileAnnoMode === 'formula') &&
+                (!isDetrAnnoField || detrAnnoMode === 'formula') &&
+                (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
+                <>
+                  {requiredFieldIds.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 text-sm">
+                      No specific inputs are required for this field. You can calculate directly.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {requiredFieldIds.map((fieldId: string) => {
+                        const fieldObj = filteredFields.find((f: any) => f.id === fieldId) ||
+                          UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                        if (!fieldObj) return null;
+                        const isRequired = true;
+                        const isEmpty = !inputs[fieldId];
+                        const showError = attempted && isRequired && isEmpty;
+                        return (
+                          <div key={fieldId} className="relative">
+                            <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                              {fieldObj.label}
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                id={fieldId}
+                                type="number"
+                                step="0.01"
+                                value={inputs[fieldId] || ''}
+                                onChange={(e) => onInputChange(fieldId, e.target.value)}
+                                placeholder="0.00"
+                                className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                                  showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                                }`}
+                              />
+                            </div>
+                            {showError && (
+                              <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="mt-6 flex space-x-3">
+                <button
+                  onClick={onCalculate}
+                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
+                >
                   Calculate
                 </button>
-                <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors">
+                <button
+                  onClick={onReset}
+                  className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
+                >
                   Reset
                 </button>
               </div>
+
+              {showResult && (
+                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-emerald-800">Result ({getFieldLabel(outputField)}):</span>
+                    <span className="text-xl font-bold text-emerald-900">
+                      {formatCurrency(results[outputField] || 0)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
-
-        {showResult && outputField && results[outputField] !== undefined && (
-          <div className="bg-white rounded-lg border-2 border-gray-800 shadow-md p-6 text-center animate-fadeIn">
-            <p className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">{getFieldLabel(outputField)}</p>
-            <p className="text-4xl font-extrabold text-gray-900">{formatCurrency(results[outputField])}</p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -652,31 +1001,43 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   getFieldLabel,
   enableRounding,
 }) => {
-  const requiredFieldIds = Array.from(
-    new Set(Array.from(outputFields).flatMap(field => getRequiredFields(field)))
-  );
+  const allRequiredFields = useMemo(() => {
+    const fields = new Set<string>();
+    outputFields.forEach(field => {
+      const required = getRequiredFields(field);
+      required.forEach(r => fields.add(r));
+    });
+    return Array.from(fields);
+  }, [outputFields, getRequiredFields]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-5 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">Select fields to calculate:</label>
-          
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Select fields to calculate (Multi Mode):
+          </label>
           <div className="mb-4">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search fields..."
-              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search fields..."
+                className="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+              />
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 gap-2.5 max-h-[470px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
             {filteredFields.map((field: any) => {
+              const isSelected = outputFields.has(field.id);
               const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
               const isDisabled = !enableRounding && isRoundingField;
-
               return (
                 <button
                   key={field.id}
@@ -684,16 +1045,16 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                   className={`p-3.5 rounded-lg border-2 text-left transition-all ${
                     isDisabled
                       ? 'border-gray-200 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed'
-                      : outputFields.has(field.id) 
-                      ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900' 
-                      : 'border-gray-200 text-gray-800'
+                      : isSelected
+                      ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200'
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm">{field.label}</span>
-                    {isDisabled && (
-                      <span className="text-[10px] uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-bold">
-                        Rounding Off
+                    {isSelected && (
+                      <span className="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">
+                        Selected
                       </span>
                     )}
                   </div>
@@ -709,77 +1070,88 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           {outputFields.size === 0 ? (
             <div className="text-center py-16 text-gray-500">
               <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
-              <p className="text-base font-medium text-gray-700">Please select at least one field from the left list.</p>
-              <p className="text-xs text-gray-400 mt-1">Required inputs will appear here automatically.</p>
+              <p className="text-base font-medium text-gray-700">Please select one or more fields from the left list.</p>
+              <p className="text-xs text-gray-400 mt-1">Required inputs for all selected fields will appear here.</p>
             </div>
           ) : (
             <>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">Enter the required values:</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                Enter required values for selected fields:
+              </label>
 
-              {requiredFieldIds.length === 0 ? (
+              {allRequiredFields.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 text-sm">
-                  No inputs are required for the selected fields.
+                  No specific inputs are required for the selected fields. You can calculate directly.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {requiredFieldIds.map((fieldId: string) => {
-                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
-                                       UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                  {allRequiredFields.map((fieldId: string) => {
+                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) ||
+                      UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
-
-                    const isRequired = true;
                     const isEmpty = !inputs[fieldId];
-                    const showError = attempted && isRequired && isEmpty;
-
+                    const showError = attempted && isEmpty;
                     return (
                       <div key={fieldId} className="relative">
-                        <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                        <label htmlFor={`multi-${fieldId}`} className="block text-xs font-semibold text-gray-700 mb-1">
                           {fieldObj.label}
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            id={fieldId}
+                            id={`multi-${fieldId}`}
                             type="number"
                             step="0.01"
                             value={inputs[fieldId] || ''}
                             onChange={(e) => onInputChange(fieldId, e.target.value)}
                             placeholder="0.00"
-                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm ${
-                              showError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                              showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
                             }`}
                           />
                         </div>
+                        {showError && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              <div className="flex gap-4 mt-6">
-                <button onClick={onCalculate} className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold shadow-md">
+              <div className="mt-6 flex space-x-3">
+                <button
+                  onClick={onCalculate}
+                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
+                >
                   Calculate All
                 </button>
-                <button onClick={onReset} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold">
+                <button
+                  onClick={onReset}
+                  className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
+                >
                   Reset
                 </button>
               </div>
+
+              {showResult && (
+                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+                  <h3 className="text-sm font-bold text-emerald-800 mb-2">Results:</h3>
+                  {Array.from(outputFields).map(fieldId => (
+                    <div key={fieldId} className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-emerald-900">{getFieldLabel(fieldId)}:</span>
+                      <span className="font-bold text-emerald-900">
+                        {formatCurrency(results[fieldId] || 0)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
-
-        {showResult && Object.keys(results).length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Object.entries(results).map(([fieldId, value]) => (
-              <div key={fieldId} className="bg-white rounded-lg border border-gray-300 p-4 shadow-sm">
-                <p className="text-xs font-bold text-gray-600 mb-1.5 uppercase">{getFieldLabel(fieldId)}</p>
-                <p className="text-2xl font-extrabold text-gray-900">{formatCurrency(value)}</p>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
