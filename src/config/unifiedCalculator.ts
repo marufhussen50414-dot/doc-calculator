@@ -118,7 +118,12 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
   detr_lav_dipendente_anno: {
     inputs: [],
     mainFormulaTitle: 'DETR. LAV. DIPENDENTE (Anno)',
-    calculate: () => 0
+    calculate: (inputs, _mode, customValues) => {
+      if (customValues && customValues.length > 0) {
+        return customValues.reduce((acc, val) => acc + (val || 0), 0);
+      }
+      return 0;
+    }
   },
 
   // শুধুমাত্র IRPEF LORDA (Monthly)-এর ক্ষেত্রে দুটি অপশন থাকবে
