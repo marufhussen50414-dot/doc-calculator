@@ -3,19 +3,15 @@ import { CalculatorInputs } from '../types';
 import { UNIFIED_CALCULATOR, searchFields } from '../config/unifiedCalculator';
 import { FormulaModal } from './FormulaModal';
 import { TargetCalculator } from './TargetCalculator';
-
 interface BustaPagaProps {
   onBack: () => void;
 }
-
 type CalculatorMode = 'standard' | 'target' | 'multi';
-
 interface CustomDynamicField {
   id: string;
   label: string;
   value: string;
 }
-
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
   const [outputField, setOutputField] = useState<string | null>(null);
@@ -29,37 +25,26 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
-
   // TFR Anno Progr মোড স্টেট
   const [tfrAnnuoMode, setTfrAnnuoMode] = useState<'formula' | 'custom'>('formula');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
     { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
   ]);
-
   // Imponibile Fiscale Anno বিশেষ অপশন স্টেট
   const [imponibileAnnoMode, setImponibileAnnoMode] = useState<'formula' | 'custom'>('formula');
   const [customImponibileFields, setCustomImponibileFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
     { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
   ]);
-
-  // Detr. Lav. Dipendente Anno বিশেষ অপশন স্টেট
-  const [detrLavAnnoMode, setDetrLavAnnoMode] = useState<'formula' | 'custom'>('formula');
-  const [customDetrLavAnnoFields, setCustomDetrLavAnnoFields] = useState<CustomDynamicField[]>([
-    { id: '1', label: 'আগের মাসগুলোর Detr. Lav. Dipendente', value: '' },
-    { id: '2', label: 'চলতি মাসের Detr. Lav. Dipendente', value: '' }
-  ]);
-
+  // Detr. Lav. Dipendente Anno বিশেষ অপশন স্টেট রিমুভ করা হয়েছে
   // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
-
   const calculator = UNIFIED_CALCULATOR;
   
   const filteredFields = useMemo(() => {
     return searchFields(searchQuery);
   }, [searchQuery]);
-
   const handleInputChange = (fieldId: string, value: string) => {
     if (value === '') {
       const newInputs = { ...inputs };
@@ -74,7 +59,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setShowResult(false);
     setAttempted(false);
   };
-
   const handleOutputFieldChange = (fieldId: string) => {
     const isRoundingField = fieldId === 'arr_preced' || fieldId === 'arr_attuale';
     if (!enableRounding && isRoundingField) {
@@ -82,7 +66,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
-
     setOutputField(fieldId);
     setOutputFields(new Set([fieldId]));
     setShowResult(false);
@@ -91,10 +74,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setInputs({});
     setTfrAnnuoMode('formula');
     setImponibileAnnoMode('formula');
-    setDetrLavAnnoMode('formula');
     setIrpefLordaMonthlyMode('formula');
   };
-
   const handleMultiOutputToggle = (fieldId: string) => {
     const isRoundingField = fieldId === 'arr_preced' || fieldId === 'arr_attuale';
     if (!enableRounding && isRoundingField) {
@@ -102,7 +83,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setTimeout(() => setToastMessage(null), 4000);
       return;
     }
-
     const newOutputFields = new Set(outputFields);
     if (newOutputFields.has(fieldId)) {
       newOutputFields.delete(fieldId);
@@ -115,7 +95,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setShowResult(false);
     setResults({});
   };
-
   const convertInputsToNumbers = (inputs: { [key: string]: string | number }): CalculatorInputs => {
     const numericInputs: CalculatorInputs = {};
     Object.keys(inputs).forEach(key => {
@@ -124,7 +103,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     });
     return numericInputs;
   };
-
   const getRequiredFields = (outputFieldId: string): string[] => {
     let required = calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
@@ -132,23 +110,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
     return required;
   };
-
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
     if (outputFieldId === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
       const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
     }
-
     if (outputFieldId === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
       const hasValue = customImponibileFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_imponibile_fields'] };
     }
-
-    if (outputFieldId === 'detr_lav_dipendente_anno' && detrLavAnnoMode === 'custom') {
-      const hasValue = customDetrLavAnnoFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
-      return { valid: hasValue, missing: hasValue ? [] : ['custom_detr_lav_anno_fields'] };
-    }
-
     if (outputFieldId === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
       const missingAlt = altFields.filter(fId => {
@@ -157,7 +127,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       });
       return { valid: missingAlt.length === 0, missing: missingAlt };
     }
-
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -165,7 +134,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     });
     return { valid: missing.length === 0, missing };
   };
-
   const handleCalculate = () => {
     if (!outputField) return;
     setAttempted(true);
@@ -181,21 +149,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setShowResult(true);
       return;
     }
-
     if (outputField === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
       const totalSum = customImponibileFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
       setResults({ [outputField]: totalSum });
       setShowResult(true);
       return;
     }
-
-    if (outputField === 'detr_lav_dipendente_anno' && detrLavAnnoMode === 'custom') {
-      const totalSum = customDetrLavAnnoFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
-      setResults({ [outputField]: totalSum });
-      setShowResult(true);
-      return;
-    }
-
     if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
       const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
@@ -206,7 +165,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setShowResult(true);
       return;
     }
-
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
     if (calculatedResult !== null) {
@@ -214,31 +172,25 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setShowResult(true);
     }
   };
-
   const handleMultiCalculate = () => {
     if (outputFields.size === 0) return;
     setAttempted(true);
-
     const allRequiredFields = new Set<string>();
     outputFields.forEach(field => {
       const required = getRequiredFields(field);
       required.forEach(r => allRequiredFields.add(r));
     });
-
     const missingFields = Array.from(allRequiredFields).filter(fieldId => {
       const value = inputs[fieldId];
       return value === undefined || value === '' || value === null;
     });
-
     if (missingFields.length > 0) {
       setShowResult(false);
       return;
     }
-
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResults: { [key: string]: number } = {};
     let allSuccessful = true;
-
     outputFields.forEach(field => {
       const result = calculator.calculate(numericInputs, field);
       if (result !== null) {
@@ -247,13 +199,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         allSuccessful = false;
       }
     });
-
     if (allSuccessful && Object.keys(calculatedResults).length > 0) {
       setResults(calculatedResults);
       setShowResult(true);
     }
   };
-
   const handleReset = () => {
     setInputs({});
     setResults({});
@@ -267,10 +217,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
       { id: '2', label: 'চলতি মাসের Imponibile Fiscale Mese', value: '' }
     ]);
-    setCustomDetrLavAnnoFields([
-      { id: '1', label: 'আগের মাসগুলোর Detr. Lav. Dipendente', value: '' },
-      { id: '2', label: 'চলتی মাসের Detr. Lav. Dipendente', value: '' }
-    ]);
     if (mode === 'standard') {
       setOutputField(null);
       setOutputFields(new Set());
@@ -278,23 +224,19 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       setOutputFields(new Set());
     }
   };
-
   const handleModeChange = (newMode: CalculatorMode) => {
     setMode(newMode);
     handleReset();
   };
-
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('it-IT', {
       style: 'currency',
       currency: 'EUR',
     }).format(value);
   };
-
   const getFieldLabel = (fieldId: string): string => {
     return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 relative">
       
@@ -306,7 +248,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
-
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <button
@@ -319,7 +260,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             Back to Home
           </button>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
           <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
@@ -359,7 +299,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
               </div>
             </div>
           </div>
-
           <div className="lg:col-span-7 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
             <div className="grid grid-cols-3 gap-3">
@@ -373,7 +312,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 <div className="font-semibold text-gray-800 text-sm">Standard</div>
                 <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
               </button>
-
               <button
                 onClick={() => handleModeChange('target')}
                 className={`p-4 rounded-lg border-2 transition-all ${
@@ -384,7 +322,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 <div className="font-semibold text-gray-800 text-sm">Target</div>
                 <div className="text-xs text-gray-600 mt-1">Set a goal</div>
               </button>
-
               <button
                 onClick={() => handleModeChange('multi')}
                 className={`p-4 rounded-lg border-2 transition-all ${
@@ -398,7 +335,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
-
         {mode === 'target' ? (
           <div className="flex justify-end">
             <div className="w-full max-w-4xl">
@@ -468,23 +404,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
               ]);
             }}
-            detrLavAnnoMode={detrLavAnnoMode}
-            onDetrLavAnnoModeChange={setDetrLavAnnoMode}
-            customDetrLavAnnoFields={customDetrLavAnnoFields}
-            onCustomDetrLavAnnoFieldChange={(id, val) => {
-              setCustomDetrLavAnnoFields(customDetrLavAnnoFields.map(f => f.id === id ? { ...f, value: val } : f));
-            }}
-            onAddDetrLavAnnoField={() => {
-              setCustomDetrLavAnnoFields([
-                ...customDetrLavAnnoFields,
-                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Detr. Lav. Dipendente', value: '' }
-              ]);
-            }}
             irpefLordaMonthlyMode={irpefLordaMonthlyMode}
             onIrpefLordaMonthlyModeChange={setIrpefLordaMonthlyMode}
           />
         )}
-
         <div className="mt-6 text-right max-w-7xl mx-auto pr-2">
           <button
             onClick={() => setShowFormulaModal(true)}
@@ -497,12 +420,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </button>
         </div>
       </div>
-
       <FormulaModal isOpen={showFormulaModal} onClose={() => setShowFormulaModal(false)} />
     </div>
   );
 };
-
 interface StandardModeCalculatorProps {
   calculator: any;
   filteredFields: any[];
@@ -531,15 +452,9 @@ interface StandardModeCalculatorProps {
   customImponibileFields: CustomDynamicField[];
   onCustomImponibileFieldChange: (id: string, value: string) => void;
   onAddImponibileField: () => void;
-  detrLavAnnoMode: 'formula' | 'custom';
-  onDetrLavAnnoModeChange: (mode: 'formula' | 'custom') => void;
-  customDetrLavAnnoFields: CustomDynamicField[];
-  onCustomDetrLavAnnoFieldChange: (id: string, value: string) => void;
-  onAddDetrLavAnnoField: () => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
 }
-
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   filteredFields,
   searchQuery,
@@ -567,20 +482,13 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   customImponibileFields,
   onCustomImponibileFieldChange,
   onAddImponibileField,
-  detrLavAnnoMode,
-  onDetrLavAnnoModeChange,
-  customDetrLavAnnoFields,
-  onCustomDetrLavAnnoFieldChange,
-  onAddDetrLavAnnoField,
   irpefLordaMonthlyMode,
   onIrpefLordaMonthlyModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
   const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
-  const isDetrLavAnnoField = outputField === 'detr_lav_dipendente_anno';
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-5 space-y-6">
@@ -605,13 +513,11 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               />
             </div>
           </div>
-
           <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
             {filteredFields.map((field: any) => {
               const isSelected = outputField === field.id;
               const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
               const isDisabled = !enableRounding && isRoundingField;
-
               return (
                 <button
                   key={field.id}
@@ -638,7 +544,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           </div>
         </div>
       </div>
-
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           {!outputField ? (
@@ -654,7 +559,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
-
               {/* TFR ANNUO PROGR অপশন */}
               {isTfrAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -669,7 +573,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       />
                       <span>Standard Formula</span>
                     </label>
-
                     <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
                       <input 
                         type="radio" 
@@ -681,7 +584,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <span>Alternative Sum (TFR Mese / Annuo Progr.)</span>
                     </label>
                   </div>
-
                   {tfrAnnuoMode === 'custom' && (
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between items-center">
@@ -696,7 +598,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           <span>+ Add Value</span>
                         </button>
                       </div>
-
                       {customDynamicFields.map((field) => (
                         <div key={field.id} className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
@@ -714,7 +615,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   )}
                 </div>
               )}
-
               {/* IMPONIBILE FISCALE ANNO অপশন */}
               {isImponibileAnnoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -729,7 +629,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       />
                       <span>Standard Formula</span>
                     </label>
-
                     <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
                       <input 
                         type="radio" 
@@ -741,7 +640,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <span>Alternative Sum (Previous Months + Current Month)</span>
                     </label>
                   </div>
-
                   {imponibileAnnoMode === 'custom' && (
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between items-center">
@@ -756,7 +654,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           <span>+ Add Value</span>
                         </button>
                       </div>
-
                       {customImponibileFields.map((field) => (
                         <div key={field.id} className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
@@ -774,67 +671,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   )}
                 </div>
               )}
-
-              {/* DETR. LAV. DIPENDENTE ANNO অপশন */}
-              {isDetrLavAnnoField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="detrLavAnnoMode" 
-                        checked={detrLavAnnoMode === 'formula'} 
-                        onChange={() => onDetrLavAnnoModeChange('formula')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Standard Formula</span>
-                    </label>
-
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input 
-                        type="radio" 
-                        name="detrLavAnnoMode" 
-                        checked={detrLavAnnoMode === 'custom'} 
-                        onChange={() => onDetrLavAnnoModeChange('custom')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Alternative Sum (Previous Months + Current Month)</span>
-                    </label>
-                  </div>
-
-                  {detrLavAnnoMode === 'custom' && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          আগের মাসগুলোর এবং চলতি মাসের Detr. Lav. Dipendente মানগুলো যোগ করুন:
-                        </span>
-                        <button
-                          onClick={onAddDetrLavAnnoField}
-                          type="button"
-                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                        >
-                          <span>+ Add Value</span>
-                        </button>
-                      </div>
-
-                      {customDetrLavAnnoFields.map((field) => (
-                        <div key={field.id} className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomDetrLavAnnoFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* IRPEF LORDA MONTHLY অপশন */}
               {isIrpefLordaMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -849,7 +685,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       />
                       <span>Standard Formula</span>
                     </label>
-
                     <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
                       <input 
                         type="radio" 
@@ -861,7 +696,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <span>Alternative Mode</span>
                     </label>
                   </div>
-
                   {irpefLordaMonthlyMode === 'alternative' && (
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -880,7 +714,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           />
                         </div>
                       </div>
-
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">
                           DETR. LAV. DIPENDENTE
@@ -897,7 +730,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           />
                         </div>
                       </div>
-
                       <div className="sm:col-span-2">
                         <label className="block text-xs font-semibold text-gray-700 mb-1">
                           IMPOSTA SOSTITUTIVA
@@ -918,10 +750,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   )}
                 </div>
               )}
-
               {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') && 
                 (!isImponibileAnnoField || imponibileAnnoMode === 'formula') && 
-                (!isDetrLavAnnoField || detrLavAnnoMode === 'formula') &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
@@ -934,11 +764,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
                                          UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                         if (!fieldObj) return null;
-
                         const isRequired = true;
                         const isEmpty = !inputs[fieldId];
                         const showError = attempted && isRequired && isEmpty;
-
                         return (
                           <div key={fieldId} className="relative">
                             <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
@@ -968,7 +796,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   )}
                 </>
               )}
-
               <div className="mt-6 flex space-x-3">
                 <button
                   onClick={onCalculate}
@@ -983,7 +810,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   Reset
                 </button>
               </div>
-
               {showResult && (
                 <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <div className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">Result:</div>
@@ -999,7 +825,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     </div>
   );
 };
-
 interface MultiModeCalculatorProps {
   calculator: any;
   filteredFields: any[];
@@ -1019,7 +844,6 @@ interface MultiModeCalculatorProps {
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
 }
-
 const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   filteredFields,
   searchQuery,
@@ -1046,7 +870,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
     });
     return Array.from(unionSet);
   }, [outputFields, getRequiredFields]);
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-5 space-y-6">
@@ -1071,13 +894,11 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
               />
             </div>
           </div>
-
           <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
             {filteredFields.map((field: any) => {
               const isSelected = outputFields.has(field.id);
               const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
               const isDisabled = !enableRounding && isRoundingField;
-
               return (
                 <button
                   key={field.id}
@@ -1107,7 +928,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           </div>
         </div>
       </div>
-
       <div className="lg:col-span-7 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           {outputFields.size === 0 ? (
@@ -1123,7 +943,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter required values for selected fields:
               </label>
-
               {allRequiredFields.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 text-sm">
                   No specific inputs are required for these fields. You can calculate directly.
@@ -1134,10 +953,8 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                     const fieldObj = filteredFields.find((f: any) => f.id === fieldId) || 
                                      UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
-
                     const isEmpty = !inputs[fieldId];
                     const showError = attempted && isEmpty;
-
                     return (
                       <div key={fieldId} className="relative">
                         <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
@@ -1165,7 +982,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                   })}
                 </div>
               )}
-
               <div className="mt-6 flex space-x-3">
                 <button
                   onClick={onCalculate}
@@ -1180,7 +996,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                   Reset
                 </button>
               </div>
-
               {showResult && (
                 <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-3">
                   <div className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-2">Calculated Results:</div>
