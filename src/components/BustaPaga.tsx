@@ -29,25 +29,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
-  // TFR Anno Progr মোড স্টেট
-  const [tfrAnnuoMode, setTfrAnnuoMode] = useState<'formula' | 'custom'>('formula');
+  // ডাইনামিক সাম মোড স্টেট (সব অ্যানুয়াল ফিল্ডের জন্য কমন বা পৃথক)
+  const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('formula');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
-    { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
-    { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
-  ]);
-
-  // Imponibile Fiscale Anno বিশেষ অপশন স্টেট
-  const [imponibileAnnoMode, setImponibileAnnoMode] = useState<'formula' | 'custom'>('formula');
-  const [customImponibileFields, setCustomImponibileFields] = useState<CustomDynamicField[]>([
-    { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
-    { id: '2', label: 'চলتی মাসের Imponibile Fiscale Mese', value: '' }
-  ]);
-
-  // Detr. Lav. Dipendente Anno অপশন স্টেট
-  const [detrAnnoMode, setDetrAnnoMode] = useState<'formula' | 'custom'>('formula');
-  const [customDetrAnnoFields, setCustomDetrAnnoFields] = useState<CustomDynamicField[]>([
-    { id: '1', label: 'আগের মাসের Detr. Lav. Dipendente Anno', value: '' },
-    { id: '2', label: 'চলتی মাসের Detr. Lav. Dipendente Mese', value: '' }
+    { id: '1', label: 'আগের মাসের মান', value: '' },
+    { id: '2', label: 'চলتی মাসের মান', value: '' }
   ]);
 
   // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট
@@ -87,10 +73,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAttempted(false);
     setResults({});
     setInputs({});
-    setTfrAnnuoMode('formula');
-    setImponibileAnnoMode('formula');
-    setDetrAnnoMode('formula');
+    setAnnuoCustomMode('formula');
     setIrpefLordaMonthlyMode('formula');
+    setCustomDynamicFields([
+      { id: '1', label: 'আগের মাসের মান', value: '' },
+      { id: '2', label: 'চলتی মাসের মান', value: '' }
+    ]);
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -130,18 +118,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
+  const isAnnuoField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const lower = fieldId.toLowerCase();
+    return lower.includes('anno') || lower.includes('progr') || lower.includes('totale');
+  };
+
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
-    if (outputFieldId === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+    if (isAnnuoField(outputFieldId) && annuoCustomMode === 'custom') {
       const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
-    }
-    if (outputFieldId === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
-      const hasValue = customImponibileFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
-      return { valid: hasValue, missing: hasValue ? [] : ['custom_imponibile_fields'] };
-    }
-    if (outputFieldId === 'detr_lav_dip_anno' && detrAnnoMode === 'custom') {
-      const hasValue = customDetrAnnoFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
-      return { valid: hasValue, missing: hasValue ? [] : ['custom_detr_anno_fields'] };
     }
     if (outputFieldId === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
@@ -168,22 +154,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    if (outputField === 'tfr_annuo_progr' && tfrAnnuoMode === 'custom') {
+    if (isAnnuoField(outputField) && annuoCustomMode === 'custom') {
       const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
-      setResults({ [outputField]: totalSum });
-      setShowResult(true);
-      return;
-    }
-
-    if (outputField === 'imponibile_fiscale_anno' && imponibileAnnoMode === 'custom') {
-      const totalSum = customImponibileFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
-      setResults({ [outputField]: totalSum });
-      setShowResult(true);
-      return;
-    }
-
-    if (outputField === 'detr_lav_dip_anno' && detrAnnoMode === 'custom') {
-      const totalSum = customDetrAnnoFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
       setResults({ [outputField]: totalSum });
       setShowResult(true);
       return;
@@ -246,16 +218,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setShowResult(false);
     setAttempted(false);
     setCustomDynamicFields([
-      { id: '1', label: 'আগের মাসের TFR Mese', value: '' },
-      { id: '2', label: 'আগের মাসের Annuo Progr.', value: '' }
-    ]);
-    setCustomImponibileFields([
-      { id: '1', label: 'আগের মাসগুলোর Imponibile Fiscale Anno', value: '' },
-      { id: '2', label: 'চলتی মাসের Imponibile Fiscale Mese', value: '' }
-    ]);
-    setCustomDetrAnnoFields([
-      { id: '1', label: 'আগের মাসের Detr. Lav. Dipendente Anno', value: '' },
-      { id: '2', label: 'চলتی মাসের Detr. Lav. Dipendente Mese', value: '' }
+      { id: '1', label: 'আগের মাসের মান', value: '' },
+      { id: '2', label: 'চলتی মাসের মান', value: '' }
     ]);
     if (mode === 'standard') {
       setOutputField(null);
@@ -424,8 +388,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
             enableRounding={enableRounding}
-            tfrAnnuoMode={tfrAnnuoMode}
-            onTfrAnnuoModeChange={setTfrAnnuoMode}
+            isAnnuoField={isAnnuoField(outputField)}
+            annuoCustomMode={annuoCustomMode}
+            onAnnuoCustomModeChange={setAnnuoCustomMode}
             customDynamicFields={customDynamicFields}
             onCustomFieldChange={(id, val) => {
               setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: val } : f));
@@ -433,31 +398,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onAddCustomField={() => {
               setCustomDynamicFields([
                 ...customDynamicFields,
-                { id: Date.now().toString(), label: 'আগের মাসের TFR Mese অথবা Annuo Progr.', value: '' }
-              ]);
-            }}
-            imponibileAnnoMode={imponibileAnnoMode}
-            onImponibileAnnoModeChange={setImponibileAnnoMode}
-            customImponibileFields={customImponibileFields}
-            onCustomImponibileFieldChange={(id, val) => {
-              setCustomImponibileFields(customImponibileFields.map(f => f.id === id ? { ...f, value: val } : f));
-            }}
-            onAddImponibileField={() => {
-              setCustomImponibileFields([
-                ...customImponibileFields,
-                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Imponibile Fiscale', value: '' }
-              ]);
-            }}
-            detrAnnoMode={detrAnnoMode}
-            onDetrAnnoModeChange={setDetrAnnoMode}
-            customDetrAnnoFields={customDetrAnnoFields}
-            onCustomDetrAnnoFieldChange={(id, val) => {
-              setCustomDetrAnnoFields(customDetrAnnoFields.map(f => f.id === id ? { ...f, value: val } : f));
-            }}
-            onAddCustomDetrAnnoField={() => {
-              setCustomDetrAnnoFields([
-                ...customDetrAnnoFields,
-                { id: Date.now().toString(), label: 'আগের মাসের বা চলতি মাসের Detr. Lav. Dipendente', value: '' }
+                { id: Date.now().toString(), label: 'আগের বা চলতি মাসের মান', value: '' }
               ]);
             }}
             irpefLordaMonthlyMode={irpefLordaMonthlyMode}
@@ -500,21 +441,12 @@ interface StandardModeCalculatorProps {
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
-  tfrAnnuoMode: 'formula' | 'custom';
-  onTfrAnnuoModeChange: (mode: 'formula' | 'custom') => void;
+  isAnnuoField: boolean;
+  annuoCustomMode: 'formula' | 'custom';
+  onAnnuoCustomModeChange: (mode: 'formula' | 'custom') => void;
   customDynamicFields: CustomDynamicField[];
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
-  imponibileAnnoMode: 'formula' | 'custom';
-  onImponibileAnnoModeChange: (mode: 'formula' | 'custom') => void;
-  customImponibileFields: CustomDynamicField[];
-  onCustomImponibileFieldChange: (id: string, value: string) => void;
-  onAddImponibileField: () => void;
-  detrAnnoMode: 'formula' | 'custom';
-  onDetrAnnoModeChange: (mode: 'formula' | 'custom') => void;
-  customDetrAnnoFields: CustomDynamicField[];
-  onCustomDetrAnnoFieldChange: (id: string, value: string) => void;
-  onAddCustomDetrAnnoField: () => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
 }
@@ -536,28 +468,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
   enableRounding,
-  tfrAnnuoMode,
-  onTfrAnnuoModeChange,
+  isAnnuoField,
+  annuoCustomMode,
+  onAnnuoCustomModeChange,
   customDynamicFields,
   onCustomFieldChange,
   onAddCustomField,
-  imponibileAnnoMode,
-  onImponibileAnnoModeChange,
-  customImponibileFields,
-  onCustomImponibileFieldChange,
-  onAddImponibileField,
-  detrAnnoMode,
-  onDetrAnnoModeChange,
-  customDetrAnnoFields,
-  onCustomDetrAnnoFieldChange,
-  onAddCustomDetrAnnoField,
   irpefLordaMonthlyMode,
   onIrpefLordaMonthlyModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
-  const isTfrAnnuoField = outputField === 'tfr_annuo_progr';
-  const isImponibileAnnoField = outputField === 'imponibile_fiscale_anno';
-  const isDetrAnnoField = outputField === 'detr_lav_dip_anno';
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
 
   return (
@@ -631,16 +551,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TFR ANNUO PROGR অপশন */}
-              {isTfrAnnuoField && (
+              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য অল্টারনে티브 সাম অপশন */}
+              {isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
                     <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
                       <input
                         type="radio"
-                        name="tfrAnnuoMode"
-                        checked={tfrAnnuoMode === 'formula'}
-                        onChange={() => onTfrAnnuoModeChange('formula')}
+                        name="annuoCustomMode"
+                        checked={annuoCustomMode === 'formula'}
+                        onChange={() => onAnnuoCustomModeChange('formula')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Standard Formula</span>
@@ -648,15 +568,15 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
                       <input
                         type="radio"
-                        name="tfrAnnuoMode"
-                        checked={tfrAnnuoMode === 'custom'}
-                        onChange={() => onTfrAnnuoModeChange('custom')}
+                        name="annuoCustomMode"
+                        checked={annuoCustomMode === 'custom'}
+                        onChange={() => onAnnuoCustomModeChange('custom')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Alternative Sum (TFR Mese / Annuo Progr.)</span>
+                      <span>Alternative Sum</span>
                     </label>
                   </div>
-                  {tfrAnnuoMode === 'custom' && (
+                  {annuoCustomMode === 'custom' && (
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-medium text-gray-600">
@@ -678,120 +598,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             step="0.01"
                             value={field.value}
                             onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* IMPONIBILE FISCALE ANNO অপশন */}
-              {isImponibileAnnoField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="imponibileAnnoMode"
-                        checked={imponibileAnnoMode === 'formula'}
-                        onChange={() => onImponibileAnnoModeChange('formula')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Standard Formula</span>
-                    </label>
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="imponibileAnnoMode"
-                        checked={imponibileAnnoMode === 'custom'}
-                        onChange={() => onImponibileAnnoModeChange('custom')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Alternative Sum (Previous Months + Current Month)</span>
-                    </label>
-                  </div>
-                  {imponibileAnnoMode === 'custom' && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          আগের মাসগুলোর মোট Imponibile Anno এবং চলতি মাসের Imponibile Mese যোগ করুন:
-                        </span>
-                        <button
-                          onClick={onAddImponibileField}
-                          type="button"
-                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                        >
-                          <span>+ Add Value</span>
-                        </button>
-                      </div>
-                      {customImponibileFields.map((field) => (
-                        <div key={field.id} className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomImponibileFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* DETR. LAV. DIPENDENTE (Anno) অপশন */}
-              {isDetrAnnoField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="detrAnnoMode"
-                        checked={detrAnnoMode === 'formula'}
-                        onChange={() => onDetrAnnoModeChange('formula')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Standard Formula</span>
-                    </label>
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="detrAnnoMode"
-                        checked={detrAnnoMode === 'custom'}
-                        onChange={() => onDetrAnnoModeChange('custom')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Alternative Sum (Monthly Sums)</span>
-                    </label>
-                  </div>
-                  {detrAnnoMode === 'custom' && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
-                        </span>
-                        <button
-                          onClick={onAddCustomDetrAnnoField}
-                          type="button"
-                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                        >
-                          <span>+ Add Value</span>
-                        </button>
-                      </div>
-                      {customDetrAnnoFields.map((field) => (
-                        <div key={field.id} className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomDetrAnnoFieldChange(field.id, e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
@@ -882,9 +688,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {((!isTfrAnnuoField || tfrAnnuoMode === 'formula') &&
-                (!isImponibileAnnoField || imponibileAnnoMode === 'formula') &&
-                (!isDetrAnnoField || detrAnnoMode === 'formula') &&
+              {((!isAnnuoField || annuoCustomMode === 'formula') &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
