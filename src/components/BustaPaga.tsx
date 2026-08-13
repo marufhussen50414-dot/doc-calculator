@@ -26,8 +26,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [attempted, setAttempted] = useState(false);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
   // TFR Anno Progr মোড স্টেট
   const [tfrAnnuoMode, setTfrAnnuoMode] = useState<'formula' | 'custom'>('formula');
@@ -75,12 +73,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const handleOutputFieldChange = (fieldId: string) => {
-    const isRoundingField = fieldId === 'arr_preced' || fieldId === 'arr_attuale';
-    if (!enableRounding && isRoundingField) {
-      setToastMessage("Please turn ON 'Rounding' to select and calculate this field.");
-      setTimeout(() => setToastMessage(null), 4000);
-      return;
-    }
     setOutputField(fieldId);
     setOutputFields(new Set([fieldId]));
     setShowResult(false);
@@ -94,12 +86,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
-    const isRoundingField = fieldId === 'arr_preced' || fieldId === 'arr_attuale';
-    if (!enableRounding && isRoundingField) {
-      setToastMessage("Please turn ON 'Rounding' to select this field.");
-      setTimeout(() => setToastMessage(null), 4000);
-      return;
-    }
     const newOutputFields = new Set(outputFields);
     if (newOutputFields.has(fieldId)) {
       newOutputFields.delete(fieldId);
@@ -123,11 +109,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getRequiredFields = (outputFieldId: string): string[] => {
-    let required = calculator.getRequiredInputsForField(outputFieldId);
-    if (!enableRounding) {
-      required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
-    }
-    return required;
+    return calculator.getRequiredInputsForField(outputFieldId);
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
@@ -283,14 +265,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 relative">
-      {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-gray-900 text-white px-5 py-3 rounded-lg shadow-xl flex items-center space-x-3 border-l-4 border-amber-500 animate-bounce">
-          <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm font-medium">{toastMessage}</span>
-        </div>
-      )}
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <button
@@ -303,46 +277,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             Back to Home
           </button>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
-          <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
-            <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
-              <span className="text-sm font-semibold text-gray-700">Rounding:</span>
-              <div className="flex items-center">
-                <button
-                  onClick={() => {
-                    const newRoundingState = !enableRounding;
-                    setEnableRounding(newRoundingState);
-                    if (!newRoundingState) {
-                      setInputs(prev => {
-                        const updated = { ...prev };
-                        delete updated['arr_preced'];
-                        delete updated['arr_attuale'];
-                        return updated;
-                      });
-                      if (outputField === 'arr_preced' || outputField === 'arr_attuale') {
-                        setOutputField(null);
-                        setShowResult(false);
-                      }
-                    }
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                    enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      enableRounding ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-                <span className="ml-2 text-xs font-medium text-gray-600 w-8">
-                  {enableRounding ? 'ON' : 'OFF'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="lg:col-span-7 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
+
+        <div className="mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Calculation Mode</h2>
             <div className="grid grid-cols-3 gap-3">
               <button
@@ -403,7 +340,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onReset={handleReset}
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
-            enableRounding={enableRounding}
           />
         ) : (
           <StandardModeCalculator
@@ -423,7 +359,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onReset={handleReset}
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
-            enableRounding={enableRounding}
             tfrAnnuoMode={tfrAnnuoMode}
             onTfrAnnuoModeChange={setTfrAnnuoMode}
             customDynamicFields={customDynamicFields}
@@ -499,7 +434,6 @@ interface StandardModeCalculatorProps {
   onReset: () => void;
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
-  enableRounding: boolean;
   tfrAnnuoMode: 'formula' | 'custom';
   onTfrAnnuoModeChange: (mode: 'formula' | 'custom') => void;
   customDynamicFields: CustomDynamicField[];
@@ -535,7 +469,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onReset,
   formatCurrency,
   getFieldLabel,
-  enableRounding,
   tfrAnnuoMode,
   onTfrAnnuoModeChange,
   customDynamicFields,
@@ -586,27 +519,18 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
             {filteredFields.map((field: any) => {
               const isSelected = outputField === field.id;
-              const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
-              const isDisabled = !enableRounding && isRoundingField;
               return (
                 <button
                   key={field.id}
                   onClick={() => onOutputFieldChange(field.id)}
                   className={`p-3.5 rounded-lg border-2 text-left transition-all ${
-                    isDisabled
-                      ? 'border-gray-200 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed'
-                      : isSelected
+                    isSelected
                       ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200'
                       : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm">{field.label}</span>
-                    {isDisabled && (
-                      <span className="text-[10px] uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-bold">
-                        Rounding Off
-                      </span>
-                    )}
                   </div>
                 </button>
               );
@@ -980,7 +904,6 @@ interface MultiModeCalculatorProps {
   onReset: () => void;
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
-  enableRounding: boolean;
 }
 
 const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
@@ -999,7 +922,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   onReset,
   formatCurrency,
   getFieldLabel,
-  enableRounding,
 }) => {
   const allRequiredFields = useMemo(() => {
     const fields = new Set<string>();
@@ -1036,16 +958,12 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
             {filteredFields.map((field: any) => {
               const isSelected = outputFields.has(field.id);
-              const isRoundingField = field.id === 'arr_preced' || field.id === 'arr_attuale';
-              const isDisabled = !enableRounding && isRoundingField;
               return (
                 <button
                   key={field.id}
                   onClick={() => onOutputToggle(field.id)}
                   className={`p-3.5 rounded-lg border-2 text-left transition-all ${
-                    isDisabled
-                      ? 'border-gray-200 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed'
-                      : isSelected
+                    isSelected
                       ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200'
                       : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
                   }`}
