@@ -29,7 +29,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
-  // ডাইনামিক সাম মোড স্টেট (সব অ্যানুয়াল ফিল্ডের জন্য কমন বা পৃথক)
+  // ডাইনামিক সাম মোড স্টেট
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
@@ -558,7 +558,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন (উপরে বক্স যোগ এবং ডানপাশে ট্র্যাশ বিন আইকনসহ) */}
+              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন (সব ফিল্ডে ডিলিট বাটনসহ, তবে ২টির কম বা সমান হলে ডিসএবলড থাকবে) */}
               {isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
@@ -574,35 +574,39 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <span>+ Add Value</span>
                       </button>
                     </div>
-                    {customDynamicFields.map((field, index) => (
-                      <div key={field.id} className="flex items-center space-x-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                        {index >= 2 ? (
+                    {customDynamicFields.map((field) => {
+                      const canDelete = customDynamicFields.length > 2;
+                      return (
+                        <div key={field.id} className="flex items-center space-x-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={field.value}
+                              onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                              placeholder="0.00"
+                              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
                           <button
                             type="button"
-                            onClick={() => onRemoveCustomField(field.id)}
-                            className="bg-red-100 text-red-600 hover:bg-red-200 p-2 rounded-lg transition flex items-center justify-center flex-shrink-0"
-                            title="Delete this field"
+                            disabled={!canDelete}
+                            onClick={() => canDelete && onRemoveCustomField(field.id)}
+                            className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
+                              canDelete
+                                ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
+                                : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                            }`}
+                            title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
-                        ) : (
-                          <div className="w-9 flex-shrink-0" />
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
