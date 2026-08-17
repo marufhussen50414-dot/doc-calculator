@@ -30,7 +30,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
   // ডাইনামিক সাম মোড স্টেট (সব অ্যানুয়াল ফিল্ডের জন্য কমন বা পৃথক)
-  const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('formula');
+  const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
     { id: '2', label: 'চলتی মাসের মান', value: '' }
@@ -73,7 +73,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAttempted(false);
     setResults({});
     setInputs({});
-    setAnnuoCustomMode('formula');
+    setAnnuoCustomMode('custom');
     setIrpefLordaMonthlyMode('formula');
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
@@ -397,9 +397,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             }}
             onAddCustomField={() => {
               setCustomDynamicFields([
-                ...customDynamicFields,
-                { id: Date.now().toString(), label: 'আগের বা চলতি মাসের মান', value: '' }
+                { id: Date.now().toString(), label: 'আগের বা চলতি মাসের মান', value: '' },
+                ...customDynamicFields
               ]);
+            }}
+            onRemoveCustomField={(id) => {
+              if (customDynamicFields.length > 2) {
+                setCustomDynamicFields(customDynamicFields.filter(f => f.id !== id));
+              }
             }}
             irpefLordaMonthlyMode={irpefLordaMonthlyMode}
             onIrpefLordaMonthlyModeChange={setIrpefLordaMonthlyMode}
@@ -447,6 +452,7 @@ interface StandardModeCalculatorProps {
   customDynamicFields: CustomDynamicField[];
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
+  onRemoveCustomField: (id: string) => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
 }
@@ -474,6 +480,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   customDynamicFields,
   onCustomFieldChange,
   onAddCustomField,
+  onRemoveCustomField,
   irpefLordaMonthlyMode,
   onIrpefLordaMonthlyModeChange,
 }) => {
@@ -551,38 +558,54 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-{/* অ্যানুয়াল ফিল্ডগুলোর জন্য শুধু কাস্টম সাম অপশন (রেডিও বাটন ছাড়া) */}
-{isAnnuoField && (
-  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-semibold text-gray-700">
-          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
-        </span>
-        <button
-          onClick={onAddCustomField}
-          type="button"
-          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-        >
-          <span>+ Add Value</span>
-        </button>
-      </div>
-      {customDynamicFields.map((field) => (
-        <div key={field.id} className="relative">
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-          <input
-            type="number"
-            step="0.01"
-            value={field.value}
-            onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-            placeholder="0.00"
-            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন (উপরে বক্স যোগ এবং ডিলিট বাটনসহ) */}
+              {isAnnuoField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-semibold text-gray-700">
+                        বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+                      </span>
+                      <button
+                        onClick={onAddCustomField}
+                        type="button"
+                        className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                      >
+                        <span>+ Add Value</span>
+                      </button>
+                    </div>
+                    {customDynamicFields.map((field, index) => (
+                      <div key={field.id} className="flex items-center space-x-2">
+                        {index >= 2 ? (
+                          <button
+                            type="button"
+                            onClick={() => onRemoveCustomField(field.id)}
+                            className="bg-red-100 text-red-600 hover:bg-red-200 p-2 rounded-lg transition flex items-center justify-center flex-shrink-0"
+                            title="Delete this field"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <div className="w-8 flex-shrink-0" />
+                        )}
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* IRPEF LORDA MONTHLY অপশন */}
               {isIrpefLordaMonthlyField && (
@@ -664,9 +687,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-{((!isAnnuoField) &&
-  (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
-  <>
+              {((!isAnnuoField) &&
+                (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
+                <>
                   {requiredFieldIds.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm">
                       No specific inputs are required for this field. You can calculate directly.
