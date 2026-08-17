@@ -551,62 +551,38 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য অল্টারনে티브 সাম অপশন */}
-              {isAnnuoField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="annuoCustomMode"
-                        checked={annuoCustomMode === 'formula'}
-                        onChange={() => onAnnuoCustomModeChange('formula')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Standard Formula</span>
-                    </label>
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="annuoCustomMode"
-                        checked={annuoCustomMode === 'custom'}
-                        onChange={() => onAnnuoCustomModeChange('custom')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Alternative Sum</span>
-                    </label>
-                  </div>
-                  {annuoCustomMode === 'custom' && (
-                    <div className="mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-gray-600">
-                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
-                        </span>
-                        <button
-                          onClick={onAddCustomField}
-                          type="button"
-                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                        >
-                          <span>+ Add Value</span>
-                        </button>
-                      </div>
-                      {customDynamicFields.map((field) => (
-                        <div key={field.id} className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+{/* অ্যানুয়াল ফিল্ডগুলোর জন্য শুধু কাস্টম সাম অপশন (রেডিও বাটন ছাড়া) */}
+{isAnnuoField && (
+  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-xs font-semibold text-gray-700">
+          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+        </span>
+        <button
+          onClick={onAddCustomField}
+          type="button"
+          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+        >
+          <span>+ Add Value</span>
+        </button>
+      </div>
+      {customDynamicFields.map((field) => (
+        <div key={field.id} className="relative">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+          <input
+            type="number"
+            step="0.01"
+            value={field.value}
+            onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+            placeholder="0.00"
+            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
               {/* IRPEF LORDA MONTHLY অপশন */}
               {isIrpefLordaMonthlyField && (
