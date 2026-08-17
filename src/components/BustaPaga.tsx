@@ -664,9 +664,9 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {((!isAnnuoField || annuoCustomMode === 'formula') &&
-                (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
-                <>
+{((!isAnnuoField) &&
+  (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
+  <>
                   {requiredFieldIds.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm">
                       No specific inputs are required for this field. You can calculate directly.
