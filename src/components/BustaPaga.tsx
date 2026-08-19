@@ -29,7 +29,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
-  // শুধুমাত্র সত্যিকারের অ্যানুয়াল ফিল্ডগুলোর জন্য ডাইনামিক সাম মোড রাখা হলো (TOTALE COMPETENZE বাদ দিয়ে)
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
@@ -117,7 +116,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
-  // TOTALE COMPETENZE কে অ্যানুয়াল ফিল্ডের লিস্ট থেকে কঠোরভাবে বাদ দেওয়া হলো
+  // কঠোরভাবে নিশ্চিত করা হলো যে totale_comp কখনোই অ্যানুয়াল ফিল্ড হিসেবে কাউন্ট হবে না
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     if (fieldId === 'totale_comp') return false;
@@ -579,7 +578,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TOTALE COMPETENZE - শুধুমাত্র ব্যাকওয়ার্ড ফর্মুলা ইনপুট ফিল্ডগুলো */}
+              {/* TOTALE COMPETENZE - কঠোরভাবে এখানে শুধুমাত্র স্ট্যান্ডার্ড ব্যাকওয়ার্ড ফর্মুলা ইনপুট থাকবে */}
               {isTotaleCompetenzeField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -647,8 +646,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* প্রকৃত অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন */}
-              {isAnnuoField && (
+              {/* প্রকৃত অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন (TOTALE COMPETENZE বাদে) */}
+              {!isTotaleCompetenzeField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center mb-2">
