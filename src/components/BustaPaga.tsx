@@ -29,7 +29,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
-  // শুধু অ্যানুয়াল ফিল্ডগুলোর জন্য ডাইনামিক সাম মোড রাখা হলো
+  // শুধুমাত্র সত্যিকারের অ্যানুয়াল ফিল্ডগুলোর জন্য ডাইনামিক সাম মোড রাখা হলো (TOTALE COMPETENZE বাদ দিয়ে)
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
@@ -117,10 +117,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
+  // TOTALE COMPETENZE কে অ্যানুয়াল ফিল্ডের লিস্ট থেকে কঠোরভাবে বাদ দেওয়া হলো
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
+    if (fieldId === 'totale_comp') return false;
     const lower = fieldId.toLowerCase();
-    return (lower.includes('anno') || lower.includes('progr') || lower.includes('totale')) && fieldId !== 'totale_comp';
+    return lower.includes('anno') || lower.includes('progr') || lower.includes('totale');
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
@@ -167,7 +169,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const trattenute = parseFloat(String(inputs['trattenute'])) || 0;
       const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
       const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
-      // TOTALE COMPETENZE = NETTO + (TRATTENUTE + ARR. PRECED.) - ARR. ATTUALE
       const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale;
       setResults({ [outputField]: calculatedComp });
       setShowResult(true);
@@ -578,7 +579,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TOTALE COMPETENZE - সরাসরি ব্যাকওয়ার্ড ফর্মুলা ইনপুট ফিল্ডগুলো */}
+              {/* TOTALE COMPETENZE - শুধুমাত্র ব্যাকওয়ার্ড ফর্মুলা ইনপুট ফিল্ডগুলো */}
               {isTotaleCompetenzeField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -646,7 +647,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য সাধারণ কাস্টম সাম অপশন */}
+              {/* প্রকৃত অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন */}
               {isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
