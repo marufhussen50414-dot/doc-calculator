@@ -148,8 +148,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else {
-        // Formula 2 বর্তমানে খালি
-        return { valid: false, missing: [] };
+        // Formula 2 Required Fields Verification
+        const formula2Fields = ['irpef_imp_sost', 'totale_contributi', 'trattenute_field'];
+        const missingFields = formula2Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
       }
     }
 
@@ -204,6 +209,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
 
         const calculatedTrattenute = competenze - netto - arrPreced + arrAttuale;
+        setResults({ [outputField]: calculatedTrattenute });
+        setShowResult(true);
+      } else if (totaleTrattenuteMode === 'formula2') {
+        // FORMULA 2: TRATTENUTE = (IRPEF + IMP. SOST.) + TOTALE CONTRIBUTI + TRATTENUTE
+        const irpefImpSost = parseFloat(String(inputs['irpef_imp_sost'])) || 0;
+        const totaleContributi = parseFloat(String(inputs['totale_contributi'])) || 0;
+        const trattenuteField = parseFloat(String(inputs['trattenute_field'])) || 0;
+
+        const calculatedTrattenute = irpefImpSost + totaleContributi + trattenuteField;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       }
@@ -779,8 +793,49 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       )}
                     </div>
                   ) : (
-                    <div className="py-6 text-center text-sm text-gray-500 bg-white rounded border border-dashed border-gray-300">
-                      Formula 2 বর্তমানে খালি রয়েছে।
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF+IMP .SOST.</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_imp_sost'] || ''}
+                            onChange={(e) => onInputChange('irpef_imp_sost', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['totale_contributi'] || ''}
+                            onChange={(e) => onInputChange('totale_contributi', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TRATTENUTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['trattenute_field'] || ''}
+                            onChange={(e) => onInputChange('trattenute_field', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
