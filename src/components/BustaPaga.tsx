@@ -32,12 +32,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
-    { id: '2', label: 'চলتی মাসের মান', value: '' }
+    { id: '2', label: 'চলতি মাসের মান', value: '' }
   ]);
 
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
   
-  // Totale Trattenute এর জন্য নতুন মোড স্টেট
+  // Totale Trattenute এর জন্য মোড স্টেট
   const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2'>('formula1');
 
   const calculator = UNIFIED_CALCULATOR;
@@ -79,7 +79,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setTotaleTrattenuteMode('formula1');
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
-      { id: '2', label: 'চলتی মাসের মান', value: '' }
+      { id: '2', label: 'চলতি মাসের মান', value: '' }
     ]);
   };
 
@@ -138,14 +138,19 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: missingFields.length === 0, missing: missingFields };
     }
 
-    if (outputFieldId === 'totale_trattenute' && totaleTrattenuteMode === 'formula2') {
-      // Formula 2 এর জন্য ইনপুট চেক (ভবিষ্যতে প্রয়োজন অনুযায়ী ফিল্ড যোগ করতে পারবেন)
-      const altFields = ['alt_tratt_1', 'alt_tratt_2'];
-      const missingAlt = altFields.filter(fId => {
-        const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
-      });
-      return { valid: missingAlt.length === 0, missing: missingAlt };
+    if (outputFieldId === 'totale_trattenute') {
+      if (totaleTrattenuteMode === 'formula1') {
+        const formula1Fields = ['competenze', 'netto', 'arr_preced', 'arr_attuale'];
+        const activeFields = enableRounding ? formula1Fields : ['competenze', 'netto'];
+        const missingFields = activeFields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
+      } else {
+        // Formula 2 বর্তমানে খালি
+        return { valid: false, missing: [] };
+      }
     }
 
     if (isAnnuoField(outputFieldId) && annuoCustomMode === 'custom') {
@@ -190,13 +195,18 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    if (outputField === 'totale_trattenute' && totaleTrattenuteMode === 'formula2') {
-      // Formula 2 এর ক্যালকুলেশন লজিক (আপনি পরে ফর্মুলা দিলে এখানে বসিয়ে দেওয়া যাবে)
-      const val1 = parseFloat(String(inputs['alt_tratt_1'])) || 0;
-      const val2 = parseFloat(String(inputs['alt_tratt_2'])) || 0;
-      const calculatedAltResult = val1 + val2; // উদাহরণস্বরূপ যোগফল রাখলাম
-      setResults({ [outputField]: calculatedAltResult });
-      setShowResult(true);
+    if (outputField === 'totale_trattenute') {
+      if (totaleTrattenuteMode === 'formula1') {
+        // FORMULA 1: TRATTENUTE = COMPETENZE - NETTO - ARR. PRECED. + ARR. ATTUALE
+        const competenze = parseFloat(String(inputs['competenze'])) || 0;
+        const netto = parseFloat(String(inputs['netto'])) || 0;
+        const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
+        const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
+
+        const calculatedTrattenute = competenze - netto - arrPreced + arrAttuale;
+        setResults({ [outputField]: calculatedTrattenute });
+        setShowResult(true);
+      }
       return;
     }
 
@@ -265,7 +275,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAttempted(false);
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
-      { id: '2', label: 'চলتی মাসের মান', value: '' }
+      { id: '2', label: 'চলতি মাসের মান', value: '' }
     ]);
     if (mode === 'standard') {
       setOutputField(null);
@@ -679,10 +689,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* TOTALE TRATTENUTE - দুটি ফর্মুলার জন্য রেডিও বাটন অপشن */}
+              {/* TOTALE TRATTENUTE */}
               {isTotaleTrattenuteField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
+                  <div className="flex items-center space-x-6 mb-4">
                     <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
                       <input
                         type="radio"
@@ -705,42 +715,78 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     </label>
                   </div>
                   
-                  {totaleTrattenuteMode === 'formula2' && (
-                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {totaleTrattenuteMode === 'formula1' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">VALUE 1 (Placeholder)</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE COMPETENZE</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
                             type="number"
                             step="0.01"
-                            value={inputs['alt_tratt_1'] || ''}
-                            onChange={(e) => onInputChange('alt_tratt_1', e.target.value)}
+                            value={inputs['competenze'] || ''}
+                            onChange={(e) => onInputChange('competenze', e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">VALUE 2 (Placeholder)</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">NETTO IN BUSTA</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
                             type="number"
                             step="0.01"
-                            value={inputs['alt_tratt_2'] || ''}
-                            onChange={(e) => onInputChange('alt_tratt_2', e.target.value)}
+                            value={inputs['netto'] || ''}
+                            onChange={(e) => onInputChange('netto', e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
                       </div>
+                      {enableRounding && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">ARR. PRECED.</label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={inputs['arr_preced'] || ''}
+                                onChange={(e) => onInputChange('arr_preced', e.target.value)}
+                                placeholder="0.00"
+                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">ARR. ATTUALE</label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={inputs['arr_attuale'] || ''}
+                                onChange={(e) => onInputChange('arr_attuale', e.target.value)}
+                                placeholder="0.00"
+                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-sm text-gray-500 bg-white rounded border border-dashed border-gray-300">
+                      Formula 2 বর্তমানে খালি রয়েছে।
                     </div>
                   )}
                 </div>
               )}
 
-              {/* অ্যানুয়াল ফিল্ডগুলোর কাস্টম অপشن */}
+              {/* অ্যানুয়াল ফিল্ডগুলোর কাস্টম অপশন */}
               {!isTotaleCompetenzeField && !isTotaleTrattenuteField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
