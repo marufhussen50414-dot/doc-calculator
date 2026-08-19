@@ -36,7 +36,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলتی মাসের মান', value: '' }
   ]);
 
-  // TOTALE COMPETENZE অল্টারনে티브/ফর্মুলা মোড স্টেট
+  // TOTALE COMPETENZE অল্টারনে티브/ফর্মুলা মোড স্টেট (ডিফলल्ट custom রাখছি)
   const [totaleCompetenzeMode, setTotaleCompetenzeMode] = useState<'custom' | 'formula'>('custom');
 
   // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট
