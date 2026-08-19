@@ -29,12 +29,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
 
-  // ডাইনামিক সাম মোড স্টেট
+  // ডাইনামিক সাম মোড স্টেট (অ্যানুয়াল ফিল্ডগুলোর জন্য)
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
     { id: '2', label: 'চলتی মাসের মান', value: '' }
   ]);
+
+  // TOTALE COMPETENZE অল্টারনে티브/ফর্মুলা মোড স্টেট
+  const [totaleCompetenzeMode, setTotaleCompetenzeMode] = useState<'custom' | 'formula'>('custom');
 
   // IRPEF Lorda Monthly অল্টারনে티브 মোড স্টেট
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
@@ -74,6 +77,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setResults({});
     setInputs({});
     setAnnuoCustomMode('custom');
+    setTotaleCompetenzeMode('custom');
     setIrpefLordaMonthlyMode('formula');
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
@@ -121,10 +125,23 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     const lower = fieldId.toLowerCase();
-    return lower.includes('anno') || lower.includes('progr') || lower.includes('totale');
+    return (lower.includes('anno') || lower.includes('progr') || lower.includes('totale')) && fieldId !== 'totale_comp';
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
+    if (outputFieldId === 'totale_comp' && totaleCompetenzeMode === 'custom') {
+      const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
+    }
+    if (outputFieldId === 'totale_comp' && totaleCompetenzeMode === 'formula') {
+      const formulaFields = ['netto', 'trattenute', 'arr_preced', 'arr_attuale'];
+      const activeFormulaFields = enableRounding ? formulaFields : formulaFields.filter(f => f !== 'arr_preced' && f !== 'arr_attuale');
+      const missingFields = activeFormulaFields.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missingFields.length === 0, missing: missingFields };
+    }
     if (isAnnuoField(outputFieldId) && annuoCustomMode === 'custom') {
       const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
@@ -151,6 +168,25 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
+      return;
+    }
+
+    if (outputField === 'totale_comp' && totaleCompetenzeMode === 'custom') {
+      const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+      setResults({ [outputField]: totalSum });
+      setShowResult(true);
+      return;
+    }
+
+    if (outputField === 'totale_comp' && totaleCompetenzeMode === 'formula') {
+      const netto = parseFloat(String(inputs['netto'])) || 0;
+      const trattenute = parseFloat(String(inputs['trattenute'])) || 0;
+      const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
+      const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
+      // Competenze = Netto + (Trattenute + Arr. Preced.) - Arr. Attuale
+      const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale;
+      setResults({ [outputField]: calculatedComp });
+      setShowResult(true);
       return;
     }
 
@@ -406,6 +442,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 setCustomDynamicFields(customDynamicFields.filter(f => f.id !== id));
               }
             }}
+            totaleCompetenzeMode={totaleCompetenzeMode}
+            onTotaleCompetenzeModeChange={setTotaleCompetenzeMode}
             irpefLordaMonthlyMode={irpefLordaMonthlyMode}
             onIrpefLordaMonthlyModeChange={setIrpefLordaMonthlyMode}
           />
@@ -453,6 +491,8 @@ interface StandardModeCalculatorProps {
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
   onRemoveCustomField: (id: string) => void;
+  totaleCompetenzeMode: 'custom' | 'formula';
+  onTotaleCompetenzeModeChange: (mode: 'custom' | 'formula') => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
 }
@@ -476,15 +516,17 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   enableRounding,
   isAnnuoField,
   annuoCustomMode,
-  onAnnuoCustomModeChange,
   customDynamicFields,
   onCustomFieldChange,
   onAddCustomField,
   onRemoveCustomField,
+  totaleCompetenzeMode,
+  onTotaleCompetenzeModeChange,
   irpefLordaMonthlyMode,
   onIrpefLordaMonthlyModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
+  const isTotaleCompetenzeField = outputField === 'totale_comp';
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
 
   return (
@@ -558,7 +600,148 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন (সব ফিল্ডে ডিলিট বাটনসহ, তবে ২টির কম বা সমান হলে ডিসএবলড থাকবে) */}
+              {/* TOTALE COMPETENZE অপশন (Custom Sum বনাম Formula) */}
+              {isTotaleCompetenzeField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="totaleCompetenzeMode"
+                        checked={totaleCompetenzeMode === 'custom'}
+                        onChange={() => onTotaleCompetenzeModeChange('custom')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Custom Sum (যোগফল পদ্ধতি)</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="totaleCompetenzeMode"
+                        checked={totaleCompetenzeMode === 'formula'}
+                        onChange={() => onTotaleCompetenzeModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Backward Formula Mode</span>
+                    </label>
+                  </div>
+
+                  {totaleCompetenzeMode === 'custom' ? (
+                    <div className="space-y-3 mt-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-gray-700">
+                          বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+                        </span>
+                        <button
+                          onClick={onAddCustomField}
+                          type="button"
+                          className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
+                      </div>
+                      {customDynamicFields.map((field) => {
+                        const canDelete = customDynamicFields.length > 2;
+                        return (
+                          <div key={field.id} className="flex items-center space-x-2">
+                            <div className="relative flex-1">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={field.value}
+                                onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                                placeholder="0.00"
+                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={!canDelete}
+                              onClick={() => canDelete && onRemoveCustomField(field.id)}
+                              className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
+                                canDelete
+                                  ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
+                                  : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                              }`}
+                              title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">NETTO IN BUSTA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['netto'] || ''}
+                            onChange={(e) => onInputChange('netto', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['trattenute'] || ''}
+                            onChange={(e) => onInputChange('trattenute', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      {enableRounding && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">ARR. PRECED.</label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={inputs['arr_preced'] || ''}
+                                onChange={(e) => onInputChange('arr_preced', e.target.value)}
+                                placeholder="0.00"
+                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">ARR. ATTUALE</label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={inputs['arr_attuale'] || ''}
+                                onChange={(e) => onInputChange('arr_attuale', e.target.value)}
+                                placeholder="0.00"
+                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* অ্যানুয়াল ফিল্ডগুলোর জন্য সাধারণ কাস্টম সাম অপশন */}
               {isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
@@ -639,9 +822,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   {irpefLordaMonthlyMode === 'alternative' && (
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                          IRPEF + IMP. SOST.
-                        </label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF + IMP. SOST.</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
@@ -655,9 +836,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                          DETR. LAV. DIPENDENTE
-                        </label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
@@ -671,9 +850,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         </div>
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                          IMPOSTA SOSTITUTIVA
-                        </label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
@@ -691,7 +868,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {((!isAnnuoField) &&
+              {(!isTotaleCompetenzeField &&
+                !isAnnuoField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
