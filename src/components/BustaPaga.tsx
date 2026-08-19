@@ -36,6 +36,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   ]);
 
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
+  
+  // Totale Trattenute এর জন্য নতুন মোড স্টেট
+  const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2'>('formula1');
 
   const calculator = UNIFIED_CALCULATOR;
 
@@ -73,6 +76,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setInputs({});
     setAnnuoCustomMode('custom');
     setIrpefLordaMonthlyMode('formula');
+    setTotaleTrattenuteMode('formula1');
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
       { id: '2', label: 'চলتی মাসের মান', value: '' }
@@ -116,12 +120,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
-// totla_comp বা totale_ competenze ফিল্ডের জন্য কখনো যেন কাস্টম অ্যানুয়াল মোড না আসে, তা নিশ্চিত করা হলো
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
-    if (fieldId === 'totale_comp' || fieldId.toLowerCase().includes('competenze')) return false;
+    if (fieldId === 'totale_comp' || fieldId === 'totale_trattenute' || fieldId.toLowerCase().includes('competenze')) return false;
     const lower = fieldId.toLowerCase();
-    return (lower.includes('anno') || lower.includes('progr')) && fieldId !== 'totale_comp';
+    return (lower.includes('anno') || lower.includes('progr') || lower.includes('progressivo') || lower.includes('totale')) && fieldId !== 'totale_comp' && fieldId !== 'totale_trattenute';
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
@@ -134,10 +137,22 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       });
       return { valid: missingFields.length === 0, missing: missingFields };
     }
+
+    if (outputFieldId === 'totale_trattenute' && totaleTrattenuteMode === 'formula2') {
+      // Formula 2 এর জন্য ইনপুট চেক (ভবিষ্যতে প্রয়োজন অনুযায়ী ফিল্ড যোগ করতে পারবেন)
+      const altFields = ['alt_tratt_1', 'alt_tratt_2'];
+      const missingAlt = altFields.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missingAlt.length === 0, missing: missingAlt };
+    }
+
     if (isAnnuoField(outputFieldId) && annuoCustomMode === 'custom') {
       const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
     }
+
     if (outputFieldId === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
       const missingAlt = altFields.filter(fId => {
@@ -146,6 +161,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       });
       return { valid: missingAlt.length === 0, missing: missingAlt };
     }
+
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -170,6 +186,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
       const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale;
       setResults({ [outputField]: calculatedComp });
+      setShowResult(true);
+      return;
+    }
+
+    if (outputField === 'totale_trattenute' && totaleTrattenuteMode === 'formula2') {
+      // Formula 2 এর ক্যালকুলেশন লজিক (আপনি পরে ফর্মুলা দিলে এখানে বসিয়ে দেওয়া যাবে)
+      const val1 = parseFloat(String(inputs['alt_tratt_1'])) || 0;
+      const val2 = parseFloat(String(inputs['alt_tratt_2'])) || 0;
+      const calculatedAltResult = val1 + val2; // উদাহরণস্বরূপ যোগফল রাখলাম
+      setResults({ [outputField]: calculatedAltResult });
       setShowResult(true);
       return;
     }
@@ -428,6 +454,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             }}
             irpefLordaMonthlyMode={irpefLordaMonthlyMode}
             onIrpefLordaMonthlyModeChange={setIrpefLordaMonthlyMode}
+            totaleTrattenuteMode={totaleTrattenuteMode}
+            onTotaleTrattenuteModeChange={setTotaleTrattenuteMode}
           />
         )}
 
@@ -475,6 +503,8 @@ interface StandardModeCalculatorProps {
   onRemoveCustomField: (id: string) => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
+  totaleTrattenuteMode: 'formula1' | 'formula2';
+  onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2') => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -502,9 +532,12 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onRemoveCustomField,
   irpefLordaMonthlyMode,
   onIrpefLordaMonthlyModeChange,
+  totaleTrattenuteMode,
+  onTotaleTrattenuteModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTotaleCompetenzeField = outputField === 'totale_comp';
+  const isTotaleTrattenuteField = outputField === 'totale_trattenute';
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
 
   return (
@@ -578,7 +611,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TOTALE COMPETENZE - এখানে শুধু স্ট্যান্ডার্ড ব্যাকওয়ার্ড ফর্মুলা ইনপুট থাকবে */}
+              {/* TOTALE COMPETENZE */}
               {isTotaleCompetenzeField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -646,8 +679,69 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* আসল অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপشن (TOTALE COMPETENZE বাদে) */}
-              {!isTotaleCompetenzeField && isAnnuoField && (
+              {/* TOTALE TRATTENUTE - দুটি ফর্মুলার জন্য রেডিও বাটন অপشن */}
+              {isTotaleTrattenuteField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="totaleTrattenuteMode"
+                        checked={totaleTrattenuteMode === 'formula1'}
+                        onChange={() => onTotaleTrattenuteModeChange('formula1')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="totaleTrattenuteMode"
+                        checked={totaleTrattenuteMode === 'formula2'}
+                        onChange={() => onTotaleTrattenuteModeChange('formula2')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
+                  </div>
+                  
+                  {totaleTrattenuteMode === 'formula2' && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">VALUE 1 (Placeholder)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_tratt_1'] || ''}
+                            onChange={(e) => onInputChange('alt_tratt_1', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">VALUE 2 (Placeholder)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_tratt_2'] || ''}
+                            onChange={(e) => onInputChange('alt_tratt_2', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* অ্যানুয়াল ফিল্ডগুলোর কাস্টম অপشن */}
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center mb-2">
@@ -774,6 +868,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {(!isTotaleCompetenzeField &&
+                !isTotaleTrattenuteField &&
                 !isAnnuoField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
                 <>
@@ -977,7 +1072,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {allRequiredFields.map((fieldId: string) => {
+                  {allTotalTrattenuteFields(allRequiredFields).map((fieldId: string) => {
                     const fieldObj = filteredFields.find((f: any) => f.id === fieldId) ||
                       UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
                     if (!fieldObj) return null;
@@ -1046,3 +1141,8 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
     </div>
   );
 };
+
+// Helper function for multi mode
+function allTotalTrattenuteFields(fields: string[]) {
+  return fields;
+}
