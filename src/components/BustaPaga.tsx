@@ -116,12 +116,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
-  // এখানে totale_comp কে স্পষ্টভাবে false করে দেওয়া হয়েছে যাতে এটি কাস্টম ফিল্ডে না পড়ে
+// totla_comp বা totale_ competenze ফিল্ডের জন্য কখনো যেন কাস্টম অ্যানুয়াল মোড না আসে, তা নিশ্চিত করা হলো
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
-    if (fieldId === 'totale_comp') return false;
+    if (fieldId === 'totale_comp' || fieldId.toLowerCase().includes('competenze')) return false;
     const lower = fieldId.toLowerCase();
-    return (lower.includes('anno') || lower.includes('progr') || lower.includes('totale')) && fieldId !== 'totale_comp';
+    return (lower.includes('anno') || lower.includes('progr')) && fieldId !== 'totale_comp';
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
