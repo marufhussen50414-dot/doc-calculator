@@ -116,12 +116,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
-  // কঠোরভাবে নিশ্চিত করা হলো যে totale_comp কখনোই অ্যানুয়াল ফিল্ড হিসেবে কাউন্ট হবে না
+  // এখানে totale_comp কে স্পষ্টভাবে false করে দেওয়া হয়েছে যাতে এটি কাস্টম ফিল্ডে না পড়ে
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     if (fieldId === 'totale_comp') return false;
     const lower = fieldId.toLowerCase();
-    return lower.includes('anno') || lower.includes('progr') || lower.includes('totale');
+    return (lower.includes('anno') || lower.includes('progr') || lower.includes('totale')) && fieldId !== 'totale_comp';
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
@@ -578,7 +578,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* TOTALE COMPETENZE - কঠোরভাবে এখানে শুধুমাত্র স্ট্যান্ডার্ড ব্যাকওয়ার্ড ফর্মুলা ইনপুট থাকবে */}
+              {/* TOTALE COMPETENZE - এখানে শুধু স্ট্যান্ডার্ড ব্যাকওয়ার্ড ফর্মুলা ইনপুট থাকবে */}
               {isTotaleCompetenzeField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -646,7 +646,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* প্রকৃত অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপশন (TOTALE COMPETENZE বাদে) */}
+              {/* আসল অ্যানুয়াল ফিল্ডগুলোর জন্য কাস্টম সাম অপشن (TOTALE COMPETENZE বাদে) */}
               {!isTotaleCompetenzeField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
