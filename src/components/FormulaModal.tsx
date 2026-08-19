@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1, Formula 2, Formula 3, Formula 4, and their sub-formulas in a compact layout.
+ * Displays Formula 1, Formula 2, Formula 3, Formula 4, Formula 5, and their sub-formulas in a compact layout.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -198,6 +198,35 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <div className="bg-white p-2.5 rounded border border-gray-200">
                   <span className="font-semibold text-gray-700">To calculate IMPOSTA SOSTITUTIVA:</span>
                   <div className="text-gray-900 mt-1">IMPOSTA SOSTITUTIVA = (IRPEF + IMP. SOST.) - IRPEF LORDA + DETR. LAV. DIPENDENTE</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 5 (IRPEF LORDA Calculation) & Sub-formulas */}
+          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border-2 border-cyan-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-cyan-900 mb-3">
+              Formula 5 (IRPEF LORDA Calculation)
+            </h3>
+            
+            {/* Main Formula Box */}
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-cyan-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-cyan-700">IRPEF LORDA (Monthly)</span> ={' '}
+                <span className="font-bold text-blue-700">IMPONIBILE FISCALE (Monthly)</span> ×{' '}
+                <span className="font-bold text-gray-700">23%</span>
+              </div>
+            </div>
+
+            {/* Sub-formulas / Backward Calculations */}
+            <div className="mt-4 border-t border-cyan-200 pt-4">
+              <h4 className="text-sm font-bold text-cyan-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate IMPONIBILE FISCALE (Monthly):</span>
+                  <div className="text-gray-900 mt-1">IMPONIBILE FISCALE (Monthly) = IRPEF LORDA (Monthly) / 0.23</div>
                 </div>
               </div>
             </div>
