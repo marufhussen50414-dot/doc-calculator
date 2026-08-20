@@ -28,6 +28,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
+  const [enableAddValueFormula, setEnableAddValueFormula] = useState<boolean>(false);
 
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
@@ -234,12 +235,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
+    const addValueSum = enableAddValueFormula
+      ? customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0)
+      : 0;
+
     if (outputField === 'totale_comp') {
       const netto = parseFloat(String(inputs['netto'])) || 0;
       const trattenute = parseFloat(String(inputs['trattenute'])) || 0;
       const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
       const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
-      const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale;
+      const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale + addValueSum;
       setResults({ [outputField]: calculatedComp });
       setShowResult(true);
       return;
@@ -252,7 +257,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
         const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
 
-        const calculatedTrattenute = competenze - netto - arrPreced + arrAttuale;
+        const calculatedTrattenute = competenze - netto - arrPreced + arrAttuale + addValueSum;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       } else if (totaleTrattenuteMode === 'formula2') {
@@ -260,7 +265,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const totaleContributi = parseFloat(String(inputs['totale_contributi'])) || 0;
         const trattenuteField = parseFloat(String(inputs['trattenute_field'])) || 0;
 
-        const calculatedTrattenute = irpefImpSost + totaleContributi + trattenuteField;
+        const calculatedTrattenute = irpefImpSost + totaleContributi + trattenuteField + addValueSum;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       }
@@ -273,7 +278,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const irpefImpSostVal = parseFloat(String(inputs['irpef_imp_sost_input'])) || 0;
         const trattenuteVal = parseFloat(String(inputs['trattenute_input'])) || 0;
 
-        const calculatedTotaleContributi = totaleTrattenuteVal - irpefImpSostVal - trattenuteVal;
+        const calculatedTotaleContributi = totaleTrattenuteVal - irpefImpSostVal - trattenuteVal + addValueSum;
         setResults({ [outputField]: calculatedTotaleContributi });
         setShowResult(true);
       } else {
@@ -290,7 +295,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const totContributi = parseFloat(String(inputs['irpef_f2_totale_contributi'])) || 0;
         const trattenute = parseFloat(String(inputs['irpef_f2_trattenute'])) || 0;
 
-        const calculatedIrpefImpSost = totTrattenute - totContributi - trattenute;
+        const calculatedIrpefImpSost = totTrattenute - totContributi - trattenute + addValueSum;
         setResults({ [outputField]: calculatedIrpefImpSost });
         setShowResult(true);
         return;
@@ -308,7 +313,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
       const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
       const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
-      const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost;
+      const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost + addValueSum;
       setResults({ [outputField]: calculatedAltResult });
       setShowResult(true);
       return;
@@ -317,7 +322,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
     if (calculatedResult !== null) {
-      setResults({ [outputField]: calculatedResult });
+      setResults({ [outputField]: calculatedResult + addValueSum });
       setShowResult(true);
     }
   };
@@ -413,39 +418,62 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
           <div className="lg:col-span-5 bg-white rounded-lg shadow-md p-6 flex flex-col justify-between">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
-            <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
-              <span className="text-sm font-semibold text-gray-700">Rounding:</span>
-              <div className="flex items-center">
-                <button
-                  onClick={() => {
-                    const newRoundingState = !enableRounding;
-                    setEnableRounding(newRoundingState);
-                    if (!newRoundingState) {
-                      setInputs(prev => {
-                        const updated = { ...prev };
-                        delete updated['arr_preced'];
-                        delete updated['arr_attuale'];
-                        return updated;
-                      });
-                      if (outputField === 'arr_preced' || outputField === 'arr_attuale') {
-                        setOutputField(null);
-                        setShowResult(false);
+            <div className="space-y-3">
+              <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">Rounding:</span>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => {
+                      const newRoundingState = !enableRounding;
+                      setEnableRounding(newRoundingState);
+                      if (!newRoundingState) {
+                        setInputs(prev => {
+                          const updated = { ...prev };
+                          delete updated['arr_preced'];
+                          delete updated['arr_attuale'];
+                          return updated;
+                        });
+                        if (outputField === 'arr_preced' || outputField === 'arr_attuale') {
+                          setOutputField(null);
+                          setShowResult(false);
+                        }
                       }
-                    }
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                    enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      enableRounding ? 'translate-x-6' : 'translate-x-1'
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      enableRounding ? 'bg-indigo-600' : 'bg-gray-300'
                     }`}
-                  />
-                </button>
-                <span className="ml-2 text-xs font-medium text-gray-600 w-8">
-                  {enableRounding ? 'ON' : 'OFF'}
-                </span>
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        enableRounding ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className="ml-2 text-xs font-medium text-gray-600 w-8">
+                    {enableRounding ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">Add Value Formula:</span>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setEnableAddValueFormula(!enableAddValueFormula)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      enableAddValueFormula ? 'bg-indigo-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        enableAddValueFormula ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className="ml-2 text-xs font-medium text-gray-600 w-8">
+                    {enableAddValueFormula ? 'ON' : 'OFF'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -531,6 +559,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             formatCurrency={formatCurrency}
             getFieldLabel={getFieldLabel}
             enableRounding={enableRounding}
+            enableAddValueFormula={enableAddValueFormula}
             isAnnuoField={isAnnuoField(outputField)}
             annuoCustomMode={annuoCustomMode}
             onAnnuoCustomModeChange={setAnnuoCustomMode}
@@ -595,6 +624,7 @@ interface StandardModeCalculatorProps {
   formatCurrency: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
+  enableAddValueFormula: boolean;
   isAnnuoField: boolean;
   annuoCustomMode: 'formula' | 'custom';
   onAnnuoCustomModeChange: (mode: 'formula' | 'custom') => void;
@@ -629,6 +659,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   formatCurrency,
   getFieldLabel,
   enableRounding,
+  enableAddValueFormula,
   isAnnuoField,
   annuoCustomMode,
   customDynamicFields,
@@ -1321,6 +1352,60 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   Reset
                 </button>
               </div>
+
+              {/* Add Value Formula Widget (Calculate বাটনের নিচে) */}
+              {enableAddValueFormula && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-gray-700">
+                      বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={onAddCustomField}
+                      className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                    >
+                      <span>+ Add Value</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {customDynamicFields.map((field) => {
+                      const canDelete = customDynamicFields.length > 2;
+                      return (
+                        <div key={field.id} className="flex items-center space-x-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={field.value}
+                              onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                              placeholder="0.00"
+                              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            disabled={!canDelete}
+                            onClick={() => canDelete && onRemoveCustomField(field.id)}
+                            className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
+                              canDelete
+                                ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
+                                : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                            }`}
+                            title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {showResult && (
                 <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
