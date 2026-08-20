@@ -467,7 +467,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
               </div>
 
               <div className="flex items-center justify-between bg-gray-50 p-3.5 rounded-lg border border-gray-200">
-                <span className="text-sm font-semibold text-gray-700">Add Value Formula:</span>
+                <span className="text-sm font-semibold text-gray-700">Temporary Calculator:</span>
                 <div className="flex items-center">
                   <button
                     onClick={() => {
