@@ -43,6 +43,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // Totale Contributi (9) এর জন্য মোড স্টেট (Standard vs Alternative)
   const [totaleContributiMode, setTotaleContributiMode] = useState<'formula' | 'alternative'>('formula');
 
+  // 19. IRPEF + IMP. SOST. এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
+  const [irpefImpSostMode, setIrpefImpSostMode] = useState<'formula1' | 'formula2'>('formula1');
+
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
@@ -81,6 +84,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setIrpefLordaMonthlyMode('formula');
     setTotaleTrattenuteMode('formula1');
     setTotaleContributiMode('formula');
+    setIrpefImpSostMode('formula1');
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
       { id: '2', label: 'চলতি মাসের মান', value: '' }
@@ -131,6 +135,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return (lower.includes('anno') || lower.includes('progr') || lower.includes('progressivo') || lower.includes('totale')) && fieldId !== 'totale_comp' && fieldId !== 'totale_trattenute' && fieldId !== 'totale_contributi';
   };
 
+  const isIrpefImpSostField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const lower = fieldId.toLowerCase();
+    return lower === 'irpef_imp_sost' || lower === '19_irpef_imp_sost' || lower.includes('irpef_imp_sost');
+  };
+
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
     if (outputFieldId === 'totale_comp') {
       const formulaFields = ['netto', 'trattenute', 'arr_preced', 'arr_attuale'];
@@ -172,6 +182,24 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       } else {
         const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
         return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
+      }
+    }
+
+    if (isIrpefImpSostField(outputFieldId)) {
+      if (irpefImpSostMode === 'formula1') {
+        const required = getRequiredFields(outputFieldId);
+        const missing = required.filter(fieldId => {
+          const value = inputs[fieldId];
+          return value === undefined || value === '' || value === null;
+        });
+        return { valid: missing.length === 0, missing };
+      } else {
+        const f2Fields = ['irpef_f2_totale_trattenute', 'irpef_f2_totale_contributi', 'irpef_f2_trattenute'];
+        const missingFields = f2Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
       }
     }
 
@@ -241,7 +269,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (outputField === 'totale_contributi') {
       if (totaleContributiMode === 'formula') {
-        // Standard Formula: TOTALE CONTRIBUTI = TOTALE TRATTENUTE - (IRPEF + IMP. SOST.) - TRATTENUTE
         const totaleTrattenuteVal = parseFloat(String(inputs['totale_trattenute_input'])) || 0;
         const irpefImpSostVal = parseFloat(String(inputs['irpef_imp_sost_input'])) || 0;
         const trattenuteVal = parseFloat(String(inputs['trattenute_input'])) || 0;
@@ -250,12 +277,24 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         setResults({ [outputField]: calculatedTotaleContributi });
         setShowResult(true);
       } else {
-        // Alternative Mode: dynamic values sum
         const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
         setResults({ [outputField]: totalSum });
         setShowResult(true);
       }
       return;
+    }
+
+    if (isIrpefImpSostField(outputField)) {
+      if (irpefImpSostMode === 'formula2') {
+        const totTrattenute = parseFloat(String(inputs['irpef_f2_totale_trattenute'])) || 0;
+        const totContributi = parseFloat(String(inputs['irpef_f2_totale_contributi'])) || 0;
+        const trattenute = parseFloat(String(inputs['irpef_f2_trattenute'])) || 0;
+
+        const calculatedIrpefImpSost = totTrattenute - totContributi - trattenute;
+        setResults({ [outputField]: calculatedIrpefImpSost });
+        setShowResult(true);
+        return;
+      }
     }
 
     if (isAnnuoField(outputField) && annuoCustomMode === 'custom') {
@@ -516,6 +555,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onTotaleTrattenuteModeChange={setTotaleTrattenuteMode}
             totaleContributiMode={totaleContributiMode}
             onTotaleContributiModeChange={setTotaleContributiMode}
+            irpefImpSostMode={irpefImpSostMode}
+            onIrpefImpSostModeChange={setIrpefImpSostMode}
           />
         )}
 
@@ -567,6 +608,8 @@ interface StandardModeCalculatorProps {
   onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2') => void;
   totaleContributiMode: 'formula' | 'alternative';
   onTotaleContributiModeChange: (mode: 'formula' | 'alternative') => void;
+  irpefImpSostMode: 'formula1' | 'formula2';
+  onIrpefImpSostModeChange: (mode: 'formula1' | 'formula2') => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -598,12 +641,19 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onTotaleTrattenuteModeChange,
   totaleContributiMode,
   onTotaleContributiModeChange,
+  irpefImpSostMode,
+  onIrpefImpSostModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTotaleCompetenzeField = outputField === 'totale_comp';
   const isTotaleTrattenuteField = outputField === 'totale_trattenute';
   const isTotaleContributiField = outputField === 'totale_contributi';
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
+  const isIrpefImpSostField = outputField ? (
+    outputField.toLowerCase() === 'irpef_imp_sost' ||
+    outputField.toLowerCase() === '19_irpef_imp_sost' ||
+    outputField.toLowerCase().includes('irpef_imp_sost')
+  ) : false;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1005,8 +1055,83 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
+              {/* 19. IRPEF + IMP. SOST. */}
+              {isIrpefImpSostField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefImpSostMode"
+                        checked={irpefImpSostMode === 'formula1'}
+                        onChange={() => onIrpefImpSostModeChange('formula1')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefImpSostMode"
+                        checked={irpefImpSostMode === 'formula2'}
+                        onChange={() => onIrpefImpSostModeChange('formula2')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
+                  </div>
+
+                  {irpefImpSostMode === 'formula2' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_f2_totale_trattenute'] || ''}
+                            onChange={(e) => onInputChange('irpef_f2_totale_trattenute', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_f2_totale_contributi'] || ''}
+                            onChange={(e) => onInputChange('irpef_f2_totale_contributi', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TRATTENUTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_f2_trattenute'] || ''}
+                            onChange={(e) => onInputChange('irpef_f2_trattenute', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* অ্যানুয়াল ফিল্ডগুলোর কাস্টম অপশন */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center mb-2">
@@ -1136,7 +1261,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isTotaleTrattenuteField &&
                 !isTotaleContributiField &&
                 !isAnnuoField &&
-                (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula')) && (
+                (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
+                (!isIrpefImpSostField || irpefImpSostMode === 'formula1')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm">
