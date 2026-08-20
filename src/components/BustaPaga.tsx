@@ -1441,7 +1441,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 onClick={onCalculateAddValue}
                 className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition shadow-md text-sm"
               >
-                Calculate Add Value
+                Calculate
               </button>
               <button
                 type="button"
