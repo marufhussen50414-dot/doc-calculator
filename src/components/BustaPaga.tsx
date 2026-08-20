@@ -208,7 +208,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
     }
 
-    if (outputFieldId === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
+    if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
       const missingAlt = altFields.filter(fId => {
         const val = inputs[fId];
@@ -1380,92 +1380,91 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   </div>
                 </div>
               )}
-
-              {/* সম্পূর্ণ স্বাধীন Add Value Formula Widget */}
-              {enableAddValueFormula && (
-                <div className="mt-8 pt-6 border-t-2 border-dashed border-gray-300">
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="flex justify-end items-center mb-3">
-                      <button
-                        type="button"
-                        onClick={onAddCustomField}
-                        className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                      >
-                        <span>+ Add Value</span>
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      {customDynamicFields.map((field) => {
-                        const canDelete = customDynamicFields.length > 2;
-                        return (
-                          <div key={field.id} className="flex items-center space-x-2">
-                            <div className="relative flex-1">
-                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={field.value}
-                                onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                                placeholder="0.00"
-                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              disabled={!canDelete}
-                              onClick={() => canDelete && onRemoveCustomField(field.id)}
-                              className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
-                                canDelete
-                                  ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
-                                  : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
-                              }`}
-                              title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Add Value Formula এর জন্য পৃথক ক্যালকুলেট এবং রিসেট বাটন */}
-                    <div className="flex space-x-3">
-                      <button
-                        type="button"
-                        onClick={onCalculateAddValue}
-                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition shadow-sm text-sm"
-                      >
-                        Calculate Add Value
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onResetAddValue}
-                        className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-semibold hover:bg-gray-300 transition text-sm"
-                      >
-                        Reset
-                      </button>
-                    </div>
-
-                    {/* Add Value রেজাল্ট */}
-                    {addValueResult !== null && (
-                      <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-emerald-800">Add Value Total:</span>
-                          <span className="text-lg font-bold text-emerald-900">
-                            {formatCurrency(addValueResult)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
+
+        {/* সম্পূর্ণ পৃথক Add Value Formula Card (২য় ইমেজের মতো কোনো লাইন ছাড়া সম্পূর্ণ আলাদা কার্ড) */}
+        {enableAddValueFormula && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Add Value Formula</h3>
+              <button
+                type="button"
+                onClick={onAddCustomField}
+                className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+              >
+                <span>+ Add Value</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              {customDynamicFields.map((field) => {
+                const canDelete = customDynamicFields.length > 2;
+                return (
+                  <div key={field.id} className="flex items-center space-x-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={field.value}
+                        onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!canDelete}
+                      onClick={() => canDelete && onRemoveCustomField(field.id)}
+                      className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
+                        canDelete
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
+                          : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                      }`}
+                      title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Add Value Formula এর পৃথক ক্যালকুলেট এবং রিসেট বাটন */}
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={onCalculateAddValue}
+                className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition shadow-md text-sm"
+              >
+                Calculate Add Value
+              </button>
+              <button
+                type="button"
+                onClick={onResetAddValue}
+                className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition text-sm"
+              >
+                Reset
+              </button>
+            </div>
+
+            {/* Add Value রেজাল্ট */}
+            {addValueResult !== null && (
+              <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-emerald-800">Add Value Total:</span>
+                  <span className="text-xl font-bold text-emerald-900">
+                    {formatCurrency(addValueResult)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
