@@ -30,6 +30,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
   const [enableAddValueFormula, setEnableAddValueFormula] = useState<boolean>(false);
 
+  // Add Value এর জন্য নিজস্ব স্টেট
+  const [addValueResult, setAddValueResult] = useState<number | null>(null);
+
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
@@ -86,10 +89,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setTotaleTrattenuteMode('formula1');
     setTotaleContributiMode('formula');
     setIrpefImpSostMode('formula1');
-    setCustomDynamicFields([
-      { id: '1', label: 'আগের মাসের মান', value: '' },
-      { id: '2', label: 'চলতি মাসের মান', value: '' }
-    ]);
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -226,6 +225,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return { valid: missing.length === 0, missing };
   };
 
+  // মেইন ফিল্ডের গণনা (Add Value Formula মুক্ত)
   const handleCalculate = () => {
     if (!outputField) return;
     setAttempted(true);
@@ -235,16 +235,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    const addValueSum = enableAddValueFormula
-      ? customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0)
-      : 0;
-
     if (outputField === 'totale_comp') {
       const netto = parseFloat(String(inputs['netto'])) || 0;
       const trattenute = parseFloat(String(inputs['trattenute'])) || 0;
       const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
       const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
-      const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale + addValueSum;
+      const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale;
       setResults({ [outputField]: calculatedComp });
       setShowResult(true);
       return;
@@ -257,7 +253,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
         const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
 
-        const calculatedTrattenute = competenze - netto - arrPreced + arrAttuale + addValueSum;
+        const calculatedTrattenute = competenze - netto - arrPreced + arrAttuale;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       } else if (totaleTrattenuteMode === 'formula2') {
@@ -265,7 +261,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const totaleContributi = parseFloat(String(inputs['totale_contributi'])) || 0;
         const trattenuteField = parseFloat(String(inputs['trattenute_field'])) || 0;
 
-        const calculatedTrattenute = irpefImpSost + totaleContributi + trattenuteField + addValueSum;
+        const calculatedTrattenute = irpefImpSost + totaleContributi + trattenuteField;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       }
@@ -278,7 +274,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const irpefImpSostVal = parseFloat(String(inputs['irpef_imp_sost_input'])) || 0;
         const trattenuteVal = parseFloat(String(inputs['trattenute_input'])) || 0;
 
-        const calculatedTotaleContributi = totaleTrattenuteVal - irpefImpSostVal - trattenuteVal + addValueSum;
+        const calculatedTotaleContributi = totaleTrattenuteVal - irpefImpSostVal - trattenuteVal;
         setResults({ [outputField]: calculatedTotaleContributi });
         setShowResult(true);
       } else {
@@ -295,7 +291,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const totContributi = parseFloat(String(inputs['irpef_f2_totale_contributi'])) || 0;
         const trattenute = parseFloat(String(inputs['irpef_f2_trattenute'])) || 0;
 
-        const calculatedIrpefImpSost = totTrattenute - totContributi - trattenute + addValueSum;
+        const calculatedIrpefImpSost = totTrattenute - totContributi - trattenute;
         setResults({ [outputField]: calculatedIrpefImpSost });
         setShowResult(true);
         return;
@@ -313,7 +309,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
       const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
       const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
-      const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost + addValueSum;
+      const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost;
       setResults({ [outputField]: calculatedAltResult });
       setShowResult(true);
       return;
@@ -322,9 +318,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const numericInputs = convertInputsToNumbers(inputs);
     const calculatedResult = calculator.calculate(numericInputs, outputField);
     if (calculatedResult !== null) {
-      setResults({ [outputField]: calculatedResult + addValueSum });
+      setResults({ [outputField]: calculatedResult });
       setShowResult(true);
     }
+  };
+
+  // Add Value এর জন্য সম্পূর্ণ আলাদা ক্যালকুলেটর
+  const handleCalculateAddValue = () => {
+    const sum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+    setAddValueResult(sum);
   };
 
   const handleMultiCalculate = () => {
@@ -365,6 +367,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setResults({});
     setShowResult(false);
     setAttempted(false);
+    setAddValueResult(null);
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
       { id: '2', label: 'চলতি মাসের মান', value: '' }
@@ -459,7 +462,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 <span className="text-sm font-semibold text-gray-700">Add Value Formula:</span>
                 <div className="flex items-center">
                   <button
-                    onClick={() => setEnableAddValueFormula(!enableAddValueFormula)}
+                    onClick={() => {
+                      setEnableAddValueFormula(!enableAddValueFormula);
+                      setAddValueResult(null);
+                    }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                       enableAddValueFormula ? 'bg-indigo-600' : 'bg-gray-300'
                     }`}
@@ -586,6 +592,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onTotaleContributiModeChange={setTotaleContributiMode}
             irpefImpSostMode={irpefImpSostMode}
             onIrpefImpSostModeChange={setIrpefImpSostMode}
+            addValueResult={addValueResult}
+            onCalculateAddValue={handleCalculateAddValue}
           />
         )}
 
@@ -640,6 +648,8 @@ interface StandardModeCalculatorProps {
   onTotaleContributiModeChange: (mode: 'formula' | 'alternative') => void;
   irpefImpSostMode: 'formula1' | 'formula2';
   onIrpefImpSostModeChange: (mode: 'formula1' | 'formula2') => void;
+  addValueResult: number | null;
+  onCalculateAddValue: () => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -674,6 +684,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onTotaleContributiModeChange,
   irpefImpSostMode,
   onIrpefImpSostModeChange,
+  addValueResult,
+  onCalculateAddValue,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTotaleCompetenzeField = outputField === 'totale_comp';
@@ -1353,9 +1365,20 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </button>
               </div>
 
-              {/* Add Value Formula Widget (Calculate বাটনের নিচে) */}
+              {showResult && (
+                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-emerald-800">Result ({getFieldLabel(outputField)}):</span>
+                    <span className="text-xl font-bold text-emerald-900">
+                      {formatCurrency(results[outputField] || 0)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* সম্পূর্ণ স্বাধীন Add Value Formula Widget */}
               {enableAddValueFormula && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-semibold text-gray-700">
                       বর্তমান বা আগের মাসের মানগুলো যোগ করুন:
@@ -1369,7 +1392,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     </button>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 mb-4">
                     {customDynamicFields.map((field) => {
                       const canDelete = customDynamicFields.length > 2;
                       return (
@@ -1404,17 +1427,27 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       );
                     })}
                   </div>
-                </div>
-              )}
 
-              {showResult && (
-                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-emerald-800">Result ({getFieldLabel(outputField)}):</span>
-                    <span className="text-xl font-bold text-emerald-900">
-                      {formatCurrency(results[outputField] || 0)}
-                    </span>
-                  </div>
+                  {/* Add Value Formula এর জন্য পৃথক ক্যালকুলেট বাটন */}
+                  <button
+                    type="button"
+                    onClick={onCalculateAddValue}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition shadow-sm text-sm"
+                  >
+                    Calculate Add Value
+                  </button>
+
+                  {/* Add Value রেজাল্ট */}
+                  {addValueResult !== null && (
+                    <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-emerald-800">Add Value Total:</span>
+                        <span className="text-lg font-bold text-emerald-900">
+                          {formatCurrency(addValueResult)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
