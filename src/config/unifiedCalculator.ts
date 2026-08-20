@@ -103,6 +103,15 @@ const FORMULA_REGISTRY: { [key: string]: FormulaConfig } = {
     }
   },
 
+  imponibile_fiscale_mese: {
+    inputs: ['irpef_lorda_mese'],
+    mainFormulaTitle: 'IMPONIBILE FISCALE (Monthly) = IRPEF LORDA (Monthly) / 0.23',
+    calculate: (inputs) => {
+      const lorda = inputs['irpef_lorda_mese'] || 0;
+      return lorda / 0.23;
+    }
+  },
+
   imponibile_fiscale_anno: {
     inputs: [],
     mainFormulaTitle: 'IMPONIBILE FISCALE (Anno)',
