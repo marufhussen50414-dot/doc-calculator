@@ -540,8 +540,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             }}
             onAddCustomField={() => {
               setCustomDynamicFields([
-                { id: Date.now().toString(), label: 'আগের বা চলতি মাসের মান', value: '' },
-                ...customDynamicFields
+                ...customDynamicFields,
+                { id: Date.now().toString(), label: 'আগের বা চলতি মাসের মান', value: '' }
               ]);
             }}
             onRemoveCustomField={(id) => {
