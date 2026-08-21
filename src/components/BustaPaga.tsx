@@ -144,13 +144,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const label = (field?.label || '').toLowerCase();
     const lower = fieldId.toLowerCase();
 
-    // ১. 34. TFR ANNUO PROGR.
+    // ১. 34. TFR ANNUO PROGR.  kam hoise 
     const isTfrAnnuo = lower.includes('tfr_annuo') || lower.includes('tfr_progr') || label.includes('tfr annuo') || label.includes('34. tfr');
     
     // ২. 22. DETR. LAV. DIPENDENTE (Anno)
     const isDetrLavDipAnno = (lower.includes('detr_lav_dip') || label.includes('detr. lav. dipendente')) && (lower.includes('anno') || label.includes('anno'));
     
-    // ৩. 20. IMPONIBILE FISCALE (Anno) mkc
+    // ৩. 20. IMPONIBILE FISCALE (Anno)
     const isImponibileFiscaleAnno = (lower.includes('imponibile_fiscale') || label.includes('imponibile fiscale')) && (lower.includes('anno') || label.includes('anno'));
 
     return isTfrAnnuo || isDetrLavDipAnno || isImponibileFiscaleAnno;
