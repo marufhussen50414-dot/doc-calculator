@@ -150,7 +150,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     // ২. 22. DETR. LAV. DIPENDENTE (Anno)
     const isDetrLavDipAnno = (lower.includes('detr_lav_dip') || label.includes('detr. lav. dipendente')) && (lower.includes('anno') || label.includes('anno'));
     
-    // ৩. 20. IMPONIBILE FISCALE (Anno)
+    // ৩. 20. IMPONIBILE FISCALE (Anno) mkc
     const isImponibileFiscaleAnno = (lower.includes('imponibile_fiscale') || label.includes('imponibile fiscale')) && (lower.includes('anno') || label.includes('anno'));
 
     return isTfrAnnuo || isDetrLavDipAnno || isImponibileFiscaleAnno;
