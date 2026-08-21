@@ -1006,7 +1006,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* 9. TOTALE CONTRIBUTI (Alternative Option completely untouched) */}
+              {/* 9. TOTALE CONTRIBUTI */}
               {isTotaleContributiField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-4">
@@ -1079,7 +1079,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex justify-end items-center mb-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                          {outputField ? getFieldLabel(outputField) : 'TOTALE CONTRIBUTI'}
+                        </span>
                         <button
                           onClick={onAddCustomField}
                           type="button"
@@ -1205,7 +1208,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
-                    <div className="flex justify-end items-center mb-2">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                        {outputField ? getFieldLabel(outputField) : ''}
+                      </span>
                       <button
                         onClick={onAddCustomField}
                         type="button"
