@@ -25,12 +25,12 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
   'contributi_anno': 'গত মাসের CONTRIBUTI ANNO + চলতি মাসের (INPS + FIS) কন্ট্রিবিউশন:',
 
   // 20. IMPONIBILE FISCALE (Anno)
-  '20_imponibile_fiscale_anno': 'IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
-  'imponibile_fiscale_anno': 'IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
+  '20_imponibile_fiscale_anno': 'গত মাসের IMPONIBILE FISCALE (ANNO) + চলতি মাসের IMPONIBILE FISCALE (MESE):',
+  'imponibile_fiscale_anno': 'গত মাসের IMPONIBILE FISCALE (ANNO) + চলতি মাসের IMPONIBILE FISCALE (MESE):',
 
   // 22. DETR. LAV. DIPENDENTE (Anno)
-  '22_detr_lav_dip_anno': '22. DETR. LAV. DIPENDENTE (Anno) calculate er jonno man din:',
-  'detr_lav_dip_anno': '22. DETR. LAV. DIPENDENTE (Anno) calculate er jonno man din:',
+  '22_detr_lav_dip_anno': 'গত মাসের DETR. LAV. DIPENDENTE (ANNO) + চলতি মাসের DETR. LAV. DIPENDENTE (MESE):',
+  'detr_lav_dip_anno': 'গত মাসের DETR. LAV. DIPENDENTE (ANNO) + চলতি মাসের DETR. LAV. DIPENDENTE (MESE):',
 
   // 34. TFR ANNUO PROGR.
   '34_tfr_annuo_progr': 'গত মাসের TFR ANNUO PROGR এবং চলতি মাসের TFR MESE এর মান দিন:',
