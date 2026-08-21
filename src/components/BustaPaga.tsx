@@ -33,7 +33,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // Add Value এর জন্য নিজস্ব স্টেট
   const [addValueResult, setAddValueResult] = useState<number | null>(null);
 
-  const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
     { id: '2', label: 'চলতি মাসের মান', value: '' }
@@ -84,7 +83,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAttempted(false);
     setResults({});
     setInputs({});
-    setAnnuoCustomMode('custom');
     setIrpefLordaMonthlyMode('formula');
     setTotaleTrattenuteMode('formula1');
     setTotaleContributiMode('formula');
@@ -126,13 +124,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
     return required;
-  };
-
-  const isAnnuoField = (fieldId: string | null): boolean => {
-    if (!fieldId) return false;
-    if (fieldId === 'totale_comp' || fieldId === 'totale_trattenute' || fieldId === 'totale_contributi' || fieldId.toLowerCase().includes('competenze')) return false;
-    const lower = fieldId.toLowerCase();
-    return (lower.includes('anno') || lower.includes('progr') || lower.includes('progressivo') || lower.includes('totale')) && fieldId !== 'totale_comp' && fieldId !== 'totale_trattenute' && fieldId !== 'totale_contributi';
   };
 
   const isIrpefImpSostField = (fieldId: string | null): boolean => {
@@ -203,11 +194,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }
     }
 
-    if (isAnnuoField(outputFieldId) && annuoCustomMode === 'custom') {
-      const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
-      return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
-    }
-
     if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
       const missingAlt = altFields.filter(fId => {
@@ -225,7 +211,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return { valid: missing.length === 0, missing };
   };
 
-  // মেইন ফিল্ডের গণনা (Add Value Formula মুক্ত)
+  // মেইন ফিল্ডের গণনা
   const handleCalculate = () => {
     if (!outputField) return;
     setAttempted(true);
@@ -298,13 +284,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }
     }
 
-    if (isAnnuoField(outputField) && annuoCustomMode === 'custom') {
-      const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
-      setResults({ [outputField]: totalSum });
-      setShowResult(true);
-      return;
-    }
-
     if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
       const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
       const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
@@ -323,7 +302,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
   };
 
-  // Add Value এর জন্য সম্পূর্ণ আলাদা ক্যালকুলেটর
+  // Add Value এর জন্য আলাদা ক্যালকুলেটর
   const handleCalculateAddValue = () => {
     const sum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
     setAddValueResult(sum);
@@ -574,9 +553,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             getFieldLabel={getFieldLabel}
             enableRounding={enableRounding}
             enableAddValueFormula={enableAddValueFormula}
-            isAnnuoField={isAnnuoField(outputField)}
-            annuoCustomMode={annuoCustomMode}
-            onAnnuoCustomModeChange={setAnnuoCustomMode}
             customDynamicFields={customDynamicFields}
             onCustomFieldChange={(id, val) => {
               setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: val } : f));
@@ -642,9 +618,6 @@ interface StandardModeCalculatorProps {
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
   enableAddValueFormula: boolean;
-  isAnnuoField: boolean;
-  annuoCustomMode: 'formula' | 'custom';
-  onAnnuoCustomModeChange: (mode: 'formula' | 'custom') => void;
   customDynamicFields: CustomDynamicField[];
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
@@ -680,8 +653,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   getFieldLabel,
   enableRounding,
   enableAddValueFormula,
-  isAnnuoField,
-  annuoCustomMode,
   customDynamicFields,
   onCustomFieldChange,
   onAddCustomField,
@@ -1181,56 +1152,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* অ্যানুয়াল ফিল্ডগুলোর কাস্টম অপশন */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && isAnnuoField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="space-y-3">
-                    <div className="flex justify-end items-center mb-2">
-                      <button
-                        onClick={onAddCustomField}
-                        type="button"
-                        className="flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-                      >
-                        <span>+ Add Value</span>
-                      </button>
-                    </div>
-                    {customDynamicFields.map((field) => {
-                      const canDelete = customDynamicFields.length > 2;
-                      return (
-                        <div key={field.id} className="flex items-center space-x-2">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={field.value}
-                              onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                              placeholder="0.00"
-                              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            disabled={!canDelete}
-                            onClick={() => canDelete && onRemoveCustomField(field.id)}
-                            className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
-                              canDelete
-                                ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
-                                : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
-                            }`}
-                            title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* IRPEF LORDA MONTHLY অপশন */}
               {isIrpefLordaMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -1305,10 +1226,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
+              {/* স্ট্যান্ডার্ড ইনপুট ফিল্ডস */}
               {(!isTotaleCompetenzeField &&
                 !isTotaleTrattenuteField &&
                 !isTotaleContributiField &&
-                !isAnnuoField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1')) && (
                 <>
@@ -1384,7 +1305,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           )}
         </div>
 
-        {/* সম্পূর্ণ পৃথক Add Value Formula Card (২য় ইমেজের মতো কোনো লাইন ছাড়া সম্পূর্ণ আলাদা কার্ড) */}
+        {/* Temporary Calculator / Add Value Formula Card */}
         {enableAddValueFormula && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
@@ -1434,7 +1355,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               })}
             </div>
 
-            {/* Add Value Formula এর পৃথক ক্যালকুলেট এবং রিসেট বাটন */}
             <div className="flex space-x-3">
               <button
                 type="button"
@@ -1452,7 +1372,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               </button>
             </div>
 
-            {/* Add Value রেজাল্ট */}
             {addValueResult !== null && (
               <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <div className="flex items-center justify-between">
