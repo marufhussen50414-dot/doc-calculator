@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1, Formula 2, Formula 3, Formula 4, Formula 5, and their sub-formulas in a compact layout.
+ * Displays Formula 1, Formula 2, Formula 3, Formula 4, Formula 5, Formula 6, and their sub-formulas in a compact layout.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -227,6 +227,41 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <div className="bg-white p-2.5 rounded border border-gray-200">
                   <span className="font-semibold text-gray-700">To calculate IMPONIBILE FISCALE (Monthly):</span>
                   <div className="text-gray-900 mt-1">IMPONIBILE FISCALE (Monthly) = IRPEF LORDA (Monthly) / 0.23</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 6 (TFR MESE Calculation) & Sub-formulas */}
+          <div className="bg-gradient-to-r from-rose-50 to-red-50 border-2 border-rose-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-rose-900 mb-3">
+              Formula 6 (TFR MESE Calculation)
+            </h3>
+            
+            {/* Main Formula Box */}
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-rose-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-rose-700">TFR MESE</span> = (
+                <span className="font-bold text-red-600">RETRIBUZIONE UTILE TFR</span> /{' '}
+                <span className="font-bold text-gray-700">13.5</span>) -{' '}
+                <span className="font-bold text-orange-600">CONTR. AGG. TFR</span>
+              </div>
+            </div>
+
+            {/* Sub-formulas / Backward Calculations */}
+            <div className="mt-4 border-t border-rose-200 pt-4">
+              <h4 className="text-sm font-bold text-rose-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate RETRIBUZIONE UTILE TFR:</span>
+                  <div className="text-gray-900 mt-1">RETRIBUZIONE UTILE TFR = (TFR MESE + CONTR. AGG. TFR) × 13.5</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate CONTR. AGG. TFR:</span>
+                  <div className="text-gray-900 mt-1">CONTR. AGG. TFR = (RETRIBUZIONE UTILE TFR / 13.5) - TFR MESE</div>
                 </div>
               </div>
             </div>
