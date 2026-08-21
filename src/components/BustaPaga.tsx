@@ -21,8 +21,8 @@ interface CustomDynamicField {
 // ---------------------------------------------------------------------------
 const CUSTOM_FIELD_TITLES: Record<string, string> = {
   // 6. CONTRIBUTI ANNO
-  '6_contributi_anno': '6. CONTRIBUTI ANNO calculate er jonno man din:',
-  'contributi_anno': '6. CONTRIBUTI ANNO calculate er jonno man din:',
+  '6_contributi_anno': 'গত মাসের CONTRIBUTI ANNO + চলতি মাসের (INPS + FIS) কন্ট্রিবিউশন:',
+  'contributi_anno': 'গত মাসের CONTRIBUTI ANNO + চলতি মাসের (INPS + FIS) কন্ট্রিবিউশন:',
 
   // 20. IMPONIBILE FISCALE (Anno)
   '20_imponibile_fiscale_anno': 'IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
