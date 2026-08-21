@@ -16,6 +16,25 @@ interface CustomDynamicField {
   value: string;
 }
 
+// ---------------------------------------------------------------------------
+// প্রতিটি ফিল্ডের জন্য আলাদা আলাদা Title Text এখান থেকে সহজে এডিট করতে পারবেন:
+// ---------------------------------------------------------------------------
+const CUSTOM_FIELD_TITLES: Record<string, string> = {
+  // 20. IMPONIBILE FISCALE (Anno)
+  '20_imponibile_fiscale_anno': '20. IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
+  'imponibile_fiscale_anno': '20. IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
+
+  // 22. DETR. LAV. DIPENDENTE (Anno)
+  '22_detr_lav_dip_anno': '22. DETR. LAV. DIPENDENTE (Anno) calculate er jonno man din:',
+  'detr_lav_dip_anno': '22. DETR. LAV. DIPENDENTE (Anno) calculate er jonno man din:',
+
+  // 34. TFR ANNUO PROGR.
+  '34_tfr_annuo_progr': '34. TFR ANNUO PROGR. calculate er jonno man din:',
+  'tfr_annuo_progr': '34. TFR ANNUO PROGR. calculate er jonno man din:',
+
+  // আপনার অন্য কোনো Field ID থাকলে এখানে নিচে নতুন লাইন যোগ করে নিতে পারবেন
+};
+
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
   const [outputField, setOutputField] = useState<string | null>(null);
@@ -1080,8 +1099,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   ) : (
                     <div className="space-y-3">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                          {outputField ? getFieldLabel(outputField) : 'TOTALE CONTRIBUTI'}
+                        <span className="text-xs font-semibold text-gray-700 tracking-wide">
+                          {outputField && CUSTOM_FIELD_TITLES[outputField] 
+                            ? CUSTOM_FIELD_TITLES[outputField] 
+                            : `${outputField ? getFieldLabel(outputField) : 'TOTALE CONTRIBUTI'}:`}
                         </span>
                         <button
                           onClick={onAddCustomField}
@@ -1204,13 +1225,15 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* শুধুমাত্র অনুমোদিত ফিল্ডগুলোর কাস্টম Dynamic Field অপশন (20, 22, 34) */}
+              {/* কাস্টম Dynamic Field অপশন (20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
               {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                        {outputField ? getFieldLabel(outputField) : ''} calculate er jonno man din:
+                      <span className="text-xs font-semibold text-gray-700 tracking-wide">
+                        {outputField && CUSTOM_FIELD_TITLES[outputField] 
+                          ? CUSTOM_FIELD_TITLES[outputField] 
+                          : `${outputField ? getFieldLabel(outputField) : ''} calculate er jonno man din:`}
                       </span>
                       <button
                         onClick={onAddCustomField}
