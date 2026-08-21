@@ -23,8 +23,8 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
   // 5. IMPON. CONTRIBUTIVO ANNO
   '5_imponibile_contributivo_anno': 'গত মাসের IMPON. CONTRIBUTIVO (ANNO) + চলতি মাসের IMPON. CONTRIBUTIVO (MESE) এর মান দিন:',
   'imponibile_contributivo_anno': 'গত মাসের IMPON. CONTRIBUTIVO (ANNO) + চলতি মাসের IMPON. CONTRIBUTIVO (MESE) এর মান দিন:',
-  '5_impon_contributivo_anno': 'গত মাসের IMPON. CONTRIBUTIVO ANNO + চলতি মাসের IMPON. CONTRIBUTIVO MESE এর মান দিন:',
-  'impon_contributivo_anno': 'গত মাসের IMPON. CONTRIBUTIVO ANNO + চলতি মাসের IMPON. CONTRIBUTIVO MESE এর মান দিন:',
+  '5_impon_contributivo_anno': 'গত মাসের IMPON. CONTRIBUTIVO (ANNO) + চলতি মাসের IMPON. CONTRIBUTIVO (MESE) এর মান দিন:',
+  'impon_contributivo_anno': 'গত মাসের IMPON. CONTRIBUTIVO (ANNO) + চলতি মাসের IMPON. CONTRIBUTIVO (MESE) এর মান দিন:',
 
   // 6. CONTRIBUTI ANNO
   '6_contributi_anno': 'গত মাসের CONTRIBUTI ANNO + চলতি মাসের (INPS + FIS) কন্ট্রিবিউশন:',
