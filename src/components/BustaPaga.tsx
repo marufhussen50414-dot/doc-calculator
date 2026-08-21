@@ -20,6 +20,10 @@ interface CustomDynamicField {
 // প্রতিটি ফিল্ডের জন্য আলাদা আলাদা Title Text এখান থেকে সহজে এডিট করতে পারবেন:
 // ---------------------------------------------------------------------------
 const CUSTOM_FIELD_TITLES: Record<string, string> = {
+  // 6. CONTRIBUTI ANNO
+  '6_contributi_anno': '6. CONTRIBUTI ANNO calculate er jonno man din:',
+  'contributi_anno': '6. CONTRIBUTI ANNO calculate er jonno man din:',
+
   // 20. IMPONIBILE FISCALE (Anno)
   '20_imponibile_fiscale_anno': 'IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
   'imponibile_fiscale_anno': 'IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
@@ -163,6 +167,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const label = (field?.label || '').toLowerCase();
     const lower = fieldId.toLowerCase();
 
+    // 0. 6. CONTRIBUTI ANNO
+    const isContributiAnno = lower.includes('contributi_anno') || label.includes('contributi anno') || label.includes('6. contributi');
+
     // ১. 34. TFR ANNUO PROGR.
     const isTfrAnnuo = lower.includes('tfr_annuo') || lower.includes('tfr_progr') || label.includes('tfr annuo') || label.includes('34. tfr');
     
@@ -172,7 +179,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     // ৩. 20. IMPONIBILE FISCALE (Anno)
     const isImponibileFiscaleAnno = (lower.includes('imponibile_fiscale') || label.includes('imponibile fiscale')) && (lower.includes('anno') || label.includes('anno'));
 
-    return isTfrAnnuo || isDetrLavDipAnno || isImponibileFiscaleAnno;
+    return isContributiAnno || isTfrAnnuo || isDetrLavDipAnno || isImponibileFiscaleAnno;
   };
 
   const isIrpefImpSostField = (fieldId: string | null): boolean => {
@@ -1450,7 +1457,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* কাস্টম Dynamic Field অপশন (20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
+              {/* কাস্টম Dynamic Field অপশন (6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
               {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
