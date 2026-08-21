@@ -21,8 +21,8 @@ interface CustomDynamicField {
 // ---------------------------------------------------------------------------
 const CUSTOM_FIELD_TITLES: Record<string, string> = {
   // 20. IMPONIBILE FISCALE (Anno)
-  '20_imponibile_fiscale_anno': '20. IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
-  'imponibile_fiscale_anno': '20. IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
+  '20_imponibile_fiscale_anno': 'IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
+  'imponibile_fiscale_anno': 'IMPONIBILE FISCALE (Anno) calculate er jonno man din:',
 
   // 22. DETR. LAV. DIPENDENTE (Anno)
   '22_detr_lav_dip_anno': '22. DETR. LAV. DIPENDENTE (Anno) calculate er jonno man din:',
