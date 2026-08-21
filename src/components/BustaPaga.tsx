@@ -144,7 +144,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const label = (field?.label || '').toLowerCase();
     const lower = fieldId.toLowerCase();
 
-    // ১. 34. TFR ANNUO PROGR.  kam hoise 
+    // ১. 34. TFR ANNUO PROGR.
     const isTfrAnnuo = lower.includes('tfr_annuo') || lower.includes('tfr_progr') || label.includes('tfr annuo') || label.includes('34. tfr');
     
     // ২. 22. DETR. LAV. DIPENDENTE (Anno)
