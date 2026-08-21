@@ -29,8 +29,8 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
   'detr_lav_dip_anno': '22. DETR. LAV. DIPENDENTE (Anno) calculate er jonno man din:',
 
   // 34. TFR ANNUO PROGR.
-  '34_tfr_annuo_progr': '34. TFR ANNUO PROGR. calculate er jonno man din:',
-  'tfr_annuo_progr': '34. TFR ANNUO PROGR. calculate er jonno man din:',
+  '34_tfr_annuo_progr': 'গত মাসের TFR ANNUO PROGR এবং চলতি মাসের TFR MESE এর মান দিন:',
+  'tfr_annuo_progr': 'গত মাসের TFR ANNUO PROGR এবং চলতি মাসের TFR MESE এর মান দিন:',
 
   // আপনার অন্য কোনো Field ID থাকলে এখানে নিচে নতুন লাইন যোগ করে নিতে পারবেন
 };
