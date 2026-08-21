@@ -633,7 +633,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors text-sm font-medium"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M15 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
             View Formula and Calculation Logic
           </button>
@@ -797,7 +797,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           ) : (
             <>
               <label className="block text-sm font-semibold text-gray-700 mb-4">
-                {getFieldLabel(outputField)} calculate er jonno man din:
+                Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
               {/* TOTALE COMPETENZE */}
@@ -1210,7 +1210,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   <div className="space-y-3">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                        {outputField ? getFieldLabel(outputField) : ''}
+                        {outputField ? getFieldLabel(outputField) : ''} calculate er jonno man din:
                       </span>
                       <button
                         onClick={onAddCustomField}
