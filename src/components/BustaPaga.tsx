@@ -128,11 +128,32 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
+  // নির্দিষ্ট হোয়াইটলিস্ট করা ফিল্ডগুলোর জন্যই কেবল Multiple Dynamic Field প্রযোজ্য
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
-    if (fieldId === 'totale_comp' || fieldId === 'totale_trattenute' || fieldId === 'totale_contributi' || fieldId.toLowerCase().includes('competenze')) return false;
+    if (
+      fieldId === 'totale_comp' ||
+      fieldId === 'totale_trattenute' ||
+      fieldId === 'totale_contributi' ||
+      fieldId.toLowerCase().includes('competenze')
+    ) {
+      return false;
+    }
+
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const label = (field?.label || '').toLowerCase();
     const lower = fieldId.toLowerCase();
-    return (lower.includes('anno') || lower.includes('progr') || lower.includes('progressivo') || lower.includes('totale')) && fieldId !== 'totale_comp' && fieldId !== 'totale_trattenute' && fieldId !== 'totale_contributi';
+
+    // ১. 34. TFR ANNUO PROGR.
+    const isTfrAnnuo = lower.includes('tfr_annuo') || lower.includes('tfr_progr') || label.includes('tfr annuo') || label.includes('34. tfr');
+    
+    // ২. 22. DETR. LAV. DIPENDENTE (Anno)
+    const isDetrLavDipAnno = (lower.includes('detr_lav_dip') || label.includes('detr. lav. dipendente')) && (lower.includes('anno') || label.includes('anno'));
+    
+    // ৩. 20. IMPONIBILE FISCALE (Anno)
+    const isImponibileFiscaleAnno = (lower.includes('imponibile_fiscale') || label.includes('imponibile fiscale')) && (lower.includes('anno') || label.includes('anno'));
+
+    return isTfrAnnuo || isDetrLavDipAnno || isImponibileFiscaleAnno;
   };
 
   const isIrpefImpSostField = (fieldId: string | null): boolean => {
@@ -225,7 +246,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return { valid: missing.length === 0, missing };
   };
 
-  // মেইন ফিল্ডের গণনা (Add Value Formula মুক্ত)
+  // মেইন ফিল্ডের গণনা
   const handleCalculate = () => {
     if (!outputField) return;
     setAttempted(true);
@@ -681,7 +702,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   enableRounding,
   enableAddValueFormula,
   isAnnuoField,
-  annuoCustomMode,
   customDynamicFields,
   onCustomFieldChange,
   onAddCustomField,
@@ -986,7 +1006,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* 9. TOTALE CONTRIBUTI */}
+              {/* 9. TOTALE CONTRIBUTI (Alternative Option completely untouched) */}
               {isTotaleContributiField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-4">
@@ -1181,7 +1201,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* অ্যানুয়াল ফিল্ডগুলোর কাস্টম অপশন */}
+              {/* শুধুমাত্র অনুমোদিত ফিল্ডগুলোর কাস্টম Dynamic Field অপশন (20, 22, 34) */}
               {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
@@ -1384,7 +1404,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           )}
         </div>
 
-        {/* সম্পূর্ণ পৃথক Add Value Formula Card (২য় ইমেজের মতো কোনো লাইন ছাড়া সম্পূর্ণ আলাদা কার্ড) */}
+        {/* সম্পূর্ণ পৃথক Add Value Formula Card */}
         {enableAddValueFormula && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
@@ -1434,7 +1454,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               })}
             </div>
 
-            {/* Add Value Formula এর পৃথক ক্যালকুলেট এবং রিসেট বাটন */}
             <div className="flex space-x-3">
               <button
                 type="button"
@@ -1452,7 +1471,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               </button>
             </div>
 
-            {/* Add Value রেজাল্ট */}
             {addValueResult !== null && (
               <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <div className="flex items-center justify-between">
