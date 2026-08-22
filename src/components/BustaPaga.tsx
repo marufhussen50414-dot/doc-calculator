@@ -465,7 +465,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       if (irpefImpSostMode === 'formula2') {
         const totTrattenute = parseFloat(String(inputs['irpef_f2_totale_trattenute'])) || 0;
         const totContributi = parseFloat(String(inputs['irpef_f2_totale_contributi'])) || 0;
-        const trattenute = parseFloat(String(inputs['trattenute'])) || 0;
+        const trattenute = parseFloat(String(inputs['irpef_f2_trattenute'])) || 0;
 
         const calculatedIrpefImpSost = totTrattenute - totContributi - trattenute;
         setResults({ [outputField]: calculatedIrpefImpSost });
