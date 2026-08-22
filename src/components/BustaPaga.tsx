@@ -346,7 +346,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }
     }
 
-    if (outputField === 'detr_lav_dip') {
+    if (outputField === 'detr_lav_dipendente_mese') {
       if (detrLavDipMonthlyMode === 'formula2') {
         const dld2Fields = ['dld2_irpef_lorda', 'dld2_irpef_netta'];
         const missingDld2 = dld2Fields.filter(fId => {
@@ -500,7 +500,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }
     }
 
-    if (outputField === 'detr_lav_dip') {
+    if (outputField === 'detr_lav_dipendente_mese') {
       if (detrLavDipMonthlyMode === 'formula2') {
         const irpefLordaDld = parseFloat(String(inputs['dld2_irpef_lorda'])) || 0;
         const irpefNettaDld = parseFloat(String(inputs['dld2_irpef_netta'])) || 0;
@@ -930,7 +930,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase().includes('irpef_netta_monthly') ||
     outputField.toLowerCase().includes('18._irpef_netta')
   ) : false;
-  const isDetrLavDipMonthlyField = outputField === 'detr_lav_dip';
+  const isDetrLavDipMonthlyField = outputField === 'detr_lav_dipendente_mese';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
