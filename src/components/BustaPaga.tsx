@@ -1609,7 +1609,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         onChange={() => onIrpefLordaMonthlyModeChange('formula')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Standard Formula</span>
+                      <span>Formula 1</span>
                     </label>
                     <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
                       <input
@@ -1619,7 +1619,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         onChange={() => onIrpefLordaMonthlyModeChange('alternative')}
                         className="text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Alternative Mode</span>
+                      <span>Formula 2</span>
                     </label>
                   </div>
                   {irpefLordaMonthlyMode === 'alternative' && (
