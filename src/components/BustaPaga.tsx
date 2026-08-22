@@ -2080,3 +2080,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* কোডের একদম শেষ অংশের এই দুটি ক্লোজিং ডাইভার যুক্ত করা হয়েছে */}
+    </div>
+  );
+};
