@@ -2102,6 +2102,6 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   );
 };
 
-// Helper function for multi mode
 function allTotalTrattenuteFields(fields: string[]) {
   return fields;
+}
