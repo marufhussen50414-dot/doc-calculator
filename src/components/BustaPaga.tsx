@@ -79,6 +79,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // 19. IRPEF + IMP. SOST. এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
   const [irpefImpSostMode, setIrpefImpSostMode] = useState<'formula1' | 'formula2'>('formula1');
 
+  // 12. DETR. LAV. DIPENDENTE (Monthly) এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
+  const [detrLavDipMonthlyMode, setDetrLavDipMonthlyMode] = useState<'formula1' | 'formula2'>('formula1');
+
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
@@ -118,6 +121,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setTotaleTrattenuteMode('formula1');
     setTotaleContributiMode('formula');
     setIrpefImpSostMode('formula1');
+    setDetrLavDipMonthlyMode('formula1');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -342,6 +346,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }
     }
 
+    if (outputField === 'detr_lav_dip') {
+      if (detrLavDipMonthlyMode === 'formula2') {
+        const dld2Fields = ['dld2_irpef_lorda', 'dld2_irpef_netta'];
+        const missingDld2 = dld2Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingDld2.length === 0, missing: missingDld2 };
+      }
+    }
+
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -480,6 +495,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const detrLavDip = parseFloat(String(inputs['f3_detr_lav_dip'])) || 0;
         const calculatedF3Result = irpefNetta + detrLavDip;
         setResults({ [outputField]: calculatedF3Result });
+        setShowResult(true);
+        return;
+      }
+    }
+
+    if (outputField === 'detr_lav_dip') {
+      if (detrLavDipMonthlyMode === 'formula2') {
+        const irpefLordaDld = parseFloat(String(inputs['dld2_irpef_lorda'])) || 0;
+        const irpefNettaDld = parseFloat(String(inputs['dld2_irpef_netta'])) || 0;
+        const calculatedDetrLavDip = irpefLordaDld - irpefNettaDld;
+        setResults({ [outputField]: calculatedDetrLavDip });
         setShowResult(true);
         return;
       }
@@ -770,6 +796,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onTotaleContributiModeChange={setTotaleContributiMode}
             irpefImpSostMode={irpefImpSostMode}
             onIrpefImpSostModeChange={setIrpefImpSostMode}
+            detrLavDipMonthlyMode={detrLavDipMonthlyMode}
+            onDetrLavDipMonthlyModeChange={setDetrLavDipMonthlyMode}
             addValueResult={addValueResult}
             onCalculateAddValue={handleCalculateAddValue}
             onResetAddValue={handleResetAddValue}
@@ -827,6 +855,8 @@ interface StandardModeCalculatorProps {
   onTotaleContributiModeChange: (mode: 'formula' | 'alternative') => void;
   irpefImpSostMode: 'formula1' | 'formula2';
   onIrpefImpSostModeChange: (mode: 'formula1' | 'formula2') => void;
+  detrLavDipMonthlyMode: 'formula1' | 'formula2';
+  onDetrLavDipMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
   addValueResult: number | null;
   onCalculateAddValue: () => void;
   onResetAddValue: () => void;
@@ -863,6 +893,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onTotaleContributiModeChange,
   irpefImpSostMode,
   onIrpefImpSostModeChange,
+  detrLavDipMonthlyMode,
+  onDetrLavDipMonthlyModeChange,
   addValueResult,
   onCalculateAddValue,
   onResetAddValue,
@@ -898,6 +930,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase().includes('irpef_netta_monthly') ||
     outputField.toLowerCase().includes('18._irpef_netta')
   ) : false;
+  const isDetrLavDipMonthlyField = outputField === 'detr_lav_dip';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1741,6 +1774,77 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
+              {/* 12. DETR. LAV. DIPENDENTE (Monthly) */}
+              {isDetrLavDipMonthlyField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="detrLavDipMonthlyMode"
+                        checked={detrLavDipMonthlyMode === 'formula1'}
+                        onChange={() => onDetrLavDipMonthlyModeChange('formula1')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="detrLavDipMonthlyMode"
+                        checked={detrLavDipMonthlyMode === 'formula2'}
+                        onChange={() => onDetrLavDipMonthlyModeChange('formula2')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
+                  </div>
+
+                  {detrLavDipMonthlyMode === 'formula2' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF LORDA (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['dld2_irpef_lorda'] || ''}
+                            onChange={(e) => onInputChange('dld2_irpef_lorda', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['dld2_irpef_lorda'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['dld2_irpef_lorda'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['dld2_irpef_netta'] || ''}
+                            onChange={(e) => onInputChange('dld2_irpef_netta', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['dld2_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['dld2_irpef_netta'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {(!isTotaleCompetenzeField &&
                 !isTotaleTrattenuteField &&
                 !isTotaleContributiField &&
@@ -1750,7 +1854,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isContrAggTfrField &&
                 !isIrpefNettaMonthlyField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
-                (!isIrpefImpSostField || irpefImpSostMode === 'formula1')) && (
+                (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
+                (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
                 <>
                   {requiredFieldIds.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm">
