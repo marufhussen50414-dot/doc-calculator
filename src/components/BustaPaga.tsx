@@ -215,11 +215,26 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return lower === 'contr_agg_tfr' || lower === '32_contr_agg_tfr' || lower.includes('contr_agg_tfr');
   };
 
+  const isIrpefNettaMonthlyField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const lower = fieldId.toLowerCase();
+    return lower === 'irpef_netta_mese' || lower === '18_irpef_netta_mese' || lower.includes('irpef_netta_monthly') || lower.includes('18._irpef_netta');
+  };
+
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
     if (outputFieldId === 'totale_comp') {
       const formulaFields = ['netto', 'trattenute', 'arr_preced', 'arr_attuale'];
       const activeFormulaFields = enableRounding ? formulaFields : formulaFields.filter(f => f !== 'arr_preced' && f !== 'arr_attuale');
       const missingFields = activeFormulaFields.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missingFields.length === 0, missing: missingFields };
+    }
+
+    if (isIrpefNettaMonthlyField(outputFieldId)) {
+      const fields = ['irpef_lorda_mese', 'detr_lav_dip'];
+      const missingFields = fields.filter(fId => {
         const val = inputs[fId];
         return val === undefined || val === '' || isNaN(parseFloat(String(val)));
       });
@@ -333,6 +348,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
+      return;
+    }
+
+    if (isIrpefNettaMonthlyField(outputField)) {
+      const irpefLorda = parseFloat(String(inputs['irpef_lorda_mese'])) || 0;
+      const detrLavDip = parseFloat(String(inputs['detr_lav_dip'])) || 0;
+      const calculatedIrpefNetta = irpefLorda - detrLavDip;
+      setResults({ [outputField]: calculatedIrpefNetta });
+      setShowResult(true);
       return;
     }
 
@@ -850,6 +874,12 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase() === '32_contr_agg_tfr' ||
     outputField.toLowerCase().includes('contr_agg_tfr')
   ) : false;
+  const isIrpefNettaMonthlyField = outputField ? (
+    outputField.toLowerCase() === 'irpef_netta_mese' ||
+    outputField.toLowerCase() === '18_irpef_netta_mese' ||
+    outputField.toLowerCase().includes('irpef_netta_monthly') ||
+    outputField.toLowerCase().includes('18._irpef_netta')
+  ) : false;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -921,6 +951,52 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
+
+              {/* 18. IRPEF NETTA (Monthly) */}
+              {isIrpefNettaMonthlyField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">17. IRPEF LORDA (Monthly)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['irpef_lorda_mese'] || ''}
+                          onChange={(e) => onInputChange('irpef_lorda_mese', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['irpef_lorda_mese'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['irpef_lorda_mese'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['detr_lav_dip'] || ''}
+                          onChange={(e) => onInputChange('detr_lav_dip', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['detr_lav_dip'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['detr_lav_dip'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 31. RETRIBUZIONE UTILE TFR */}
               {isRetribuzioneUtileTfrField && (
@@ -1467,7 +1543,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isIrpefNettaMonthlyField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -1602,6 +1678,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isTfrMeseField &&
                 !isRetribuzioneUtileTfrField &&
                 !isContrAggTfrField &&
+                !isIrpefNettaMonthlyField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1')) && (
                 <>
