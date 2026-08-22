@@ -68,7 +68,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলতি মাসের মান', value: '' }
   ]);
 
-  const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative'>('formula');
+  const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative' | 'formula3'>('formula');
   
   // Totale Trattenute এর জন্য মোড স্টেট
   const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2'>('formula1');
@@ -324,13 +324,22 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
     }
 
-    if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
-      const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
-      const missingAlt = altFields.filter(fId => {
-        const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
-      });
-      return { valid: missingAlt.length === 0, missing: missingAlt };
+    if (outputField === 'irpef_lorda_mese') {
+      if (irpefLordaMonthlyMode === 'alternative') {
+        const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
+        const missingAlt = altFields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingAlt.length === 0, missing: missingAlt };
+      } else if (irpefLordaMonthlyMode === 'formula3') {
+        const f3Fields = ['f3_irpef_netta', 'f3_detr_lav_dip'];
+        const missingF3 = f3Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingF3.length === 0, missing: missingF3 };
+      }
     }
 
     const required = getRequiredFields(outputFieldId);
@@ -457,14 +466,23 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    if (outputField === 'irpef_lorda_mese' && irpefLordaMonthlyMode === 'alternative') {
-      const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
-      const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
-      const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
-      const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost;
-      setResults({ [outputField]: calculatedAltResult });
-      setShowResult(true);
-      return;
+    if (outputField === 'irpef_lorda_mese') {
+      if (irpefLordaMonthlyMode === 'alternative') {
+        const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
+        const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
+        const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
+        const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost;
+        setResults({ [outputField]: calculatedAltResult });
+        setShowResult(true);
+        return;
+      } else if (irpefLordaMonthlyMode === 'formula3') {
+        const irpefNetta = parseFloat(String(inputs['f3_irpef_netta'])) || 0;
+        const detrLavDip = parseFloat(String(inputs['f3_detr_lav_dip'])) || 0;
+        const calculatedF3Result = irpefNetta + detrLavDip;
+        setResults({ [outputField]: calculatedF3Result });
+        setShowResult(true);
+        return;
+      }
     }
 
     const numericInputs = convertInputsToNumbers(inputs);
@@ -801,8 +819,8 @@ interface StandardModeCalculatorProps {
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
   onRemoveCustomField: (id: string) => void;
-  irpefLordaMonthlyMode: 'formula' | 'alternative';
-  onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative') => void;
+  irpefLordaMonthlyMode: 'formula' | 'alternative' | 'formula3';
+  onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative' | 'formula3') => void;
   totaleTrattenuteMode: 'formula1' | 'formula2';
   onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2') => void;
   totaleContributiMode: 'formula' | 'alternative';
@@ -1621,6 +1639,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       />
                       <span>Formula 2</span>
                     </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefLordaMonthlyMode"
+                        checked={irpefLordaMonthlyMode === 'formula3'}
+                        onChange={() => onIrpefLordaMonthlyModeChange('formula3')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 3</span>
+                    </label>
                   </div>
                   {irpefLordaMonthlyMode === 'alternative' && (
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1665,6 +1693,48 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
+                      </div>
+                    </div>
+                  )}
+                  {irpefLordaMonthlyMode === 'formula3' && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">18. IRPEF NETTA (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['f3_irpef_netta'] || ''}
+                            onChange={(e) => onInputChange('f3_irpef_netta', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['f3_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['f3_irpef_netta'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['f3_detr_lav_dip'] || ''}
+                            onChange={(e) => onInputChange('f3_detr_lav_dip', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['f3_detr_lav_dip'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['f3_detr_lav_dip'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2035,4 +2105,4 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
 // Helper function for multi mode
 function allTotalTrattenuteFields(fields: string[]) {
   return fields;
-}
+}5rf 
