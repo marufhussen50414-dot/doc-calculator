@@ -174,7 +174,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getRequiredFields = (outputFieldId: string): string[] => {
-    let required = calculator.getRequiredInputsForField(outputFieldId);
+    let required = isImponContribArrotMeseField(outputFieldId)
+      ? ['contr_agg_tfr']
+      : calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
@@ -237,6 +239,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     if (!fieldId) return false;
     const lower = fieldId.toLowerCase();
     return lower === 'contr_agg_tfr' || lower === '32_contr_agg_tfr' || lower.includes('contr_agg_tfr');
+  };
+
+  const isImponContribArrotMeseField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'impon_contrib_arrot_mese' ||
+      lower === '4_impon_contrib_arrot_mese' ||
+      lower.includes('impon_contrib_arrot_mese') ||
+      label.includes('impon. contrib. arrot. mese');
   };
 
   const isIrpefNettaMonthlyField = (fieldId: string | null): boolean => {
@@ -412,6 +425,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const detrLavDip = parseFloat(String(inputs['detr_lav_dip'])) || 0;
       const calculatedIrpefNetta = irpefLorda - detrLavDip;
       setResults({ [outputField]: calculatedIrpefNetta });
+      setShowResult(true);
+      return;
+    }
+
+    if (isImponContribArrotMeseField(outputField)) {
+      const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
+      const calculatedImponContribArrotMese = contrAggTfr / 0.005;
+      setResults({ [outputField]: calculatedImponContribArrotMese });
       setShowResult(true);
       return;
     }
@@ -598,7 +619,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const calculatedResults: { [key: string]: number } = {};
     let allSuccessful = true;
     outputFields.forEach(field => {
-      const result = calculator.calculate(numericInputs, field);
+      const result = isImponContribArrotMeseField(field)
+        ? ((numericInputs['contr_agg_tfr'] || 0) / 0.005)
+        : calculator.calculate(numericInputs, field);
       if (result !== null) {
         calculatedResults[field] = result;
       } else {
@@ -1011,6 +1034,12 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase().includes('18._irpef_netta')
   ) : false;
   const isDetrLavDipMonthlyField = outputField === 'detr_lav_dipendente_mese';
+  const isImponContribArrotMeseField = outputField ? (
+    outputField.toLowerCase() === 'impon_contrib_arrot_mese' ||
+    outputField.toLowerCase() === '4_impon_contrib_arrot_mese' ||
+    outputField.toLowerCase().includes('impon_contrib_arrot_mese') ||
+    getFieldLabel(outputField).toLowerCase().includes('impon. contrib. arrot. mese')
+  ) : false;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1247,6 +1276,33 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       })}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* IMPON. CONTRIB. ARROT. MESE */}
+              {isImponContribArrotMeseField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">CONTR. AGG. TFR</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['contr_agg_tfr'] || ''}
+                          onChange={(e) => onInputChange('contr_agg_tfr', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['contr_agg_tfr'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['contr_agg_tfr'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1796,7 +1852,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isIrpefNettaMonthlyField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -2054,6 +2110,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isTfrMeseField &&
                 !isRetribuzioneUtileTfrField &&
                 !isContrAggTfrField &&
+                !isImponContribArrotMeseField &&
                 !isIrpefNettaMonthlyField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
