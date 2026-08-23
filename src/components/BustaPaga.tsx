@@ -42,6 +42,10 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
   '34_tfr_annuo_progr': 'গত মাসের TFR ANNUO PROGR এবং চলতি মাসের TFR MESE এর মান দিন:',
   'tfr_annuo_progr': 'গত মাসের TFR ANNUO PROGR এবং চলতি মাসের TFR MESE এর মান দিন:',
 
+  // 25. RETRIBUZIONE UTILE TFR
+  '25_retribuzione_utile_tfr': 'RETRIBUZIONE UTILE TFR এর মান দিন:',
+  'retribuzione_utile_tfr': 'RETRIBUZIONE UTILE TFR এর মান দিন:',
+
   // আপনার অন্য কোনো Field ID থাকলে এখানে নিচে নতুন লাইন যোগ করে নিতে পারবেন
 };
 
