@@ -170,6 +170,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getRequiredFields = (outputFieldId: string): string[] => {
+    if (isImponContribArrotMeseField(outputFieldId)) {
+      return ['contr_agg_tfr'];
+    }
+
     let required = calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
@@ -235,6 +239,18 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return lower === 'contr_agg_tfr' || lower === '32_contr_agg_tfr' || lower.includes('contr_agg_tfr');
   };
 
+  const isImponContribArrotMeseField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const lower = fieldId.toLowerCase();
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const label = (field?.label || '').toLowerCase();
+    return (
+      lower.includes('impon_contrib_arrot_mese') ||
+      lower.includes('imponibile_contrib_arrot_mese') ||
+      label.includes('impon. contrib. arrot. mese')
+    );
+  };
+
   const isIrpefNettaMonthlyField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     const lower = fieldId.toLowerCase();
@@ -242,6 +258,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
+    if (isImponContribArrotMeseField(outputFieldId)) {
+      const value = inputs['contr_agg_tfr'];
+      const valid = value !== undefined && value !== '' && !isNaN(parseFloat(String(value)));
+      return { valid, missing: valid ? [] : ['contr_agg_tfr'] };
+    }
+
     if (outputFieldId === 'totale_comp') {
       const formulaFields = ['netto', 'trattenute', 'arr_preced', 'arr_attuale'];
       const activeFormulaFields = enableRounding ? formulaFields : formulaFields.filter(f => f !== 'arr_preced' && f !== 'arr_attuale');
@@ -400,6 +422,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const detrLavDip = parseFloat(String(inputs['detr_lav_dip'])) || 0;
       const calculatedIrpefNetta = irpefLorda - detrLavDip;
       setResults({ [outputField]: calculatedIrpefNetta });
+      setShowResult(true);
+      return;
+    }
+
+    if (isImponContribArrotMeseField(outputField)) {
+      const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
+      const calculatedImponContribArrotMese = contrAggTfr / 0.005;
+      setResults({ [outputField]: calculatedImponContribArrotMese });
       setShowResult(true);
       return;
     }
@@ -579,6 +609,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const calculatedResults: { [key: string]: number } = {};
     let allSuccessful = true;
     outputFields.forEach(field => {
+      if (isImponContribArrotMeseField(field)) {
+        const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
+        calculatedResults[field] = contrAggTfr / 0.005;
+        return;
+      }
+
       const result = calculator.calculate(numericInputs, field);
       if (result !== null) {
         calculatedResults[field] = result;
