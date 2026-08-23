@@ -177,7 +177,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return required;
   };
 
-  // specific whitelist
+  // নির্দিষ্ট হোয়াইটলিস্ট করা ফিল্ডগুলোর জন্যই কেবল Multiple Dynamic Field প্রযোজ্য
   const isAnnuoField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     if (
@@ -235,12 +235,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return lower === 'contr_agg_tfr' || lower === '32_contr_agg_tfr' || lower.includes('contr_agg_tfr');
   };
 
-  const isImponContribArrotMeseField = (fieldId: string | null): boolean => {
-    if (!fieldId) return false;
-    const lower = fieldId.toLowerCase();
-    return lower === 'impon_contrib_arrot_mese' || lower === '4_impon_contrib_arrot_mese' || lower.includes('impon_contrib_arrot_mese');
-  };
-
   const isIrpefNettaMonthlyField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     const lower = fieldId.toLowerCase();
@@ -291,15 +285,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (isContrAggTfrField(outputFieldId)) {
       const fields = ['retribuzione_utile_tfr', 'tfr_mese'];
-      const missingFields = fields.filter(fId => {
-        const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
-      });
-      return { valid: missingFields.length === 0, missing: missingFields };
-    }
-
-    if (isImponContribArrotMeseField(outputFieldId)) {
-      const fields = ['contr_agg_tfr'];
       const missingFields = fields.filter(fId => {
         const val = inputs[fId];
         return val === undefined || val === '' || isNaN(parseFloat(String(val)));
@@ -400,7 +385,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return { valid: missing.length === 0, missing };
   };
 
-  // Main field calculation
+  // মেইন ফিল্ডের গণনা
   const handleCalculate = () => {
     if (!outputField) return;
     setAttempted(true);
@@ -459,14 +444,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const tfrMese = parseFloat(String(inputs['tfr_mese'])) || 0;
       const calculatedContrAggTfr = (retribuzioneUtileTfr / 13.5) - tfrMese;
       setResults({ [outputField]: calculatedContrAggTfr });
-      setShowResult(true);
-      return;
-    }
-
-    if (isImponContribArrotMeseField(outputField)) {
-      const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
-      const calculatedImponContribArrotMese = contrAggTfr / 0.005;
-      setResults({ [outputField]: calculatedImponContribArrotMese });
       setShowResult(true);
       return;
     }
@@ -568,7 +545,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
   };
 
-  // Calculator for Add Value
+  // Add Value এর জন্য সম্পূর্ণ আলাদা ক্যালকুলেটর
   const handleCalculateAddValue = () => {
     const sum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
     setAddValueResult(sum);
@@ -977,6 +954,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onCalculateAddValue,
   onResetAddValue,
 }) => {
+  const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTotaleCompetenzeField = outputField === 'totale_comp';
   const isTotaleTrattenuteField = outputField === 'totale_trattenute';
   const isTotaleContributiField = outputField === 'totale_contributi';
@@ -1001,17 +979,13 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase() === '32_contr_agg_tfr' ||
     outputField.toLowerCase().includes('contr_agg_tfr')
   ) : false;
-  const isImponContribArrotMeseField = outputField ? (
-    outputField.toLowerCase() === 'impon_contrib_arrot_mese' ||
-    outputField.toLowerCase() === '4_impon_contrib_arrot_mese' ||
-    outputField.toLowerCase().includes('impon_contrib_arrot_mese')
-  ) : false;
   const isIrpefNettaMonthlyField = outputField ? (
     outputField.toLowerCase() === 'irpef_netta_mese' ||
     outputField.toLowerCase() === '18_irpef_netta_mese' ||
     outputField.toLowerCase().includes('irpef_netta_monthly') ||
     outputField.toLowerCase().includes('18._irpef_netta')
   ) : false;
+  const isDetrLavDipMonthlyField = outputField === 'detr_lav_dipendente_mese';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1083,33 +1057,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
-
-              {/* 4. IMPON. CONTRIB. ARROT. MESE */}
-              {isImponContribArrotMeseField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">CONTR. AGG. TFR</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs['contr_agg_tfr'] || ''}
-                          onChange={(e) => onInputChange('contr_agg_tfr', e.target.value)}
-                          placeholder="0.00"
-                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                            attempted && !inputs['contr_agg_tfr'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
-                      {attempted && !inputs['contr_agg_tfr'] && (
-                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* 18. IRPEF NETTA (Monthly) */}
               {isIrpefNettaMonthlyField && (
@@ -1776,8 +1723,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* Custom Dynamic Field Options */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && isAnnuoField && (
+              {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isIrpefNettaMonthlyField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -1831,7 +1778,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* IRPEF LORDA MONTHLY Options */}
+              {/* IRPEF LORDA MONTHLY অপশন */}
               {isIrpefLordaMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-3">
@@ -1957,149 +1904,240 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* Standard inputs display */}
-              {!isTotaleCompetenzeField &&
-               !isTotaleTrattenuteField &&
-               !isTotaleContributiField &&
-               !isIrpefImpSostField &&
-               !isTfrMeseField &&
-               !isRetribuzioneUtileTfrField &&
-               !isContrAggTfrField &&
-               !isImponContribArrotMeseField &&
-               !isIrpefNettaMonthlyField &&
-               (!isAnnuoField || annuoCustomMode === 'formula') &&
-               (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  {getRequiredFields(outputField).map((reqFieldId) => {
-                    const isMissing = attempted && (!inputs[reqFieldId] || inputs[reqFieldId] === '');
-                    return (
-                      <div key={reqFieldId}>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">
-                          {getFieldLabel(reqFieldId)}
-                        </label>
+              {/* 12. DETR. LAV. DIPENDENTE (Monthly) */}
+              {isDetrLavDipMonthlyField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="detrLavDipMonthlyMode"
+                        checked={detrLavDipMonthlyMode === 'formula1'}
+                        onChange={() => onDetrLavDipMonthlyModeChange('formula1')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="detrLavDipMonthlyMode"
+                        checked={detrLavDipMonthlyMode === 'formula2'}
+                        onChange={() => onDetrLavDipMonthlyModeChange('formula2')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
+                  </div>
+
+                  {detrLavDipMonthlyMode === 'formula2' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF LORDA (Monthly)</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
                             type="number"
                             step="0.01"
-                            value={inputs[reqFieldId] || ''}
-                            onChange={(e) => onInputChange(reqFieldId, e.target.value)}
+                            value={inputs['dld2_irpef_lorda'] || ''}
+                            onChange={(e) => onInputChange('dld2_irpef_lorda', e.target.value)}
                             placeholder="0.00"
                             className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                              isMissing ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                              attempted && !inputs['dld2_irpef_lorda'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
                             }`}
                           />
                         </div>
-                        {isMissing && (
+                        {attempted && !inputs['dld2_irpef_lorda'] && (
                           <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
                         )}
                       </div>
-                    );
-                  })}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['dld2_irpef_netta'] || ''}
+                            onChange={(e) => onInputChange('dld2_irpef_netta', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['dld2_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['dld2_irpef_netta'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div className="flex space-x-4 mb-6">
+              {(!isTotaleCompetenzeField &&
+                !isTotaleTrattenuteField &&
+                !isTotaleContributiField &&
+                !isAnnuoField &&
+                !isTfrMeseField &&
+                !isRetribuzioneUtileTfrField &&
+                !isContrAggTfrField &&
+                !isIrpefNettaMonthlyField &&
+                (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
+                (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
+                (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
+                <>
+                  {requiredFieldIds.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 text-sm">
+                      No specific inputs are required for this field. You can calculate directly.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {requiredFieldIds.map((fieldId: string) => {
+                        const fieldObj = filteredFields.find((f: any) => f.id === fieldId) ||
+                          UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                        if (!fieldObj) return null;
+                        const isRequired = true;
+                        const isEmpty = !inputs[fieldId];
+                        const showError = attempted && isRequired && isEmpty;
+                        return (
+                          <div key={fieldId} className="relative">
+                            <label htmlFor={fieldId} className="block text-xs font-semibold text-gray-700 mb-1">
+                              {fieldObj.label}
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                id={fieldId}
+                                type="number"
+                                step="0.01"
+                                value={inputs[fieldId] || ''}
+                                onChange={(e) => onInputChange(fieldId, e.target.value)}
+                                placeholder="0.00"
+                                className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                                  showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                                }`}
+                              />
+                            </div>
+                            {showError && (
+                              <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="mt-6 flex space-x-3">
                 <button
                   onClick={onCalculate}
-                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition font-medium text-sm shadow-md"
+                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
                 >
                   Calculate
                 </button>
                 <button
                   onClick={onReset}
-                  className="bg-gray-200 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-300 transition font-medium text-sm"
+                  className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
                 >
                   Reset
                 </button>
               </div>
 
-              {/* Action output result card */}
-              {showResult && outputField && results[outputField] !== undefined && (
-                <div className="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-lg text-center animate-fade-in">
-                  <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Calculated Result</div>
-                  <div className="text-2xl font-bold text-indigo-900 mt-1">
-                    {formatCurrency(results[outputField])}
-                  </div>
-                  <div className="text-xs text-indigo-600 mt-1">{getFieldLabel(outputField)}</div>
-                </div>
-              )}
-
-              {/* Temporary Calculator Section */}
-              {enableAddValueFormula && (
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <div className="bg-amber-50 rounded-lg p-5 border border-amber-200">
-                    <h3 className="text-sm font-bold text-amber-900 mb-3 flex items-center">
-                      <svg className="w-4 h-4 mr-1.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Temporary Calculator (Sum Values)
-                    </h3>
-                    <div className="space-y-3 mb-4">
-                      {customDynamicFields.map((field) => (
-                        <div key={field.id} className="flex items-center space-x-2">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={field.value}
-                              onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
-                              placeholder="0.00"
-                              className="w-full pl-8 pr-4 py-2 border border-amber-300 bg-white rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                            />
-                          </div>
-                          {customDynamicFields.length > 2 && (
-                            <button
-                              type="button"
-                              onClick={() => onRemoveCustomField(field.id)}
-                              className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition flex-shrink-0"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center space-x-3 mb-4">
-                      <button
-                        type="button"
-                        onClick={onAddCustomField}
-                        className="text-xs font-semibold bg-amber-200 text-amber-800 hover:bg-amber-300 px-3 py-1.5 rounded transition"
-                      >
-                        + Add Input
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onCalculateAddValue}
-                        className="text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 px-4 py-1.5 rounded transition"
-                      >
-                        Calculate Sum
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onResetAddValue}
-                        className="text-xs font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 px-3 py-1.5 rounded transition"
-                      >
-                        Reset Sum
-                      </button>
-                    </div>
-
-                    {addValueResult !== null && (
-                      <div className="p-3 bg-white border border-amber-300 rounded-lg text-center">
-                        <span className="text-xs text-amber-700 font-semibold block">Total Sum:</span>
-                        <span className="text-xl font-bold text-amber-900">{formatCurrency(addValueResult)}</span>
-                      </div>
-                    )}
+              {showResult && (
+                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-emerald-800">Result ({getFieldLabel(outputField)}):</span>
+                    <span className="text-xl font-bold text-emerald-900">
+                      {formatCurrency(results[outputField] || 0)}
+                    </span>
                   </div>
                 </div>
               )}
             </>
           )}
         </div>
+
+        {/* সম্পূর্ণ পৃথক Add Value Formula Card */}
+        {enableAddValueFormula && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Add Value Formula</h3>
+              <button
+                type="button"
+                onClick={onAddCustomField}
+                className="flex-shrink-0 flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+              >
+                <span>+ Add Value</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              {customDynamicFields.map((field) => {
+                const canDelete = customDynamicFields.length > 2;
+                return (
+                  <div key={field.id} className="flex items-center space-x-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={field.value}
+                        onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!canDelete}
+                      onClick={() => canDelete && onRemoveCustomField(field.id)}
+                      className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
+                        canDelete
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
+                          : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                      }`}
+                      title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={onCalculateAddValue}
+                className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition shadow-md text-sm"
+              >
+                Calculate
+              </button>
+              <button
+                type="button"
+                onClick={onResetAddValue}
+                className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition text-sm"
+              >
+                Reset
+              </button>
+            </div>
+
+            {addValueResult !== null && (
+              <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-emerald-800">Add Value Total:</span>
+                  <span className="text-xl font-bold text-emerald-900">
+                    {formatCurrency(addValueResult)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2144,12 +2182,12 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
   enableRounding,
 }) => {
   const allRequiredFields = useMemo(() => {
-    const required = new Set<string>();
+    const fields = new Set<string>();
     outputFields.forEach(field => {
-      const reqs = getRequiredFields(field);
-      reqs.forEach(r => required.add(r));
+      const required = getRequiredFields(field);
+      required.forEach(r => fields.add(r));
     });
-    return Array.from(required);
+    return Array.from(fields);
   }, [outputFields, getRequiredFields]);
 
   return (
@@ -2157,7 +2195,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
       <div className="lg:col-span-5 space-y-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Select fields to calculate (outputs):
+            Select fields to calculate (Multi Mode):
           </label>
           <div className="mb-4">
             <div className="relative">
@@ -2194,13 +2232,11 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm">{field.label}</span>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      readOnly
-                      disabled={isDisabled}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
+                    {isSelected && (
+                      <span className="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">
+                        Selected
+                      </span>
+                    )}
                   </div>
                 </button>
               );
@@ -2214,75 +2250,83 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
           {outputFields.size === 0 ? (
             <div className="text-center py-16 text-gray-500">
               <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
-              <p className="text-base font-medium text-gray-700">Please select one or more fields to calculate.</p>
+              <p className="text-base font-medium text-gray-700">Please select one or more fields from the left list.</p>
+              <p className="text-xs text-gray-400 mt-1">Required inputs for all selected fields will appear here.</p>
             </div>
           ) : (
             <>
               <label className="block text-sm font-semibold text-gray-700 mb-4">
-                Enter the required values for selected fields:
+                Enter required values for selected fields:
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {allRequiredFields.map((reqFieldId) => {
-                  const isMissing = attempted && (!inputs[reqFieldId] || inputs[reqFieldId] === '');
-                  return (
-                    <div key={reqFieldId}>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        {getFieldLabel(reqFieldId)}
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs[reqFieldId] || ''}
-                          onChange={(e) => onInputChange(reqFieldId, e.target.value)}
-                          placeholder="0.00"
-                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                            isMissing ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                        />
+              {allRequiredFields.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No specific inputs are required for the selected fields. You can calculate directly.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {allTotalTrattenuteFields(allRequiredFields).map((fieldId: string) => {
+                    const fieldObj = filteredFields.find((f: any) => f.id === fieldId) ||
+                      UNIFIED_CALCULATOR.fields.find((f: any) => f.id === fieldId);
+                    if (!fieldObj) return null;
+                    const isEmpty = !inputs[fieldId];
+                    const showError = attempted && isEmpty;
+                    return (
+                      <div key={fieldId} className="relative">
+                        <label htmlFor={`multi-${fieldId}`} className="block text-xs font-semibold text-gray-700 mb-1">
+                          {fieldObj.label}
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            id={`multi-${fieldId}`}
+                            type="number"
+                            step="0.01"
+                            value={inputs[fieldId] || ''}
+                            onChange={(e) => onInputChange(fieldId, e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+                              showError ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                            }`}
+                          />
+                        </div>
+                        {showError && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
                       </div>
-                      {isMissing && (
-                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
-              <div className="flex space-x-4 mb-6">
+              <div className="mt-6 flex space-x-3">
                 <button
                   onClick={onCalculate}
-                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition font-medium text-sm shadow-md"
+                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
                 >
-                  Calculate Selected
+                  Calculate All
                 </button>
                 <button
                   onClick={onReset}
-                  className="bg-gray-200 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-300 transition font-medium text-sm"
+                  className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
                 >
                   Reset
                 </button>
               </div>
 
-              {showResult && Object.keys(results).length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700">Calculated Results:</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {Array.from(outputFields).map(fieldId => (
-                      results[fieldId] !== undefined && (
-                        <div key={fieldId} className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                          <div className="text-[10px] font-semibold text-indigo-700 uppercase">{getFieldLabel(fieldId)}</div>
-                          <div className="text-lg font-bold text-indigo-900 mt-0.5">
-                            {formatCurrency(results[fieldId])}
-                          </div>
-                        </div>
-                      )
-                    ))}
-                  </div>
+              {showResult && (
+                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+                  <h3 className="text-sm font-bold text-emerald-800 mb-2">Results:</h3>
+                  {Array.from(outputFields).map(fieldId => (
+                    <div key={fieldId} className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-emerald-900">{getFieldLabel(fieldId)}:</span>
+                      <span className="font-bold text-emerald-900">
+                        {formatCurrency(results[fieldId] || 0)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </>
@@ -2292,3 +2336,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
     </div>
   );
 };
+
+function allTotalTrattenuteFields(fields: string[]) {
+  return fields;
+}
