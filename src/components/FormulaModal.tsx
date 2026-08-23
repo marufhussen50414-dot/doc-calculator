@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1, Formula 2, Formula 3, Formula 4, Formula 5, Formula 6, Formula 7, and their sub-formulas in a compact layout.
+ * Displays Formula 1, Formula 2, Formula 3, Formula 4, Formula 5, Formula 6, Formula 7, Formula 8, and their sub-formulas in a compact layout.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -296,6 +296,35 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <div className="bg-white p-2.5 rounded border border-gray-200">
                   <span className="font-semibold text-gray-700">To calculate DETR. LAV. DIPENDENTE:</span>
                   <div className="text-gray-900 mt-1">DETR. LAV. DIPENDENTE = IRPEF LORDA - IRPEF NETTA (Monthly)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 8 (CONTR. AGG. TFR Calculation) & Sub-formulas */}
+          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-teal-900 mb-3">
+              Formula 8 (CONTR. AGG. TFR Calculation)
+            </h3>
+            
+            {/* Main Formula Box */}
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-teal-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-teal-700">CONTR. AGG. TFR</span> ={' '}
+                <span className="font-bold text-cyan-600">IMPON. CONTRIB. ARROT. MESE</span> ×{' '}
+                <span className="font-bold text-gray-700">0,005</span>
+              </div>
+            </div>
+
+            {/* Sub-formulas / Backward Calculations */}
+            <div className="mt-4 border-t border-teal-200 pt-4">
+              <h4 className="text-sm font-bold text-teal-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate IMPON. CONTRIB. ARROT. MESE:</span>
+                  <div className="text-gray-900 mt-1">IMPON. CONTRIB. ARROT. MESE = CONTR. AGG. TFR / 0,005</div>
                 </div>
               </div>
             </div>
