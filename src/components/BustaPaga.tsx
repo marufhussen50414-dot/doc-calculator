@@ -82,6 +82,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // 12. DETR. LAV. DIPENDENTE (Monthly) এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
   const [detrLavDipMonthlyMode, setDetrLavDipMonthlyMode] = useState<'formula1' | 'formula2'>('formula1');
 
+  // 25. RETRIBUZIONE UTILE TFR এর জন্য মোড স্টেট (Standard Formula vs Alternative Mode)
+  const [retribuzioneUtileTfrMode, setRetribuzioneUtileTfrMode] = useState<'formula' | 'alternative'>('formula');
+  const [retribuzioneUtileTfrCustomFields, setRetribuzioneUtileTfrCustomFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'মান ১', value: '' },
+    { id: '2', label: 'মান ২', value: '' }
+  ]);
+
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
@@ -122,6 +129,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setTotaleContributiMode('formula');
     setIrpefImpSostMode('formula1');
     setDetrLavDipMonthlyMode('formula1');
+    setRetribuzioneUtileTfrMode('formula');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -255,6 +263,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isRetribuzioneUtileTfrField(outputFieldId)) {
+      if (retribuzioneUtileTfrMode === 'alternative') {
+        const hasValue = retribuzioneUtileTfrCustomFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+        return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
+      }
       const fields = ['tfr_mese', 'contr_agg_tfr'];
       const missingFields = fields.filter(fId => {
         const val = inputs[fId];
@@ -405,6 +417,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isRetribuzioneUtileTfrField(outputField)) {
+      if (retribuzioneUtileTfrMode === 'alternative') {
+        const totalSum = retribuzioneUtileTfrCustomFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+        setResults({ [outputField]: totalSum });
+        setShowResult(true);
+        return;
+      }
       const tfrMese = parseFloat(String(inputs['tfr_mese'])) || 0;
       const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
       const calculatedRetribuzioneUtileTfr = (tfrMese + contrAggTfr) * 13.5;
@@ -798,6 +816,23 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onIrpefImpSostModeChange={setIrpefImpSostMode}
             detrLavDipMonthlyMode={detrLavDipMonthlyMode}
             onDetrLavDipMonthlyModeChange={setDetrLavDipMonthlyMode}
+            retribuzioneUtileTfrMode={retribuzioneUtileTfrMode}
+            onRetribuzioneUtileTfrModeChange={setRetribuzioneUtileTfrMode}
+            retribuzioneUtileTfrCustomFields={retribuzioneUtileTfrCustomFields}
+            onRetribuzioneUtileTfrCustomFieldChange={(id, val) => {
+              setRetribuzioneUtileTfrCustomFields(retribuzioneUtileTfrCustomFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddRetribuzioneUtileTfrCustomField={() => {
+              setRetribuzioneUtileTfrCustomFields([
+                ...retribuzioneUtileTfrCustomFields,
+                { id: Date.now().toString(), label: 'নতুন মান', value: '' }
+              ]);
+            }}
+            onRemoveRetribuzioneUtileTfrCustomField={(id) => {
+              if (retribuzioneUtileTfrCustomFields.length > 2) {
+                setRetribuzioneUtileTfrCustomFields(retribuzioneUtileTfrCustomFields.filter(f => f.id !== id));
+              }
+            }}
             addValueResult={addValueResult}
             onCalculateAddValue={handleCalculateAddValue}
             onResetAddValue={handleResetAddValue}
@@ -857,6 +892,12 @@ interface StandardModeCalculatorProps {
   onIrpefImpSostModeChange: (mode: 'formula1' | 'formula2') => void;
   detrLavDipMonthlyMode: 'formula1' | 'formula2';
   onDetrLavDipMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
+  retribuzioneUtileTfrMode: 'formula' | 'alternative';
+  onRetribuzioneUtileTfrModeChange: (mode: 'formula' | 'alternative') => void;
+  retribuzioneUtileTfrCustomFields: CustomDynamicField[];
+  onRetribuzioneUtileTfrCustomFieldChange: (id: string, value: string) => void;
+  onAddRetribuzioneUtileTfrCustomField: () => void;
+  onRemoveRetribuzioneUtileTfrCustomField: (id: string) => void;
   addValueResult: number | null;
   onCalculateAddValue: () => void;
   onResetAddValue: () => void;
@@ -895,6 +936,12 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onIrpefImpSostModeChange,
   detrLavDipMonthlyMode,
   onDetrLavDipMonthlyModeChange,
+  retribuzioneUtileTfrMode,
+  onRetribuzioneUtileTfrModeChange,
+  retribuzioneUtileTfrCustomFields,
+  onRetribuzioneUtileTfrCustomFieldChange,
+  onAddRetribuzioneUtileTfrCustomField,
+  onRemoveRetribuzioneUtileTfrCustomField,
   addValueResult,
   onCalculateAddValue,
   onResetAddValue,
@@ -1049,49 +1096,124 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* 31. RETRIBUZIONE UTILE TFR */}
+              {/* 25. RETRIBUZIONE UTILE TFR */}
               {isRetribuzioneUtileTfrField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">33. TFR MESE</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs['tfr_mese'] || ''}
-                          onChange={(e) => onInputChange('tfr_mese', e.target.value)}
-                          placeholder="0.00"
-                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                            attempted && !inputs['tfr_mese'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
-                      {attempted && !inputs['tfr_mese'] && (
-                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">32. CONTR. AGG. TFR</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs['contr_agg_tfr'] || ''}
-                          onChange={(e) => onInputChange('contr_agg_tfr', e.target.value)}
-                          placeholder="0.00"
-                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                            attempted && !inputs['contr_agg_tfr'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
-                      {attempted && !inputs['contr_agg_tfr'] && (
-                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                      )}
-                    </div>
+                  <div className="flex items-center space-x-6 mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="retribuzioneUtileTfrMode"
+                        checked={retribuzioneUtileTfrMode === 'formula'}
+                        onChange={() => onRetribuzioneUtileTfrModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Standard Formula</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="retribuzioneUtileTfrMode"
+                        checked={retribuzioneUtileTfrMode === 'alternative'}
+                        onChange={() => onRetribuzioneUtileTfrModeChange('alternative')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Alternative Mode</span>
+                    </label>
                   </div>
+
+                  {retribuzioneUtileTfrMode === 'formula' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TFR MESE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tfr_mese'] || ''}
+                            onChange={(e) => onInputChange('tfr_mese', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['tfr_mese'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['tfr_mese'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">CONTR. AGG. TFR</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['contr_agg_tfr'] || ''}
+                            onChange={(e) => onInputChange('contr_agg_tfr', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['contr_agg_tfr'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['contr_agg_tfr'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                        <span className="text-xs font-semibold text-gray-700 tracking-wide flex-1 pr-2">
+                          {outputField && CUSTOM_FIELD_TITLES[outputField]
+                            ? CUSTOM_FIELD_TITLES[outputField]
+                            : `${outputField ? getFieldLabel(outputField) : 'RETRIBUZIONE UTILE TFR'}:`}
+                        </span>
+                        <button
+                          onClick={onAddRetribuzioneUtileTfrCustomField}
+                          type="button"
+                          className="flex-shrink-0 flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                        >
+                          <span>+ Add Value</span>
+                        </button>
+                      </div>
+                      {retribuzioneUtileTfrCustomFields.map((field) => {
+                        const canDelete = retribuzioneUtileTfrCustomFields.length > 2;
+                        return (
+                          <div key={field.id} className="flex items-center space-x-2">
+                            <div className="relative flex-1">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={field.value}
+                                onChange={(e) => onRetribuzioneUtileTfrCustomFieldChange(field.id, e.target.value)}
+                                placeholder="0.00"
+                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={!canDelete}
+                              onClick={() => canDelete && onRemoveRetribuzioneUtileTfrCustomField(field.id)}
+                              className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
+                                canDelete
+                                  ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
+                                  : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                              }`}
+                              title={canDelete ? "Delete this field" : "Minimum 2 fields required, cannot delete"}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
