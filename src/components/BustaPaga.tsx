@@ -43,12 +43,12 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
   'tfr_annuo_progr': 'গত মাসের TFR ANNUO PROGR এবং চলতি মাসের TFR MESE এর মান দিন:',
 
   // 25. RETRIBUZIONE UTILE TFR
-  '25_retribuzione_utile_tfr': 'উক্ত মাসের Retribuzione Ordinaria , Festività , 13.ma mensilità , 14.ma mensilità এর মান দিন:',
-  'retribuzione_utile_tfr': 'উক্ত মাসের Retribuzione Ordinaria , Festività , 13.ma mensilità , 14.ma mensilità এর মান দিন:',
+  '25_retribuzione_utile_tfr': 'RETRIBUZIONE UTILE TFR এর মান দিন:',
+  'retribuzione_utile_tfr': 'RETRIBUZIONE UTILE TFR এর মান দিন:',
 
   // 5. TOTALE CONTRIBUTI
-  '5_totale_contributi': 'উক্ত মাসের C/DIPENDENTE যেমন INPS , FIS , ENTE BIL. এর মান দিন:',
-  'totale_contributi': 'উক্ত মাসের C/DIPENDENTE যেমন INPS , FIS , ENTE BIL. এর মান দিন:',
+  '5_totale_contributi': 'TOTALE CONTRIBUTI এর মান দিন:',
+  'totale_contributi': 'TOTALE CONTRIBUTI এর মান দিন:',
 
   // আপনার অন্য কোনো Field ID থাকলে এখানে নিচে নতুন লাইন যোগ করে নিতে পারবেন
 };
