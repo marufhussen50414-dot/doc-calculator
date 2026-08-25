@@ -223,6 +223,19 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       label.includes('2. impon. contributivo mese');
   };
 
+  // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড চিহ্নিত করার ফাংশন
+  const isImponibileFiscaleAdjustmentField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'imponibile_fiscale_adjustment' ||
+      lower.includes('imponibile_fiscale_adjustment') ||
+      lower.includes('imponibile fiscale adjustment') ||
+      label.includes('imponibile fiscale adjustment') ||
+      label.includes('imponibile fiscale adjustment');
+  };
+
   const getRequiredFields = (outputFieldId: string): string[] => {
     let required = outputFieldId === 'addizionali'
       ? (addizionaliMode === 'formula1'
@@ -234,9 +247,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           ? ['contr_agg_tfr']
           : isImponibileFiscaleMonthlyField(outputFieldId)
             ? ['imponibile_contributivo', 'totale_contributi_for_fiscale', 'adjustment']
-            : isImponContributivoMeseField(outputFieldId) // NEW
+            : isImponContributivoMeseField(outputFieldId)
               ? ['imponibile_fiscale', 'totale_contributi_for_contributivo', 'adjustment_contributivo']
-              : calculator.getRequiredInputsForField(outputFieldId);
+              : isImponibileFiscaleAdjustmentField(outputFieldId) // NEW
+                ? ['imponibile_fiscale', 'imponibile_contributivo', 'totale_contributi_for_adjustment']
+                : calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
@@ -523,6 +538,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: missing.length === 0, missing };
     }
 
+    // NEW: IMPONIBILE FISCALE ADJUSTMENT validation
+    if (isImponibileFiscaleAdjustmentField(outputFieldId)) {
+      const required = ['imponibile_fiscale', 'imponibile_contributivo', 'totale_contributi_for_adjustment'];
+      const missing = required.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missing.length === 0, missing };
+    }
+
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -538,6 +563,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
+      return;
+    }
+
+    // NEW: IMPONIBILE FISCALE ADJUSTMENT calculation
+    if (isImponibileFiscaleAdjustmentField(outputField)) {
+      const imponibileFiscale = parseFloat(String(inputs['imponibile_fiscale'])) || 0;
+      const imponibileContributivo = parseFloat(String(inputs['imponibile_contributivo'])) || 0;
+      const totaleContributi = parseFloat(String(inputs['totale_contributi_for_adjustment'])) || 0;
+      const calculatedAdjustment = imponibileFiscale - imponibileContributivo + totaleContributi;
+      setResults({ [outputField]: calculatedAdjustment });
+      setShowResult(true);
       return;
     }
 
@@ -813,7 +849,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     let allSuccessful = true;
     outputFields.forEach(field => {
       let result: number | null = null;
-      if (isImponContributivoMeseField(field)) {
+      if (isImponibileFiscaleAdjustmentField(field)) {
+        const imponibileFiscale = numericInputs['imponibile_fiscale'] || 0;
+        const imponibileContributivo = numericInputs['imponibile_contributivo'] || 0;
+        const totaleContributi = numericInputs['totale_contributi_for_adjustment'] || 0;
+        result = imponibileFiscale - imponibileContributivo + totaleContributi;
+      } else if (isImponContributivoMeseField(field)) {
         const imponibileFiscale = numericInputs['imponibile_fiscale'] || 0;
         const totaleContributi = numericInputs['totale_contributi_for_contributivo'] || 0;
         const adjustment = numericInputs['adjustment_contributivo'] || 0;
@@ -1284,13 +1325,21 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     getFieldLabel(outputField).toLowerCase().includes('6. imponibile fiscale (monthly)')
   ) : false;
 
-  // NEW: Check if this is the 3. IMPON. CONTRIBUTIVO MESE field
+  // Check if this is the 3. IMPON. CONTRIBUTIVO MESE field
   const isImponContributivoMeseField = outputField ? (
     outputField.toLowerCase() === 'impon_contributivo_mese' ||
     outputField.toLowerCase() === '2_impon_contributivo_mese' ||
     outputField.toLowerCase().includes('impon_contributivo_mese') ||
     getFieldLabel(outputField).toLowerCase().includes('impon. contributivo mese') ||
     getFieldLabel(outputField).toLowerCase().includes('2. impon. contributivo mese')
+  ) : false;
+
+  // NEW: Check if this is the IMPONIBILE FISCALE ADJUSTMENT field
+  const isImponibileFiscaleAdjustmentField = outputField ? (
+    outputField.toLowerCase() === 'imponibile_fiscale_adjustment' ||
+    outputField.toLowerCase().includes('imponibile_fiscale_adjustment') ||
+    outputField.toLowerCase().includes('imponibile fiscale adjustment') ||
+    getFieldLabel(outputField).toLowerCase().includes('imponibile fiscale adjustment')
   ) : false;
 
   return (
@@ -1364,7 +1413,74 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* NEW: 3. IMPON. CONTRIBUTIVO MESE */}
+              {/* NEW: IMPONIBILE FISCALE ADJUSTMENT */}
+              {isImponibileFiscaleAdjustmentField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPONIBILE FISCALE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['imponibile_fiscale'] || ''}
+                            onChange={(e) => onInputChange('imponibile_fiscale', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['imponibile_fiscale'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['imponibile_fiscale'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPONIBILE CONTRIBUTIVO</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['imponibile_contributivo'] || ''}
+                            onChange={(e) => onInputChange('imponibile_contributivo', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['imponibile_contributivo'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['imponibile_contributivo'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['totale_contributi_for_adjustment'] || ''}
+                          onChange={(e) => onInputChange('totale_contributi_for_adjustment', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['totale_contributi_for_adjustment'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['totale_contributi_for_adjustment'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. IMPON. CONTRIBUTIVO MESE */}
               {isImponContributivoMeseField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 gap-4">
@@ -2411,7 +2527,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -2794,6 +2910,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isImpostaSostitutivaField &&
                 !isImponibileFiscaleMonthlyField &&
                 !isImponContributivoMeseField &&
+                !isImponibileFiscaleAdjustmentField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
