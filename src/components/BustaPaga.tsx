@@ -338,7 +338,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (outputFieldId === 'totale_contributi') {
       if (totaleContributiMode === 'formula') {
-        const tcFields = ['totale_trattenute_input', 'irpef_imp_sost_input', 'trattenute_input'];
+        const tcFields = ['totale_trattenute_input', 'irpef_imp_sost_input', 'addizionali_input'];
         const missingFields = tcFields.filter(fId => {
           const val = inputs[fId];
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
@@ -359,7 +359,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         });
         return { valid: missing.length === 0, missing };
       } else {
-        const f2Fields = ['irpef_f2_totale_trattenute', 'irpef_f2_totale_contributi', 'irpef_f2_trattenute'];
+        const f2Fields = ['irpef_f2_totale_trattenute', 'irpef_f2_totale_contributi', 'irpef_f2_addizionali'];
         const missingFields = f2Fields.filter(fId => {
           const val = inputs[fId];
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
@@ -514,9 +514,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       if (totaleContributiMode === 'formula') {
         const totaleTrattenuteVal = parseFloat(String(inputs['totale_trattenute_input'])) || 0;
         const irpefImpSostVal = parseFloat(String(inputs['irpef_imp_sost_input'])) || 0;
-        const trattenuteVal = parseFloat(String(inputs['trattenute_input'])) || 0;
+        const addizionaliVal = parseFloat(String(inputs['addizionali_input'])) || 0;
 
-        const calculatedTotaleContributi = totaleTrattenuteVal - irpefImpSostVal - trattenuteVal;
+        const calculatedTotaleContributi = totaleTrattenuteVal - irpefImpSostVal - addizionaliVal;
         setResults({ [outputField]: calculatedTotaleContributi });
         setShowResult(true);
       } else {
@@ -531,9 +531,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       if (irpefImpSostMode === 'formula2') {
         const totTrattenute = parseFloat(String(inputs['irpef_f2_totale_trattenute'])) || 0;
         const totContributi = parseFloat(String(inputs['irpef_f2_totale_contributi'])) || 0;
-        const trattenute = parseFloat(String(inputs['irpef_f2_trattenute'])) || 0;
+        const addizionali = parseFloat(String(inputs['irpef_f2_addizionali'])) || 0;
 
-        const calculatedIrpefImpSost = totTrattenute - totContributi - trattenute;
+        const calculatedIrpefImpSost = totTrattenute - totContributi - addizionali;
         setResults({ [outputField]: calculatedIrpefImpSost });
         setShowResult(true);
         return;
@@ -1708,14 +1708,14 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TRATTENUTE</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
                             type="number"
                             step="0.01"
-                            value={inputs['trattenute_input'] || ''}
-                            onChange={(e) => onInputChange('trattenute_input', e.target.value)}
+                            value={inputs['addizionali_input'] || ''}
+                            onChange={(e) => onInputChange('addizionali_input', e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
@@ -1833,14 +1833,14 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         </div>
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TRATTENUTE</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
                             type="number"
                             step="0.01"
-                            value={inputs['irpef_f2_trattenute'] || ''}
-                            onChange={(e) => onInputChange('irpef_f2_trattenute', e.target.value)}
+                            value={inputs['irpef_f2_addizionali'] || ''}
+                            onChange={(e) => onInputChange('irpef_f2_addizionali', e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
