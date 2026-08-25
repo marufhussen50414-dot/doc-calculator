@@ -218,7 +218,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         ? ['imposta_sostitutiva_totale_trattenute', 'imposta_sostitutiva_totale_contributi', 'imposta_sostitutiva_addizionali', 'imposta_sostitutiva_irpef_netta']
         : isImponContribArrotMeseField(outputFieldId)
           ? ['contr_agg_tfr']
-          : calculator.getRequiredInputsForField(outputFieldId);
+          : isImponibileFiscaleMonthlyField(outputFieldId)
+            ? ['imponibile_contributivo', 'totale_contributi_for_fiscale', 'adjustment']
+            : calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
@@ -292,6 +294,20 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       lower === '4_impon_contrib_arrot_mese' ||
       lower.includes('impon_contrib_arrot_mese') ||
       label.includes('impon. contrib. arrot. mese');
+  };
+
+  const isImponibileFiscaleMonthlyField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'imponibile_fiscale_mese' ||
+      lower === '6_imponibile_fiscale_mese' ||
+      lower.includes('imponibile_fiscale_mese') ||
+      lower.includes('imponibile fiscale (monthly)') ||
+      label.includes('imponibile fiscale (monthly)') ||
+      label.includes('imponibile fiscale (mese)') ||
+      label.includes('6. imponibile fiscale (monthly)');
   };
 
   const isImpostaSostitutivaField = (fieldId: string | null): boolean => {
@@ -471,6 +487,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }
     }
 
+    // NEW: 6. IMPONIBILE FISCALE (Monthly) validation
+    if (isImponibileFiscaleMonthlyField(outputFieldId)) {
+      const required = ['imponibile_contributivo', 'totale_contributi_for_fiscale', 'adjustment'];
+      const missing = required.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missing.length === 0, missing };
+    }
+
     const required = getRequiredFields(outputFieldId);
     const missing = required.filter(fieldId => {
       const value = inputs[fieldId];
@@ -486,6 +512,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
+      return;
+    }
+
+    // NEW: 6. IMPONIBILE FISCALE (Monthly) calculation
+    if (isImponibileFiscaleMonthlyField(outputField)) {
+      const imponibileContributivo = parseFloat(String(inputs['imponibile_contributivo'])) || 0;
+      const totaleContributi = parseFloat(String(inputs['totale_contributi_for_fiscale'])) || 0;
+      const adjustment = parseFloat(String(inputs['adjustment'])) || 0;
+      const calculatedImponibileFiscale = imponibileContributivo - totaleContributi + adjustment;
+      setResults({ [outputField]: calculatedImponibileFiscale });
+      setShowResult(true);
       return;
     }
 
@@ -738,15 +775,23 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const calculatedResults: { [key: string]: number } = {};
     let allSuccessful = true;
     outputFields.forEach(field => {
-      const result = isImponContribArrotMeseField(field)
-        ? ((numericInputs['contr_agg_tfr'] || 0) / 0.005)
-        : isImpostaSostitutivaField(field)
-          ? ((numericInputs['imposta_sostitutiva_totale_trattenute'] || 0) - (numericInputs['imposta_sostitutiva_totale_contributi'] || 0) - (numericInputs['imposta_sostitutiva_addizionali'] || 0) - (numericInputs['imposta_sostitutiva_irpef_netta'] || 0))
-        : field === 'addizionali'
-          ? (addizionaliMode === 'formula1'
-            ? ((numericInputs['addizionali_f1_totale_trattenute'] || 0) - (numericInputs['addizionali_f1_irpef_imp_sost'] || 0) - (numericInputs['addizionali_f1_totale_contributi'] || 0))
-            : ((numericInputs['addizionali_f2_totale_trattenute'] || 0) - (numericInputs['addizionali_f2_totale_contributi'] || 0) - (numericInputs['addizionali_f2_irpef_netta'] || 0) - (numericInputs['addizionali_f2_imposta_sostitutiva'] || 0)))
-          : calculator.calculate(numericInputs, field);
+      let result: number | null = null;
+      if (isImponibileFiscaleMonthlyField(field)) {
+        const imponibileContributivo = numericInputs['imponibile_contributivo'] || 0;
+        const totaleContributi = numericInputs['totale_contributi_for_fiscale'] || 0;
+        const adjustment = numericInputs['adjustment'] || 0;
+        result = imponibileContributivo - totaleContributi + adjustment;
+      } else if (isImponContribArrotMeseField(field)) {
+        result = ((numericInputs['contr_agg_tfr'] || 0) / 0.005);
+      } else if (isImpostaSostitutivaField(field)) {
+        result = ((numericInputs['imposta_sostitutiva_totale_trattenute'] || 0) - (numericInputs['imposta_sostitutiva_totale_contributi'] || 0) - (numericInputs['imposta_sostitutiva_addizionali'] || 0) - (numericInputs['imposta_sostitutiva_irpef_netta'] || 0));
+      } else if (field === 'addizionali') {
+        result = (addizionaliMode === 'formula1'
+          ? ((numericInputs['addizionali_f1_totale_trattenute'] || 0) - (numericInputs['addizionali_f1_irpef_imp_sost'] || 0) - (numericInputs['addizionali_f1_totale_contributi'] || 0))
+          : ((numericInputs['addizionali_f2_totale_trattenute'] || 0) - (numericInputs['addizionali_f2_totale_contributi'] || 0) - (numericInputs['addizionali_f2_irpef_netta'] || 0) - (numericInputs['addizionali_f2_imposta_sostitutiva'] || 0)));
+      } else {
+        result = calculator.calculate(numericInputs, field);
+      }
       if (result !== null) {
         calculatedResults[field] = result;
       } else {
@@ -1186,6 +1231,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase().includes('imposta_sostitutiva') ||
     getFieldLabel(outputField).toLowerCase().includes('imposta sostitutiva (monthly)')
   ) : false;
+  // NEW: Check if this is the 6. IMPONIBILE FISCALE (Monthly) field
+  const isImponibileFiscaleMonthlyField = outputField ? (
+    outputField.toLowerCase() === 'imponibile_fiscale_mese' ||
+    outputField.toLowerCase() === '6_imponibile_fiscale_mese' ||
+    outputField.toLowerCase().includes('imponibile_fiscale_mese') ||
+    outputField.toLowerCase().includes('imponibile fiscale (monthly)') ||
+    getFieldLabel(outputField).toLowerCase().includes('imponibile fiscale (monthly)') ||
+    getFieldLabel(outputField).toLowerCase().includes('imponibile fiscale (mese)') ||
+    getFieldLabel(outputField).toLowerCase().includes('6. imponibile fiscale (monthly)')
+  ) : false;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1257,6 +1312,73 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
+
+              {/* NEW: 6. IMPONIBILE FISCALE (Monthly) */}
+              {isImponibileFiscaleMonthlyField && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPONIBILE CONTRIBUTIVO</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['imponibile_contributivo'] || ''}
+                            onChange={(e) => onInputChange('imponibile_contributivo', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['imponibile_contributivo'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['imponibile_contributivo'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['totale_contributi_for_fiscale'] || ''}
+                            onChange={(e) => onInputChange('totale_contributi_for_fiscale', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['totale_contributi_for_fiscale'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['totale_contributi_for_fiscale'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">ADJUSTMENT (প্লাস বা মাইনাস হতে পারে)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['adjustment'] || ''}
+                          onChange={(e) => onInputChange('adjustment', e.target.value)}
+                          placeholder="0.00 (পজিটিভ বা নেগেটিভ)"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['adjustment'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['adjustment'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 18. IRPEF NETTA (Monthly) */}
               {isIrpefNettaMonthlyField && (
@@ -2171,7 +2293,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -2552,6 +2674,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isIrpefNettaMonthlyField &&
                 !isAddizionaliField &&
                 !isImpostaSostitutivaField &&
+                !isImponibileFiscaleMonthlyField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
