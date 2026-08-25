@@ -1366,7 +1366,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
             step="0.01"
             value={inputs['adjustment'] || ''}
             onChange={(e) => onInputChange('adjustment', e.target.value)}
-            placeholder="0.00 (পজিটিভ বা নেগেটিভ)"
+            placeholder="0.00"
             className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
               attempted && !inputs['adjustment'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
             }`}
