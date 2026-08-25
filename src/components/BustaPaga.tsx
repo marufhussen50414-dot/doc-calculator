@@ -76,8 +76,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     { id: '2', label: 'চলতি মাসের মান', value: '' }
   ]);
 
-  // 7. IRPEF LORDA (Monthly) এর জন্য মোড স্টেট - Formula 1 রিমুভ করা হয়েছে
-  const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'alternative' | 'formula3'>('alternative');
+  const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative' | 'formula3'>('formula');
   
   // Totale Trattenute এর জন্য মোড স্টেট
   const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2' | 'formula3'>('formula1');
@@ -110,51 +109,52 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
-    const fields = searchFields(searchQuery).map((field: any) => ({ ...field }));
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const addizionaliField = { id: 'addizionali', label: 'ADDIZIONALI' };
-    
-    // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড
-    const adjustmentField = { id: 'imponibile_fiscale_adjustment', label: 'IMPONIBILE FISCALE ADJUSTMENT' };
+  const fields = searchFields(searchQuery).map((field: any) => ({ ...field }));
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const addizionaliField = { id: 'addizionali', label: 'ADDIZIONALI' };
+  
+  // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড
+  const adjustmentField = { id: 'imponibile_fiscale_adjustment', label: 'IMPONIBILE FISCALE ADJUSTMENT' };
 
-    // ADDIZIONALI ফিল্ড যোগ করুন
-    if (!normalizedQuery || addizionaliField.label.toLowerCase().includes(normalizedQuery)) {
-      if (!fields.some((field: any) => field.id === addizionaliField.id)) {
-        const impostaIndex = fields.findIndex((field: any) =>
-          String(field.label || '').toLowerCase().includes('imposta sostitutiva')
-        );
-        const irpefImpSostIndex = fields.findIndex((field: any) =>
-          String(field.label || '').toLowerCase().includes('irpef + imp. sost.')
-        );
-        const insertIndex = impostaIndex >= 0
-          ? impostaIndex + 1
-          : irpefImpSostIndex >= 0
-            ? irpefImpSostIndex + 1
-            : fields.length;
-        fields.splice(insertIndex, 0, addizionaliField);
-      }
+  // ADDIZIONALI ফিল্ড যোগ করুন
+  if (!normalizedQuery || addizionaliField.label.toLowerCase().includes(normalizedQuery)) {
+    if (!fields.some((field: any) => field.id === addizionaliField.id)) {
+      const impostaIndex = fields.findIndex((field: any) =>
+        String(field.label || '').toLowerCase().includes('imposta sostitutiva')
+      );
+      const irpefImpSostIndex = fields.findIndex((field: any) =>
+        String(field.label || '').toLowerCase().includes('irpef + imp. sost.')
+      );
+      const insertIndex = impostaIndex >= 0
+        ? impostaIndex + 1
+        : irpefImpSostIndex >= 0
+          ? irpefImpSostIndex + 1
+          : fields.length;
+      fields.splice(insertIndex, 0, addizionaliField);
     }
+  }
 
-    // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড যোগ করুন
-    if (!normalizedQuery || adjustmentField.label.toLowerCase().includes(normalizedQuery)) {
-      if (!fields.some((field: any) => field.id === adjustmentField.id)) {
-        const fiscaleAnnoIndex = fields.findIndex((field: any) =>
-          String(field.label || '').toLowerCase().includes('imponibile fiscale (anno)')
-        );
-        const insertIndex = fiscaleAnnoIndex >= 0 ? fiscaleAnnoIndex + 1 : fields.length;
-        fields.splice(insertIndex, 0, adjustmentField);
-      }
+  // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড যোগ করুন
+  if (!normalizedQuery || adjustmentField.label.toLowerCase().includes(normalizedQuery)) {
+    if (!fields.some((field: any) => field.id === adjustmentField.id)) {
+      // IMPONIBILE FISCALE (Anno) এর পরে যোগ করুন
+      const fiscaleAnnoIndex = fields.findIndex((field: any) =>
+        String(field.label || '').toLowerCase().includes('imponibile fiscale (anno)')
+      );
+      const insertIndex = fiscaleAnnoIndex >= 0 ? fiscaleAnnoIndex + 1 : fields.length;
+      fields.splice(insertIndex, 0, adjustmentField);
     }
+  }
 
-    if (!normalizedQuery) {
-      return fields.map((field: any, index: number) => ({
-        ...field,
-        label: `${index + 1}. ${String(field.label || '').replace(/^\d+\.\s*/, '')}`,
-      }));
-    }
+  if (!normalizedQuery) {
+    return fields.map((field: any, index: number) => ({
+      ...field,
+      label: `${index + 1}. ${String(field.label || '').replace(/^\d+\.\s*/, '')}`,
+    }));
+  }
 
-    return fields;
-  }, [searchQuery]);
+  return fields;
+}, [searchQuery]);
 
   const handleInputChange = (fieldId: string, value: string) => {
     if (value === '') {
@@ -185,7 +185,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setResults({});
     setInputs({});
     setAnnuoCustomMode('custom');
-    setIrpefLordaMonthlyMode('alternative'); // Formula 1 রিমুভ, ডিফল্ট Formula 2 (alternative)
+    setIrpefLordaMonthlyMode('formula');
     setTotaleTrattenuteMode('formula1');
     setTotaleContributiMode('formula');
     setIrpefImpSostMode('formula1');
@@ -225,7 +225,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return numericInputs;
   };
 
-  // 3. IMPON. CONTRIBUTIVO MESE ফিল্ড চিহ্নিত করার ফাংশন
+  // NEW: 3. IMPON. CONTRIBUTIVO MESE ফিল্ড চিহ্নিত করার ফাংশন
   const isImponContributivoMeseField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     const field = calculator.fields.find((f: any) => f.id === fieldId);
@@ -239,7 +239,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       label.includes('2. impon. contributivo mese');
   };
 
-  // IMPONIBILE FISCALE ADJUSTMENT ফিল্ড চিহ্নিত করার ফাংশন
+  // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড চিহ্নিত করার ফাংশন
   const isImponibileFiscaleAdjustmentField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     const field = calculator.fields.find((f: any) => f.id === fieldId);
@@ -248,6 +248,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     return lower === 'imponibile_fiscale_adjustment' ||
       lower.includes('imponibile_fiscale_adjustment') ||
       lower.includes('imponibile fiscale adjustment') ||
+      label.includes('imponibile fiscale adjustment') ||
       label.includes('imponibile fiscale adjustment');
   };
 
@@ -264,7 +265,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             ? ['imponibile_contributivo', 'totale_contributi_for_fiscale', 'adjustment']
             : isImponContributivoMeseField(outputFieldId)
               ? ['imponibile_fiscale', 'totale_contributi_for_contributivo', 'adjustment_contributivo']
-              : isImponibileFiscaleAdjustmentField(outputFieldId)
+              : isImponibileFiscaleAdjustmentField(outputFieldId) // NEW
                 ? ['imponibile_fiscale', 'imponibile_contributivo', 'totale_contributi_for_adjustment']
                 : calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
@@ -504,7 +505,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
     }
 
-    // 7. IRPEF LORDA (Monthly) - Formula 1 রিমুভ করা হয়েছে
     if (outputField === 'irpef_lorda_mese') {
       if (irpefLordaMonthlyMode === 'alternative') {
         const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
@@ -534,7 +534,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       }
     }
 
-    // 6. IMPONIBILE FISCALE (Monthly) validation
+    // NEW: 6. IMPONIBILE FISCALE (Monthly) validation
     if (isImponibileFiscaleMonthlyField(outputFieldId)) {
       const required = ['imponibile_contributivo', 'totale_contributi_for_fiscale', 'adjustment'];
       const missing = required.filter(fId => {
@@ -544,7 +544,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: missing.length === 0, missing };
     }
 
-    // 3. IMPON. CONTRIBUTIVO MESE validation
+    // NEW: 3. IMPON. CONTRIBUTIVO MESE validation
     if (isImponContributivoMeseField(outputFieldId)) {
       const required = ['imponibile_fiscale', 'totale_contributi_for_contributivo', 'adjustment_contributivo'];
       const missing = required.filter(fId => {
@@ -554,7 +554,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return { valid: missing.length === 0, missing };
     }
 
-    // IMPONIBILE FISCALE ADJUSTMENT validation
+    // NEW: IMPONIBILE FISCALE ADJUSTMENT validation
     if (isImponibileFiscaleAdjustmentField(outputFieldId)) {
       const required = ['imponibile_fiscale', 'imponibile_contributivo', 'totale_contributi_for_adjustment'];
       const missing = required.filter(fId => {
@@ -582,7 +582,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    // IMPONIBILE FISCALE ADJUSTMENT calculation
+    // NEW: IMPONIBILE FISCALE ADJUSTMENT calculation
     if (isImponibileFiscaleAdjustmentField(outputField)) {
       const imponibileFiscale = parseFloat(String(inputs['imponibile_fiscale'])) || 0;
       const imponibileContributivo = parseFloat(String(inputs['imponibile_contributivo'])) || 0;
@@ -593,7 +593,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    // 3. IMPON. CONTRIBUTIVO MESE calculation
+    // NEW: 3. IMPON. CONTRIBUTIVO MESE calculation
     if (isImponContributivoMeseField(outputField)) {
       const imponibileFiscale = parseFloat(String(inputs['imponibile_fiscale'])) || 0;
       const totaleContributi = parseFloat(String(inputs['totale_contributi_for_contributivo'])) || 0;
@@ -604,7 +604,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    // 6. IMPONIBILE FISCALE (Monthly) calculation
+    // NEW: 6. IMPONIBILE FISCALE (Monthly) calculation
     if (isImponibileFiscaleMonthlyField(outputField)) {
       const imponibileContributivo = parseFloat(String(inputs['imponibile_contributivo'])) || 0;
       const totaleContributi = parseFloat(String(inputs['totale_contributi_for_fiscale'])) || 0;
@@ -792,7 +792,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    // 7. IRPEF LORDA (Monthly) - Formula 1 রিমুভ করা হয়েছে
     if (outputField === 'irpef_lorda_mese') {
       if (irpefLordaMonthlyMode === 'alternative') {
         const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
@@ -1209,8 +1208,8 @@ interface StandardModeCalculatorProps {
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
   onRemoveCustomField: (id: string) => void;
-  irpefLordaMonthlyMode: 'alternative' | 'formula3'; // Formula 1 রিমুভ
-  onIrpefLordaMonthlyModeChange: (mode: 'alternative' | 'formula3') => void;
+  irpefLordaMonthlyMode: 'formula' | 'alternative' | 'formula3';
+  onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative' | 'formula3') => void;
   totaleTrattenuteMode: 'formula1' | 'formula2' | 'formula3';
   onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2' | 'formula3') => void;
   totaleContributiMode: 'formula' | 'alternative';
@@ -1289,10 +1288,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   const isTotaleCompetenzeField = outputField === 'totale_comp';
   const isTotaleTrattenuteField = outputField === 'totale_trattenute';
   const isTotaleContributiField = outputField === 'totale_contributi';
-  
-  // 7. IRPEF LORDA (Monthly) - এখন শুধু 2টি অপশন
   const isIrpefLordaMonthlyField = outputField === 'irpef_lorda_mese';
-  
   const isIrpefImpSostField = outputField ? (
     outputField.toLowerCase() === 'irpef_imp_sost' ||
     outputField.toLowerCase() === '19_irpef_imp_sost' ||
@@ -1334,6 +1330,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase().includes('imposta_sostitutiva') ||
     getFieldLabel(outputField).toLowerCase().includes('imposta sostitutiva (monthly)')
   ) : false;
+  // Check if this is the 6. IMPONIBILE FISCALE (Monthly) field
   const isImponibileFiscaleMonthlyField = outputField ? (
     outputField.toLowerCase() === 'imponibile_fiscale_mese' ||
     outputField.toLowerCase() === '6_imponibile_fiscale_mese' ||
@@ -1344,6 +1341,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     getFieldLabel(outputField).toLowerCase().includes('6. imponibile fiscale (monthly)')
   ) : false;
 
+  // Check if this is the 3. IMPON. CONTRIBUTIVO MESE field
   const isImponContributivoMeseField = outputField ? (
     outputField.toLowerCase() === 'impon_contributivo_mese' ||
     outputField.toLowerCase() === '2_impon_contributivo_mese' ||
@@ -1352,6 +1350,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     getFieldLabel(outputField).toLowerCase().includes('2. impon. contributivo mese')
   ) : false;
 
+  // NEW: Check if this is the IMPONIBILE FISCALE ADJUSTMENT field
   const isImponibileFiscaleAdjustmentField = outputField ? (
     outputField.toLowerCase() === 'imponibile_fiscale_adjustment' ||
     outputField.toLowerCase().includes('imponibile_fiscale_adjustment') ||
@@ -1430,7 +1429,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* IMPONIBILE FISCALE ADJUSTMENT */}
+              {/* NEW: IMPONIBILE FISCALE ADJUSTMENT */}
               {isImponibileFiscaleAdjustmentField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 gap-4">
@@ -1494,122 +1493,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       )}
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* 7. IRPEF LORDA (Monthly) - Formula 1 রিমুভ, শুধু 2টি অপশন */}
-              {isIrpefLordaMonthlyField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-3">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="irpefLordaMonthlyMode"
-                        checked={irpefLordaMonthlyMode === 'alternative'}
-                        onChange={() => onIrpefLordaMonthlyModeChange('alternative')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Formula 1</span>
-                    </label>
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input
-                        type="radio"
-                        name="irpefLordaMonthlyMode"
-                        checked={irpefLordaMonthlyMode === 'formula3'}
-                        onChange={() => onIrpefLordaMonthlyModeChange('formula3')}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span>Formula 2</span>
-                    </label>
-                  </div>
-                  {irpefLordaMonthlyMode === 'alternative' && (
-                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF + IMP. SOST.</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={inputs['alt_irpef_imp_sost'] || ''}
-                            onChange={(e) => onInputChange('alt_irpef_imp_sost', e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={inputs['alt_detr_lav_dip'] || ''}
-                            onChange={(e) => onInputChange('alt_detr_lav_dip', e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={inputs['alt_imposta_sost'] || ''}
-                            onChange={(e) => onInputChange('alt_imposta_sost', e.target.value)}
-                            placeholder="0.00"
-                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {irpefLordaMonthlyMode === 'formula3' && (
-                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">18. IRPEF NETTA (Monthly)</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={inputs['f3_irpef_netta'] || ''}
-                            onChange={(e) => onInputChange('f3_irpef_netta', e.target.value)}
-                            placeholder="0.00"
-                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                              attempted && !inputs['f3_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                          />
-                        </div>
-                        {attempted && !inputs['f3_irpef_netta'] && (
-                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={inputs['f3_detr_lav_dip'] || ''}
-                            onChange={(e) => onInputChange('f3_detr_lav_dip', e.target.value)}
-                            placeholder="0.00"
-                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                              attempted && !inputs['f3_detr_lav_dip'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                          />
-                        </div>
-                        {attempted && !inputs['f3_detr_lav_dip'] && (
-                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -2660,7 +2543,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && !isIrpefLordaMonthlyField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -2833,6 +2716,132 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
+              {/* IRPEF LORDA MONTHLY অপশন */}
+              {isIrpefLordaMonthlyField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-3">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefLordaMonthlyMode"
+                        checked={irpefLordaMonthlyMode === 'formula'}
+                        onChange={() => onIrpefLordaMonthlyModeChange('formula')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefLordaMonthlyMode"
+                        checked={irpefLordaMonthlyMode === 'alternative'}
+                        onChange={() => onIrpefLordaMonthlyModeChange('alternative')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefLordaMonthlyMode"
+                        checked={irpefLordaMonthlyMode === 'formula3'}
+                        onChange={() => onIrpefLordaMonthlyModeChange('formula3')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 3</span>
+                    </label>
+                  </div>
+                  {irpefLordaMonthlyMode === 'alternative' && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF + IMP. SOST.</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_irpef_imp_sost'] || ''}
+                            onChange={(e) => onInputChange('alt_irpef_imp_sost', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_detr_lav_dip'] || ''}
+                            onChange={(e) => onInputChange('alt_detr_lav_dip', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['alt_imposta_sost'] || ''}
+                            onChange={(e) => onInputChange('alt_imposta_sost', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {irpefLordaMonthlyMode === 'formula3' && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">18. IRPEF NETTA (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['f3_irpef_netta'] || ''}
+                            onChange={(e) => onInputChange('f3_irpef_netta', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['f3_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['f3_irpef_netta'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['f3_detr_lav_dip'] || ''}
+                            onChange={(e) => onInputChange('f3_detr_lav_dip', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['f3_detr_lav_dip'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['f3_detr_lav_dip'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* 12. DETR. LAV. DIPENDENTE (Monthly) */}
               {isDetrLavDipMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -2918,7 +2927,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isImponibileFiscaleMonthlyField &&
                 !isImponContributivoMeseField &&
                 !isImponibileFiscaleAdjustmentField &&
-                !isIrpefLordaMonthlyField &&
+                (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
                 <>
