@@ -79,7 +79,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative' | 'formula3'>('formula');
   
   // Totale Trattenute এর জন্য মোড স্টেট
-  const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2'>('formula1');
+  const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2' | 'formula3'>('formula1');
 
   // Totale Contributi (9) এর জন্য মোড স্টেট (Standard vs Alternative)
   const [totaleContributiMode, setTotaleContributiMode] = useState<'formula' | 'alternative'>('formula');
@@ -388,9 +388,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
-      } else {
+      } else if (totaleTrattenuteMode === 'formula2') {
         const formula2Fields = ['irpef_imp_sost', 'totale_contributi', 'addizionali_field'];
         const missingFields = formula2Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
+      } else {
+        const formula3Fields = ['tt_f3_irpef_netta', 'tt_f3_totale_contributi', 'tt_f3_addizionali', 'tt_f3_imposta_sostitutiva'];
+        const missingFields = formula3Fields.filter(fId => {
           const val = inputs[fId];
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
         });
@@ -608,6 +615,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
         const calculatedTrattenute = irpefImpSost + totaleContributi + addizionaliField;
         setResults({ [outputField]: calculatedTrattenute });
+        setShowResult(true);
+      } else if (totaleTrattenuteMode === 'formula3') {
+        const irpefNetta = parseFloat(String(inputs['tt_f3_irpef_netta'])) || 0;
+        const totaleContributiF3 = parseFloat(String(inputs['tt_f3_totale_contributi'])) || 0;
+        const addizionaliF3 = parseFloat(String(inputs['tt_f3_addizionali'])) || 0;
+        const impostaSostitutivaF3 = parseFloat(String(inputs['tt_f3_imposta_sostitutiva'])) || 0;
+
+        const calculatedTrattenuteF3 = irpefNetta + totaleContributiF3 + addizionaliF3 + impostaSostitutivaF3;
+        setResults({ [outputField]: calculatedTrattenuteF3 });
         setShowResult(true);
       }
       return;
@@ -1050,8 +1066,8 @@ interface StandardModeCalculatorProps {
   onRemoveCustomField: (id: string) => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative' | 'formula3';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative' | 'formula3') => void;
-  totaleTrattenuteMode: 'formula1' | 'formula2';
-  onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2') => void;
+  totaleTrattenuteMode: 'formula1' | 'formula2' | 'formula3';
+  onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2' | 'formula3') => void;
   totaleContributiMode: 'formula' | 'alternative';
   onTotaleContributiModeChange: (mode: 'formula' | 'alternative') => void;
   irpefImpSostMode: 'formula1' | 'formula2';
@@ -1771,6 +1787,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       />
                       <span>Formula 2</span>
                     </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="totaleTrattenuteMode"
+                        checked={totaleTrattenuteMode === 'formula3'}
+                        onChange={() => onTotaleTrattenuteModeChange('formula3')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 3</span>
+                    </label>
                   </div>
                   
                   {totaleTrattenuteMode === 'formula1' ? (
@@ -1836,7 +1862,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         </>
                       )}
                     </div>
-                  ) : (
+                  ) : totaleTrattenuteMode === 'formula2' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF+IMP .SOST.</label>
@@ -1875,6 +1901,65 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             step="0.01"
                             value={inputs['addizionali_field'] || ''}
                             onChange={(e) => onInputChange('addizionali_field', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_irpef_netta'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_irpef_netta', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_totale_contributi'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_totale_contributi', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_addizionali'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_addizionali', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_imposta_sostitutiva'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_imposta_sostitutiva', e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
