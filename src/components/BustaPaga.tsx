@@ -109,36 +109,52 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
-    const fields = searchFields(searchQuery).map((field: any) => ({ ...field }));
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const addizionaliField = { id: 'addizionali', label: 'ADDIZIONALI' };
+  const fields = searchFields(searchQuery).map((field: any) => ({ ...field }));
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const addizionaliField = { id: 'addizionali', label: 'ADDIZIONALI' };
+  
+  // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড
+  const adjustmentField = { id: 'imponibile_fiscale_adjustment', label: 'IMPONIBILE FISCALE ADJUSTMENT' };
 
-    if (!normalizedQuery || addizionaliField.label.toLowerCase().includes(normalizedQuery)) {
-      if (!fields.some((field: any) => field.id === addizionaliField.id)) {
-        const impostaIndex = fields.findIndex((field: any) =>
-          String(field.label || '').toLowerCase().includes('imposta sostitutiva')
-        );
-        const irpefImpSostIndex = fields.findIndex((field: any) =>
-          String(field.label || '').toLowerCase().includes('irpef + imp. sost.')
-        );
-        const insertIndex = impostaIndex >= 0
-          ? impostaIndex + 1
-          : irpefImpSostIndex >= 0
-            ? irpefImpSostIndex + 1
-            : fields.length;
-        fields.splice(insertIndex, 0, addizionaliField);
-      }
+  // ADDIZIONALI ফিল্ড যোগ করুন
+  if (!normalizedQuery || addizionaliField.label.toLowerCase().includes(normalizedQuery)) {
+    if (!fields.some((field: any) => field.id === addizionaliField.id)) {
+      const impostaIndex = fields.findIndex((field: any) =>
+        String(field.label || '').toLowerCase().includes('imposta sostitutiva')
+      );
+      const irpefImpSostIndex = fields.findIndex((field: any) =>
+        String(field.label || '').toLowerCase().includes('irpef + imp. sost.')
+      );
+      const insertIndex = impostaIndex >= 0
+        ? impostaIndex + 1
+        : irpefImpSostIndex >= 0
+          ? irpefImpSostIndex + 1
+          : fields.length;
+      fields.splice(insertIndex, 0, addizionaliField);
     }
+  }
 
-    if (!normalizedQuery) {
-      return fields.map((field: any, index: number) => ({
-        ...field,
-        label: `${index + 1}. ${String(field.label || '').replace(/^\d+\.\s*/, '')}`,
-      }));
+  // NEW: IMPONIBILE FISCALE ADJUSTMENT ফিল্ড যোগ করুন
+  if (!normalizedQuery || adjustmentField.label.toLowerCase().includes(normalizedQuery)) {
+    if (!fields.some((field: any) => field.id === adjustmentField.id)) {
+      // IMPONIBILE FISCALE (Anno) এর পরে যোগ করুন
+      const fiscaleAnnoIndex = fields.findIndex((field: any) =>
+        String(field.label || '').toLowerCase().includes('imponibile fiscale (anno)')
+      );
+      const insertIndex = fiscaleAnnoIndex >= 0 ? fiscaleAnnoIndex + 1 : fields.length;
+      fields.splice(insertIndex, 0, adjustmentField);
     }
+  }
 
-    return fields;
-  }, [searchQuery]);
+  if (!normalizedQuery) {
+    return fields.map((field: any, index: number) => ({
+      ...field,
+      label: `${index + 1}. ${String(field.label || '').replace(/^\d+\.\s*/, '')}`,
+    }));
+  }
+
+  return fields;
+}, [searchQuery]);
 
   const handleInputChange = (fieldId: string, value: string) => {
     if (value === '') {
