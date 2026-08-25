@@ -106,7 +106,35 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
-    return searchFields(searchQuery);
+    const fields = searchFields(searchQuery).map((field: any) => ({ ...field }));
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const addizionaliField = { id: 'addizionali', label: 'ADDIZIONALI' };
+
+    if (!normalizedQuery || addizionaliField.label.toLowerCase().includes(normalizedQuery)) {
+      if (!fields.some((field: any) => field.id === addizionaliField.id)) {
+        const impostaIndex = fields.findIndex((field: any) =>
+          String(field.label || '').toLowerCase().includes('imposta sostitutiva')
+        );
+        const irpefImpSostIndex = fields.findIndex((field: any) =>
+          String(field.label || '').toLowerCase().includes('irpef + imp. sost.')
+        );
+        const insertIndex = impostaIndex >= 0
+          ? impostaIndex + 1
+          : irpefImpSostIndex >= 0
+            ? irpefImpSostIndex + 1
+            : fields.length;
+        fields.splice(insertIndex, 0, addizionaliField);
+      }
+    }
+
+    if (!normalizedQuery) {
+      return fields.map((field: any, index: number) => ({
+        ...field,
+        label: `${index + 1}. ${String(field.label || '').replace(/^\d+\.\s*/, '')}`,
+      }));
+    }
+
+    return fields;
   }, [searchQuery]);
 
   const handleInputChange = (fieldId: string, value: string) => {
@@ -178,9 +206,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getRequiredFields = (outputFieldId: string): string[] => {
-    let required = isImponContribArrotMeseField(outputFieldId)
-      ? ['contr_agg_tfr']
-      : calculator.getRequiredInputsForField(outputFieldId);
+    let required = outputFieldId === 'addizionali'
+      ? ['addizionali']
+      : isImponContribArrotMeseField(outputFieldId)
+        ? ['contr_agg_tfr']
+        : calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
@@ -459,6 +489,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
+    if (outputField === 'addizionali') {
+      const addizionaliValue = parseFloat(String(inputs['addizionali'])) || 0;
+      setResults({ [outputField]: addizionaliValue });
+      setShowResult(true);
+      return;
+    }
+
     if (outputField === 'totale_comp') {
       const netto = parseFloat(String(inputs['netto'])) || 0;
       const trattenute = parseFloat(String(inputs['trattenute'])) || 0;
@@ -643,7 +680,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     outputFields.forEach(field => {
       const result = isImponContribArrotMeseField(field)
         ? ((numericInputs['contr_agg_tfr'] || 0) / 0.005)
-        : calculator.calculate(numericInputs, field);
+        : field === 'addizionali'
+          ? (numericInputs['addizionali'] || 0)
+          : calculator.calculate(numericInputs, field);
       if (result !== null) {
         calculatedResults[field] = result;
       } else {
@@ -687,6 +726,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getFieldLabel = (fieldId: string): string => {
+    if (fieldId === 'addizionali') return 'ADDIZIONALI';
     return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
   };
 
