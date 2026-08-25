@@ -214,9 +214,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       ? (addizionaliMode === 'formula1'
         ? ['addizionali_f1_totale_trattenute', 'addizionali_f1_irpef_imp_sost', 'addizionali_f1_totale_contributi']
         : ['addizionali_f2_totale_trattenute', 'addizionali_f2_totale_contributi', 'addizionali_f2_irpef_netta', 'addizionali_f2_imposta_sostitutiva'])
-      : isImponContribArrotMeseField(outputFieldId)
-        ? ['contr_agg_tfr']
-        : calculator.getRequiredInputsForField(outputFieldId);
+      : isImpostaSostitutivaField(outputFieldId)
+        ? ['imposta_sostitutiva_totale_trattenute', 'imposta_sostitutiva_totale_contributi', 'imposta_sostitutiva_addizionali', 'imposta_sostitutiva_irpef_netta']
+        : isImponContribArrotMeseField(outputFieldId)
+          ? ['contr_agg_tfr']
+          : calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
@@ -290,6 +292,18 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       lower === '4_impon_contrib_arrot_mese' ||
       lower.includes('impon_contrib_arrot_mese') ||
       label.includes('impon. contrib. arrot. mese');
+  };
+
+  const isImpostaSostitutivaField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'imposta_sostitutiva' ||
+      lower === 'imposta_sostitutiva_mese' ||
+      lower === '15_imposta_sostitutiva_mese' ||
+      lower.includes('imposta_sostitutiva') ||
+      label.includes('imposta sostitutiva (monthly)');
   };
 
   const isIrpefNettaMonthlyField = (fieldId: string | null): boolean => {
@@ -465,6 +479,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
+      return;
+    }
+
+    if (isImpostaSostitutivaField(outputField)) {
+      const totaleTrattenute = parseFloat(String(inputs['imposta_sostitutiva_totale_trattenute'])) || 0;
+      const totaleContributi = parseFloat(String(inputs['imposta_sostitutiva_totale_contributi'])) || 0;
+      const addizionali = parseFloat(String(inputs['imposta_sostitutiva_addizionali'])) || 0;
+      const irpefNetta = parseFloat(String(inputs['imposta_sostitutiva_irpef_netta'])) || 0;
+      const calculatedImpostaSostitutiva = totaleTrattenute - totaleContributi - addizionali - irpefNetta;
+      setResults({ [outputField]: calculatedImpostaSostitutiva });
+      setShowResult(true);
       return;
     }
 
@@ -699,6 +724,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     outputFields.forEach(field => {
       const result = isImponContribArrotMeseField(field)
         ? ((numericInputs['contr_agg_tfr'] || 0) / 0.005)
+        : isImpostaSostitutivaField(field)
+          ? ((numericInputs['imposta_sostitutiva_totale_trattenute'] || 0) - (numericInputs['imposta_sostitutiva_totale_contributi'] || 0) - (numericInputs['imposta_sostitutiva_addizionali'] || 0) - (numericInputs['imposta_sostitutiva_irpef_netta'] || 0))
         : field === 'addizionali'
           ? (addizionaliMode === 'formula1'
             ? ((numericInputs['addizionali_f1_totale_trattenute'] || 0) - (numericInputs['addizionali_f1_irpef_imp_sost'] || 0) - (numericInputs['addizionali_f1_totale_contributi'] || 0))
@@ -1136,6 +1163,13 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     getFieldLabel(outputField).toLowerCase().includes('impon. contrib. arrot. mese')
   ) : false;
   const isAddizionaliField = outputField === 'addizionali';
+  const isImpostaSostitutivaField = outputField ? (
+    outputField.toLowerCase() === 'imposta_sostitutiva' ||
+    outputField.toLowerCase() === 'imposta_sostitutiva_mese' ||
+    outputField.toLowerCase() === '15_imposta_sostitutiva_mese' ||
+    outputField.toLowerCase().includes('imposta_sostitutiva') ||
+    getFieldLabel(outputField).toLowerCase().includes('imposta sostitutiva (monthly)')
+  ) : false;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -2107,6 +2141,45 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* ADDIZIONALI */}
+              {isImpostaSostitutivaField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_totale_trattenute'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                      </div>
+                      {attempted && !inputs['imposta_sostitutiva_totale_trattenute'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_totale_contributi'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                      </div>
+                      {attempted && !inputs['imposta_sostitutiva_totale_contributi'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_addizionali'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_addizionali', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_addizionali'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                      </div>
+                      {attempted && !inputs['imposta_sostitutiva_addizionali'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_irpef_netta'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_irpef_netta', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                      </div>
+                      {attempted && !inputs['imposta_sostitutiva_irpef_netta'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {isAddizionaliField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-6 mb-4">
@@ -2393,6 +2466,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isImponContribArrotMeseField &&
                 !isIrpefNettaMonthlyField &&
                 !isAddizionaliField &&
+                !isImpostaSostitutivaField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
