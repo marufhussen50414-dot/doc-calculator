@@ -1313,72 +1313,72 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* NEW: 6. IMPONIBILE FISCALE (Monthly) */}
-              {isImponibileFiscaleMonthlyField && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPONIBILE CONTRIBUTIVO</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={inputs['imponibile_contributivo'] || ''}
-                            onChange={(e) => onInputChange('imponibile_contributivo', e.target.value)}
-                            placeholder="0.00"
-                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                              attempted && !inputs['imponibile_contributivo'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                          />
-                        </div>
-                        {attempted && !inputs['imponibile_contributivo'] && (
-                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={inputs['totale_contributi_for_fiscale'] || ''}
-                            onChange={(e) => onInputChange('totale_contributi_for_fiscale', e.target.value)}
-                            placeholder="0.00"
-                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                              attempted && !inputs['totale_contributi_for_fiscale'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                          />
-                        </div>
-                        {attempted && !inputs['totale_contributi_for_fiscale'] && (
-                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">ADJUSTMENT (প্লাস বা মাইনাস হতে পারে)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs['adjustment'] || ''}
-                          onChange={(e) => onInputChange('adjustment', e.target.value)}
-                          placeholder="0.00 (পজিটিভ বা নেগেটিভ)"
-                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                            attempted && !inputs['adjustment'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
-                      {attempted && !inputs['adjustment'] && (
-                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+{/* NEW: 6. IMPONIBILE FISCALE (Monthly) */}
+{isImponibileFiscaleMonthlyField && (
+  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">  {/* <- এখানে পরিবর্তন */}
+    <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">IMPONIBILE CONTRIBUTIVO</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+            <input
+              type="number"
+              step="0.01"
+              value={inputs['imponibile_contributivo'] || ''}
+              onChange={(e) => onInputChange('imponibile_contributivo', e.target.value)}
+              placeholder="0.00"
+              className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                attempted && !inputs['imponibile_contributivo'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+              }`}
+            />
+          </div>
+          {attempted && !inputs['imponibile_contributivo'] && (
+            <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+          )}
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+            <input
+              type="number"
+              step="0.01"
+              value={inputs['totale_contributi_for_fiscale'] || ''}
+              onChange={(e) => onInputChange('totale_contributi_for_fiscale', e.target.value)}
+              placeholder="0.00"
+              className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                attempted && !inputs['totale_contributi_for_fiscale'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+              }`}
+            />
+          </div>
+          {attempted && !inputs['totale_contributi_for_fiscale'] && (
+            <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+          )}
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-700 mb-1">ADJUSTMENT (প্লাস বা মাইনাস হতে পারে)</label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+          <input
+            type="number"
+            step="0.01"
+            value={inputs['adjustment'] || ''}
+            onChange={(e) => onInputChange('adjustment', e.target.value)}
+            placeholder="0.00 (পজিটিভ বা নেগেটিভ)"
+            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+              attempted && !inputs['adjustment'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+            }`}
+          />
+        </div>
+        {attempted && !inputs['adjustment'] && (
+          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
               {/* 18. IRPEF NETTA (Monthly) */}
               {isIrpefNettaMonthlyField && (
