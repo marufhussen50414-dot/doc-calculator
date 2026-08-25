@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1, Formula 2, Formula 3, Formula 4, Formula 5, Formula 6, Formula 7, Formula 8, and their sub-formulas in a compact layout.
+ * Displays Formula 1, Formula 2, Formula 3, Formula 4, Formula 5, Formula 6, Formula 7, Formula 8, Formula 9, and their sub-formulas in a compact layout.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -325,6 +325,52 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <div className="bg-white p-2.5 rounded border border-gray-200">
                   <span className="font-semibold text-gray-700">To calculate IMPON. CONTRIB. ARROT. MESE:</span>
                   <div className="text-gray-900 mt-1">IMPON. CONTRIB. ARROT. MESE = CONTR. AGG. TFR / 0,005</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 9 (IRPEF NETTA Calculation) & Sub-formulas */}
+          <div className="bg-gradient-to-r from-rose-50 to-pink-50 border-2 border-rose-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-rose-900 mb-3">
+              Formula 9 (IRPEF NETTA Calculation)
+            </h3>
+            
+            {/* Main Formula Box */}
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-rose-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-rose-700">IRPEF NETTA</span> ={' '}
+                <span className="font-bold text-pink-600">TOTALE TRATTENUTE</span> -{' '}
+                <span className="font-bold text-orange-600">TOTALE CONTRIBUTI</span> -{' '}
+                <span className="font-bold text-purple-600">ADDIZIONALI</span> -{' '}
+                <span className="font-bold text-blue-600">IMPOSTA SOSTITUTIVA</span>
+              </div>
+            </div>
+
+            {/* Sub-formulas / Backward Calculations */}
+            <div className="mt-4 border-t border-rose-200 pt-4">
+              <h4 className="text-sm font-bold text-rose-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate TOTALE TRATTENUTE:</span>
+                  <div className="text-gray-900 mt-1">TOTALE TRATTENUTE = IRPEF NETTA + TOTALE CONTRIBUTI + ADDIZIONALI + IMPOSTA SOSTITUTIVA</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate TOTALE CONTRIBUTI:</span>
+                  <div className="text-gray-900 mt-1">TOTALE CONTRIBUTI = TOTALE TRATTENUTE - IRPEF NETTA - ADDIZIONALI - IMPOSTA SOSTITUTIVA</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate ADDIZIONALI:</span>
+                  <div className="text-gray-900 mt-1">ADDIZIONALI = TOTALE TRATTENUTE - TOTALE CONTRIBUTI - IRPEF NETTA - IMPOSTA SOSTITUTIVA</div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">To calculate IMPOSTA SOSTITUTIVA:</span>
+                  <div className="text-gray-900 mt-1">IMPOSTA SOSTITUTIVA = TOTALE TRATTENUTE - TOTALE CONTRIBUTI - ADDIZIONALI - IRPEF NETTA</div>
                 </div>
               </div>
             </div>
