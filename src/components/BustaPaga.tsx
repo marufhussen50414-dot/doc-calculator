@@ -79,7 +79,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'formula' | 'alternative' | 'formula3'>('formula');
   
   // Totale Trattenute এর জন্য মোড স্টেট
-  const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2'>('formula1');
+  const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2' | 'formula3'>('formula1');
 
   // Totale Contributi (9) এর জন্য মোড স্টেট (Standard vs Alternative)
   const [totaleContributiMode, setTotaleContributiMode] = useState<'formula' | 'alternative'>('formula');
@@ -103,41 +103,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // 13. IRPEF NETTA (Monthly) এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
   const [irpefNettaMonthlyMode, setIrpefNettaMonthlyMode] = useState<'formula1' | 'formula2'>('formula1');
 
-  // ADDIZIONALI এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
-  const [addizionaliMode, setAddizionaliMode] = useState<'formula1' | 'formula2'>('formula1');
-
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
-    const fields = searchFields(searchQuery).map((field: any) => ({ ...field }));
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const addizionaliField = { id: 'addizionali', label: 'ADDIZIONALI' };
-
-    if (!normalizedQuery || addizionaliField.label.toLowerCase().includes(normalizedQuery)) {
-      if (!fields.some((field: any) => field.id === addizionaliField.id)) {
-        const impostaIndex = fields.findIndex((field: any) =>
-          String(field.label || '').toLowerCase().includes('imposta sostitutiva')
-        );
-        const irpefImpSostIndex = fields.findIndex((field: any) =>
-          String(field.label || '').toLowerCase().includes('irpef + imp. sost.')
-        );
-        const insertIndex = impostaIndex >= 0
-          ? impostaIndex + 1
-          : irpefImpSostIndex >= 0
-            ? irpefImpSostIndex + 1
-            : fields.length;
-        fields.splice(insertIndex, 0, addizionaliField);
-      }
-    }
-
-    if (!normalizedQuery) {
-      return fields.map((field: any, index: number) => ({
-        ...field,
-        label: `${index + 1}. ${String(field.label || '').replace(/^\d+\.\s*/, '')}`,
-      }));
-    }
-
-    return fields;
+    return searchFields(searchQuery);
   }, [searchQuery]);
 
   const handleInputChange = (fieldId: string, value: string) => {
@@ -177,7 +146,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setRetribuzioneUtileTfrMode('formula');
     setContrAggTfrMode('formula1');
     setIrpefNettaMonthlyMode('formula1');
-    setAddizionaliMode('formula1');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -210,15 +178,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getRequiredFields = (outputFieldId: string): string[] => {
-    let required = outputFieldId === 'addizionali'
-      ? (addizionaliMode === 'formula1'
-        ? ['addizionali_f1_totale_trattenute', 'addizionali_f1_irpef_imp_sost', 'addizionali_f1_totale_contributi']
-        : ['addizionali_f2_totale_trattenute', 'addizionali_f2_totale_contributi', 'addizionali_f2_irpef_netta', 'addizionali_f2_imposta_sostitutiva'])
-      : isImpostaSostitutivaField(outputFieldId)
-        ? ['imposta_sostitutiva_totale_trattenute', 'imposta_sostitutiva_totale_contributi', 'imposta_sostitutiva_addizionali', 'imposta_sostitutiva_irpef_netta']
-        : isImponContribArrotMeseField(outputFieldId)
-          ? ['contr_agg_tfr']
-          : calculator.getRequiredInputsForField(outputFieldId);
+    let required = isImponContribArrotMeseField(outputFieldId)
+      ? ['contr_agg_tfr']
+      : calculator.getRequiredInputsForField(outputFieldId);
     if (!enableRounding) {
       required = required.filter(id => id !== 'arr_preced' && id !== 'arr_attuale');
     }
@@ -292,18 +254,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       lower === '4_impon_contrib_arrot_mese' ||
       lower.includes('impon_contrib_arrot_mese') ||
       label.includes('impon. contrib. arrot. mese');
-  };
-
-  const isImpostaSostitutivaField = (fieldId: string | null): boolean => {
-    if (!fieldId) return false;
-    const field = calculator.fields.find((f: any) => f.id === fieldId);
-    const lower = fieldId.toLowerCase();
-    const label = (field?.label || '').toLowerCase();
-    return lower === 'imposta_sostitutiva' ||
-      lower === 'imposta_sostitutiva_mese' ||
-      lower === '15_imposta_sostitutiva_mese' ||
-      lower.includes('imposta_sostitutiva') ||
-      label.includes('imposta sostitutiva (monthly)');
   };
 
   const isIrpefNettaMonthlyField = (fieldId: string | null): boolean => {
@@ -388,9 +338,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
-      } else {
+      } else if (totaleTrattenuteMode === 'formula2') {
         const formula2Fields = ['irpef_imp_sost', 'totale_contributi', 'addizionali_field'];
         const missingFields = formula2Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
+      } else {
+        const formula3Fields = ['tt_f3_irpef_netta', 'tt_f3_totale_contributi', 'tt_f3_addizionali', 'tt_f3_imposta_sostitutiva'];
+        const missingFields = formula3Fields.filter(fId => {
           const val = inputs[fId];
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
         });
@@ -482,17 +439,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    if (isImpostaSostitutivaField(outputField)) {
-      const totaleTrattenute = parseFloat(String(inputs['imposta_sostitutiva_totale_trattenute'])) || 0;
-      const totaleContributi = parseFloat(String(inputs['imposta_sostitutiva_totale_contributi'])) || 0;
-      const addizionali = parseFloat(String(inputs['imposta_sostitutiva_addizionali'])) || 0;
-      const irpefNetta = parseFloat(String(inputs['imposta_sostitutiva_irpef_netta'])) || 0;
-      const calculatedImpostaSostitutiva = totaleTrattenute - totaleContributi - addizionali - irpefNetta;
-      setResults({ [outputField]: calculatedImpostaSostitutiva });
-      setShowResult(true);
-      return;
-    }
-
     if (isIrpefNettaMonthlyField(outputField)) {
       if (irpefNettaMonthlyMode === 'formula2') {
         const totTrattenute = parseFloat(String(inputs['irpef_netta_f2_totale_trattenute'])) || 0;
@@ -517,26 +463,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const calculatedImponContribArrotMese = contrAggTfr / 0.005;
       setResults({ [outputField]: calculatedImponContribArrotMese });
       setShowResult(true);
-      return;
-    }
-
-    if (outputField === 'addizionali') {
-      if (addizionaliMode === 'formula1') {
-        const totaleTrattenute = parseFloat(String(inputs['addizionali_f1_totale_trattenute'])) || 0;
-        const irpefImpSost = parseFloat(String(inputs['addizionali_f1_irpef_imp_sost'])) || 0;
-        const totaleContributi = parseFloat(String(inputs['addizionali_f1_totale_contributi'])) || 0;
-        const calculatedAddizionali = totaleTrattenute - irpefImpSost - totaleContributi;
-        setResults({ [outputField]: calculatedAddizionali });
-        setShowResult(true);
-      } else {
-        const totaleTrattenute = parseFloat(String(inputs['addizionali_f2_totale_trattenute'])) || 0;
-        const totaleContributi = parseFloat(String(inputs['addizionali_f2_totale_contributi'])) || 0;
-        const irpefNetta = parseFloat(String(inputs['addizionali_f2_irpef_netta'])) || 0;
-        const impostaSostitutiva = parseFloat(String(inputs['addizionali_f2_imposta_sostitutiva'])) || 0;
-        const calculatedAddizionali = totaleTrattenute - totaleContributi - irpefNetta - impostaSostitutiva;
-        setResults({ [outputField]: calculatedAddizionali });
-        setShowResult(true);
-      }
       return;
     }
 
@@ -608,6 +534,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
         const calculatedTrattenute = irpefImpSost + totaleContributi + addizionaliField;
         setResults({ [outputField]: calculatedTrattenute });
+        setShowResult(true);
+      } else if (totaleTrattenuteMode === 'formula3') {
+        const irpefNetta = parseFloat(String(inputs['tt_f3_irpef_netta'])) || 0;
+        const totaleContributiF3 = parseFloat(String(inputs['tt_f3_totale_contributi'])) || 0;
+        const addizionaliF3 = parseFloat(String(inputs['tt_f3_addizionali'])) || 0;
+        const impostaSostitutivaF3 = parseFloat(String(inputs['tt_f3_imposta_sostitutiva'])) || 0;
+
+        const calculatedTrattenuteF3 = irpefNetta + totaleContributiF3 + addizionaliF3 + impostaSostitutivaF3;
+        setResults({ [outputField]: calculatedTrattenuteF3 });
         setShowResult(true);
       }
       return;
@@ -724,13 +659,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     outputFields.forEach(field => {
       const result = isImponContribArrotMeseField(field)
         ? ((numericInputs['contr_agg_tfr'] || 0) / 0.005)
-        : isImpostaSostitutivaField(field)
-          ? ((numericInputs['imposta_sostitutiva_totale_trattenute'] || 0) - (numericInputs['imposta_sostitutiva_totale_contributi'] || 0) - (numericInputs['imposta_sostitutiva_addizionali'] || 0) - (numericInputs['imposta_sostitutiva_irpef_netta'] || 0))
-        : field === 'addizionali'
-          ? (addizionaliMode === 'formula1'
-            ? ((numericInputs['addizionali_f1_totale_trattenute'] || 0) - (numericInputs['addizionali_f1_irpef_imp_sost'] || 0) - (numericInputs['addizionali_f1_totale_contributi'] || 0))
-            : ((numericInputs['addizionali_f2_totale_trattenute'] || 0) - (numericInputs['addizionali_f2_totale_contributi'] || 0) - (numericInputs['addizionali_f2_irpef_netta'] || 0) - (numericInputs['addizionali_f2_imposta_sostitutiva'] || 0)))
-          : calculator.calculate(numericInputs, field);
+        : calculator.calculate(numericInputs, field);
       if (result !== null) {
         calculatedResults[field] = result;
       } else {
@@ -774,7 +703,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const getFieldLabel = (fieldId: string): string => {
-    if (fieldId === 'addizionali') return 'ADDIZIONALI';
     return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
   };
 
@@ -997,8 +925,6 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onContrAggTfrModeChange={setContrAggTfrMode}
             irpefNettaMonthlyMode={irpefNettaMonthlyMode}
             onIrpefNettaMonthlyModeChange={setIrpefNettaMonthlyMode}
-            addizionaliMode={addizionaliMode}
-            onAddizionaliModeChange={setAddizionaliMode}
             addValueResult={addValueResult}
             onCalculateAddValue={handleCalculateAddValue}
             onResetAddValue={handleResetAddValue}
@@ -1050,8 +976,8 @@ interface StandardModeCalculatorProps {
   onRemoveCustomField: (id: string) => void;
   irpefLordaMonthlyMode: 'formula' | 'alternative' | 'formula3';
   onIrpefLordaMonthlyModeChange: (mode: 'formula' | 'alternative' | 'formula3') => void;
-  totaleTrattenuteMode: 'formula1' | 'formula2';
-  onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2') => void;
+  totaleTrattenuteMode: 'formula1' | 'formula2' | 'formula3';
+  onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2' | 'formula3') => void;
   totaleContributiMode: 'formula' | 'alternative';
   onTotaleContributiModeChange: (mode: 'formula' | 'alternative') => void;
   irpefImpSostMode: 'formula1' | 'formula2';
@@ -1068,8 +994,6 @@ interface StandardModeCalculatorProps {
   onContrAggTfrModeChange: (mode: 'formula1' | 'formula2') => void;
   irpefNettaMonthlyMode: 'formula1' | 'formula2';
   onIrpefNettaMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
-  addizionaliMode: 'formula1' | 'formula2';
-  onAddizionaliModeChange: (mode: 'formula1' | 'formula2') => void;
   addValueResult: number | null;
   onCalculateAddValue: () => void;
   onResetAddValue: () => void;
@@ -1118,8 +1042,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onContrAggTfrModeChange,
   irpefNettaMonthlyMode,
   onIrpefNettaMonthlyModeChange,
-  addizionaliMode,
-  onAddizionaliModeChange,
   addValueResult,
   onCalculateAddValue,
   onResetAddValue,
@@ -1161,14 +1083,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase() === '4_impon_contrib_arrot_mese' ||
     outputField.toLowerCase().includes('impon_contrib_arrot_mese') ||
     getFieldLabel(outputField).toLowerCase().includes('impon. contrib. arrot. mese')
-  ) : false;
-  const isAddizionaliField = outputField === 'addizionali';
-  const isImpostaSostitutivaField = outputField ? (
-    outputField.toLowerCase() === 'imposta_sostitutiva' ||
-    outputField.toLowerCase() === 'imposta_sostitutiva_mese' ||
-    outputField.toLowerCase() === '15_imposta_sostitutiva_mese' ||
-    outputField.toLowerCase().includes('imposta_sostitutiva') ||
-    getFieldLabel(outputField).toLowerCase().includes('imposta sostitutiva (monthly)')
   ) : false;
 
   return (
@@ -1771,6 +1685,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       />
                       <span>Formula 2</span>
                     </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="totaleTrattenuteMode"
+                        checked={totaleTrattenuteMode === 'formula3'}
+                        onChange={() => onTotaleTrattenuteModeChange('formula3')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 3</span>
+                    </label>
                   </div>
                   
                   {totaleTrattenuteMode === 'formula1' ? (
@@ -1836,7 +1760,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         </>
                       )}
                     </div>
-                  ) : (
+                  ) : totaleTrattenuteMode === 'formula2' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF+IMP .SOST.</label>
@@ -1875,6 +1799,65 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             step="0.01"
                             value={inputs['addizionali_field'] || ''}
                             onChange={(e) => onInputChange('addizionali_field', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_irpef_netta'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_irpef_netta', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_totale_contributi'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_totale_contributi', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_addizionali'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_addizionali', e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['tt_f3_imposta_sostitutiva'] || ''}
+                            onChange={(e) => onInputChange('tt_f3_imposta_sostitutiva', e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
@@ -2140,125 +2123,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
-              {/* ADDIZIONALI */}
-              {isImpostaSostitutivaField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_totale_trattenute'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                      </div>
-                      {attempted && !inputs['imposta_sostitutiva_totale_trattenute'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_totale_contributi'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                      </div>
-                      {attempted && !inputs['imposta_sostitutiva_totale_contributi'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_addizionali'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_addizionali', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_addizionali'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                      </div>
-                      {attempted && !inputs['imposta_sostitutiva_addizionali'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_irpef_netta'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_irpef_netta', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                      </div>
-                      {attempted && !inputs['imposta_sostitutiva_irpef_netta'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {isAddizionaliField && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center space-x-6 mb-4">
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input type="radio" name="addizionaliMode" checked={addizionaliMode === 'formula1'} onChange={() => onAddizionaliModeChange('formula1')} className="text-indigo-600 focus:ring-indigo-500" />
-                      <span>Formula 1</span>
-                    </label>
-                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
-                      <input type="radio" name="addizionaliMode" checked={addizionaliMode === 'formula2'} onChange={() => onAddizionaliModeChange('formula2')} className="text-indigo-600 focus:ring-indigo-500" />
-                      <span>Formula 2</span>
-                    </label>
-                  </div>
-
-                  {addizionaliMode === 'formula1' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f1_totale_trattenute'] || ''} onChange={(e) => onInputChange('addizionali_f1_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        {attempted && !inputs['addizionali_f1_totale_trattenute'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF + IMP. SOST.</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f1_irpef_imp_sost'] || ''} onChange={(e) => onInputChange('addizionali_f1_irpef_imp_sost', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_irpef_imp_sost'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        {attempted && !inputs['addizionali_f1_irpef_imp_sost'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f1_totale_contributi'] || ''} onChange={(e) => onInputChange('addizionali_f1_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        {attempted && !inputs['addizionali_f1_totale_contributi'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_totale_trattenute'] || ''} onChange={(e) => onInputChange('addizionali_f2_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        {attempted && !inputs['addizionali_f2_totale_trattenute'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_totale_contributi'] || ''} onChange={(e) => onInputChange('addizionali_f2_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        {attempted && !inputs['addizionali_f2_totale_contributi'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_irpef_netta'] || ''} onChange={(e) => onInputChange('addizionali_f2_irpef_netta', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        {attempted && !inputs['addizionali_f2_irpef_netta'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_imposta_sostitutiva'] || ''} onChange={(e) => onInputChange('addizionali_f2_imposta_sostitutiva', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_imposta_sostitutiva'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        {attempted && !inputs['addizionali_f2_imposta_sostitutiva'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* IRPEF LORDA MONTHLY অপশন */}
               {isIrpefLordaMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -2465,8 +2329,6 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isContrAggTfrField &&
                 !isImponContribArrotMeseField &&
                 !isIrpefNettaMonthlyField &&
-                !isAddizionaliField &&
-                !isImpostaSostitutivaField &&
                 (!isIrpefLordaMonthlyField || irpefLordaMonthlyMode === 'formula') &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
