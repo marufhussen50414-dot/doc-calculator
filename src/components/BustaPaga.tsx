@@ -100,6 +100,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // 26. CONTR. AGG. TFR এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
   const [contrAggTfrMode, setContrAggTfrMode] = useState<'formula1' | 'formula2'>('formula1');
 
+  // 13. IRPEF NETTA (Monthly) এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
+  const [irpefNettaMonthlyMode, setIrpefNettaMonthlyMode] = useState<'formula1' | 'formula2'>('formula1');
+
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
@@ -142,6 +145,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setDetrLavDipMonthlyMode('formula1');
     setRetribuzioneUtileTfrMode('formula');
     setContrAggTfrMode('formula1');
+    setIrpefNettaMonthlyMode('formula1');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -270,6 +274,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isIrpefNettaMonthlyField(outputFieldId)) {
+      if (irpefNettaMonthlyMode === 'formula2') {
+        const f2Fields = ['irpef_netta_f2_totale_trattenute', 'irpef_netta_f2_totale_contributi', 'irpef_netta_f2_addizionali', 'irpef_netta_f2_imposta_sostitutiva'];
+        const missingFields = f2Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
+      }
       const fields = ['irpef_lorda_mese', 'detr_lav_dip'];
       const missingFields = fields.filter(fId => {
         const val = inputs[fId];
@@ -421,6 +433,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isIrpefNettaMonthlyField(outputField)) {
+      if (irpefNettaMonthlyMode === 'formula2') {
+        const totTrattenute = parseFloat(String(inputs['irpef_netta_f2_totale_trattenute'])) || 0;
+        const totContributi = parseFloat(String(inputs['irpef_netta_f2_totale_contributi'])) || 0;
+        const addizionali = parseFloat(String(inputs['irpef_netta_f2_addizionali'])) || 0;
+        const impostaSostitutiva = parseFloat(String(inputs['irpef_netta_f2_imposta_sostitutiva'])) || 0;
+        const calculatedIrpefNettaF2 = totTrattenute - totContributi - addizionali - impostaSostitutiva;
+        setResults({ [outputField]: calculatedIrpefNettaF2 });
+        setShowResult(true);
+        return;
+      }
       const irpefLorda = parseFloat(String(inputs['irpef_lorda_mese'])) || 0;
       const detrLavDip = parseFloat(String(inputs['detr_lav_dip'])) || 0;
       const calculatedIrpefNetta = irpefLorda - detrLavDip;
@@ -885,6 +907,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             }}
             contrAggTfrMode={contrAggTfrMode}
             onContrAggTfrModeChange={setContrAggTfrMode}
+            irpefNettaMonthlyMode={irpefNettaMonthlyMode}
+            onIrpefNettaMonthlyModeChange={setIrpefNettaMonthlyMode}
             addValueResult={addValueResult}
             onCalculateAddValue={handleCalculateAddValue}
             onResetAddValue={handleResetAddValue}
@@ -952,6 +976,8 @@ interface StandardModeCalculatorProps {
   onRemoveRetribuzioneUtileTfrCustomField: (id: string) => void;
   contrAggTfrMode: 'formula1' | 'formula2';
   onContrAggTfrModeChange: (mode: 'formula1' | 'formula2') => void;
+  irpefNettaMonthlyMode: 'formula1' | 'formula2';
+  onIrpefNettaMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
   addValueResult: number | null;
   onCalculateAddValue: () => void;
   onResetAddValue: () => void;
@@ -998,6 +1024,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onRemoveRetribuzioneUtileTfrCustomField,
   contrAggTfrMode,
   onContrAggTfrModeChange,
+  irpefNettaMonthlyMode,
+  onIrpefNettaMonthlyModeChange,
   addValueResult,
   onCalculateAddValue,
   onResetAddValue,
@@ -1115,46 +1143,150 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               {/* 18. IRPEF NETTA (Monthly) */}
               {isIrpefNettaMonthlyField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">17. IRPEF LORDA (Monthly)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs['irpef_lorda_mese'] || ''}
-                          onChange={(e) => onInputChange('irpef_lorda_mese', e.target.value)}
-                          placeholder="0.00"
-                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                            attempted && !inputs['irpef_lorda_mese'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
-                      {attempted && !inputs['irpef_lorda_mese'] && (
-                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={inputs['detr_lav_dip'] || ''}
-                          onChange={(e) => onInputChange('detr_lav_dip', e.target.value)}
-                          placeholder="0.00"
-                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                            attempted && !inputs['detr_lav_dip'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
-                      {attempted && !inputs['detr_lav_dip'] && (
-                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
-                      )}
-                    </div>
+                  <div className="flex items-center space-x-6 mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefNettaMonthlyMode"
+                        checked={irpefNettaMonthlyMode === 'formula1'}
+                        onChange={() => onIrpefNettaMonthlyModeChange('formula1')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefNettaMonthlyMode"
+                        checked={irpefNettaMonthlyMode === 'formula2'}
+                        onChange={() => onIrpefNettaMonthlyModeChange('formula2')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
                   </div>
+
+                  {irpefNettaMonthlyMode === 'formula1' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">17. IRPEF LORDA (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_lorda_mese'] || ''}
+                            onChange={(e) => onInputChange('irpef_lorda_mese', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['irpef_lorda_mese'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['irpef_lorda_mese'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">DETR. LAV. DIPENDENTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['detr_lav_dip'] || ''}
+                            onChange={(e) => onInputChange('detr_lav_dip', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['detr_lav_dip'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['detr_lav_dip'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_netta_f2_totale_trattenute'] || ''}
+                            onChange={(e) => onInputChange('irpef_netta_f2_totale_trattenute', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['irpef_netta_f2_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['irpef_netta_f2_totale_trattenute'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_netta_f2_totale_contributi'] || ''}
+                            onChange={(e) => onInputChange('irpef_netta_f2_totale_contributi', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['irpef_netta_f2_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['irpef_netta_f2_totale_contributi'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_netta_f2_addizionali'] || ''}
+                            onChange={(e) => onInputChange('irpef_netta_f2_addizionali', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['irpef_netta_f2_addizionali'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['irpef_netta_f2_addizionali'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['irpef_netta_f2_imposta_sostitutiva'] || ''}
+                            onChange={(e) => onInputChange('irpef_netta_f2_imposta_sostitutiva', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['irpef_netta_f2_imposta_sostitutiva'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['irpef_netta_f2_imposta_sostitutiva'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
