@@ -327,7 +327,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else {
-        const formula2Fields = ['irpef_imp_sost', 'totale_contributi', 'trattenute_field'];
+        const formula2Fields = ['irpef_imp_sost', 'totale_contributi', 'addizionali_field'];
         const missingFields = formula2Fields.filter(fId => {
           const val = inputs[fId];
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
@@ -501,9 +501,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       } else if (totaleTrattenuteMode === 'formula2') {
         const irpefImpSost = parseFloat(String(inputs['irpef_imp_sost'])) || 0;
         const totaleContributi = parseFloat(String(inputs['totale_contributi'])) || 0;
-        const trattenuteField = parseFloat(String(inputs['trattenute_field'])) || 0;
+        const addizionaliField = parseFloat(String(inputs['addizionali_field'])) || 0;
 
-        const calculatedTrattenute = irpefImpSost + totaleContributi + trattenuteField;
+        const calculatedTrattenute = irpefImpSost + totaleContributi + addizionaliField;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       }
@@ -1633,14 +1633,14 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         </div>
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">TRATTENUTE</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
                             type="number"
                             step="0.01"
-                            value={inputs['trattenute_field'] || ''}
-                            onChange={(e) => onInputChange('trattenute_field', e.target.value)}
+                            value={inputs['addizionali_field'] || ''}
+                            onChange={(e) => onInputChange('addizionali_field', e.target.value)}
                             placeholder="0.00"
                             className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                           />
