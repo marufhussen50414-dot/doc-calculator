@@ -1009,6 +1009,21 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }).format(value);
   };
 
+  const formatFullPrecision = (value: number): string => {
+    // ফ্লোটিং পয়েন্ট এর সামান্য ভুল (যেমন 56.40289999999) দূর করার জন্য রাউন্ড করা হচ্ছে
+    const rounded = Math.round(value * 1e8) / 1e8;
+    let str = rounded.toString();
+    if (!str.includes('.')) {
+      str = str + '.00';
+    } else {
+      const decimals = str.split('.')[1];
+      if (decimals.length === 1) {
+        str = str + '0';
+      }
+    }
+    return str;
+  };
+
   const getFieldLabel = (fieldId: string): string => {
     if (fieldId === 'addizionali') return 'ADDIZIONALI';
     return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
@@ -3281,7 +3296,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   </div>
                   <div className="flex justify-end mt-1">
                     <span className="text-xs text-black">
-                      {(results[outputField] || 0).toFixed(4)} €
+                      {formatFullPrecision(results[outputField] || 0)} €
                     </span>
                   </div>
                 </div>
