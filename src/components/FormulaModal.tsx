@@ -1,4 +1,4 @@
-
+import React from 'react';
 
 interface FormulaModalProps {
   isOpen: boolean;
@@ -531,6 +531,41 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <span className="font-bold text-green-600">SCATTI ANZ.</span>
               </div>
             </div>
+
+            <div className="mt-4 border-t border-lime-200 pt-4">
+              <h4 className="text-sm font-bold text-lime-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate PAGA BASE CONGLOBATA:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    PAGA BASE CONGLOBATA = RETRIBUZIONE MENSILE - CONTINGENZA - SCATTI ANZ.
+                  </div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate CONTINGENZA:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    CONTINGENZA = RETRIBUZIONE MENSILE - PAGA BASE CONGLOBATA - SCATTI ANZ.
+                  </div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate SCATTI ANZ.:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    SCATTI ANZ. = RETRIBUZIONE MENSILE - PAGA BASE CONGLOBATA - CONTINGENZA
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Formula 12 */}
@@ -544,6 +579,32 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <span className="font-bold text-yellow-700">RETRIBUZIONE GIORNALIERA</span> ={' '}
                 <span className="font-bold text-indigo-600">RETRIBUZIONE MENSILE</span> /{' '}
                 <span className="font-bold text-orange-600">GG. RETR.</span>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-yellow-200 pt-4">
+              <h4 className="text-sm font-bold text-yellow-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate RETRIBUZIONE MENSILE:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    RETRIBUZIONE MENSILE = RETRIBUZIONE GIORNALIERA × GG. RETR.
+                  </div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate GG. RETR.:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    GG. RETR. = RETRIBUZIONE MENSILE / RETRIBUZIONE GIORNALIERA
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -561,6 +622,23 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <span className="font-bold text-gray-700">172</span>
               </div>
             </div>
+
+            <div className="mt-4 border-t border-fuchsia-200 pt-4">
+              <h4 className="text-sm font-bold text-fuchsia-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate RETRIBUZIONE MENSILE:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    RETRIBUZIONE MENSILE = RETRIBUZIONE ORARIA × 172
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Formula 14 */}
@@ -574,6 +652,32 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
                 <span className="font-bold text-orange-700">RETRIBUZIONE ORDINARIA</span> ={' '}
                 <span className="font-bold text-indigo-600">GG. LAV.</span> ×{' '}
                 <span className="font-bold text-red-600">RETRIBUZIONE GIORNALIERA</span>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-orange-200 pt-4">
+              <h4 className="text-sm font-bold text-orange-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate GG. LAV.:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    GG. LAV. = RETRIBUZIONE ORDINARIA / RETRIBUZIONE GIORNALIERA
+                  </div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate RETRIBUZIONE GIORNALIERA:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    RETRIBUZIONE GIORNALIERA = RETRIBUZIONE ORDINARIA / GG. LAV.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
