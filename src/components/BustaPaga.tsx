@@ -115,6 +115,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // RETRIBUZIONE MENSILE এর জন্য মোড স্টেট (Formula 1 vs Formula 2 vs Formula 3)
   const [retribuzioneMensileMode, setRetribuzioneMensileMode] = useState<'formula1' | 'formula2' | 'formula3'>('formula1');
 
+  // ---- NEW: RETRIBUZIONE GIORNALIERA এর জন্য মোড স্টেট (Formula 1 vs Formula 2) ----
+  const [retribuzioneGiornalieraMode, setRetribuzioneGiornalieraMode] = useState<'formula1' | 'formula2'>('formula1');
+
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
@@ -201,6 +204,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setAddizionaliMode('formula1');
     setImponibileFiscaleMonthlyMode('formula1');
     setRetribuzioneMensileMode('formula1');
+    setRetribuzioneGiornalieraMode('formula1'); // NEW
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -313,7 +317,27 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       label.includes('retribuzione ordinaria');
   };
 
+  // ---- RETRIBUZIONE GIORNALIERA ----
+  const isRetribuzioneGiornalieraField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'retribuzione_giornaliera' ||
+      lower.includes('retribuzione_giornaliera') ||
+      label.includes('retribuzione giornaliera');
+  };
+
   const getRequiredFields = (outputFieldId: string): string[] => {
+    // ---- RETRIBUZIONE GIORNALIERA ----
+    if (isRetribuzioneGiornalieraField(outputFieldId)) {
+      if (retribuzioneGiornalieraMode === 'formula1') {
+        return ['retribuzione_mensile_for_giornaliera_f1', 'gg_retr_for_giornaliera_f1'];
+      } else {
+        return ['retribuzione_ordinaria_for_giornaliera_f2', 'gg_lav_for_giornaliera_f2'];
+      }
+    }
+
     // ---- PAGA BASE CONGLOBATA ----
     if (isPagaBaseConglobataField(outputFieldId)) {
       return ['retribuzione_mensile_for_paga_base', 'contingenza_for_paga_base', 'scatti_anz_for_paga_base'];
@@ -464,6 +488,25 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
+    // ---- RETRIBUZIONE GIORNALIERA ----
+    if (isRetribuzioneGiornalieraField(outputFieldId)) {
+      if (retribuzioneGiornalieraMode === 'formula1') {
+        const required = ['retribuzione_mensile_for_giornaliera_f1', 'gg_retr_for_giornaliera_f1'];
+        const missing = required.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missing.length === 0, missing };
+      } else {
+        const required = ['retribuzione_ordinaria_for_giornaliera_f2', 'gg_lav_for_giornaliera_f2'];
+        const missing = required.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missing.length === 0, missing };
+      }
+    }
+
     // ---- PAGA BASE CONGLOBATA ----
     if (isPagaBaseConglobataField(outputFieldId)) {
       const required = ['retribuzione_mensile_for_paga_base', 'contingenza_for_paga_base', 'scatti_anz_for_paga_base'];
@@ -774,6 +817,24 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
+      return;
+    }
+
+    // ---- RETRIBUZIONE GIORNALIERA ----
+    if (isRetribuzioneGiornalieraField(outputField)) {
+      if (retribuzioneGiornalieraMode === 'formula1') {
+        const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_giornaliera_f1'])) || 0;
+        const ggRetr = parseFloat(String(inputs['gg_retr_for_giornaliera_f1'])) || 1;
+        const calculatedRetribuzioneGiornaliera = retribuzioneMensile / ggRetr;
+        setResults({ [outputField]: calculatedRetribuzioneGiornaliera });
+        setShowResult(true);
+      } else {
+        const retribuzioneOrdinaria = parseFloat(String(inputs['retribuzione_ordinaria_for_giornaliera_f2'])) || 0;
+        const ggLav = parseFloat(String(inputs['gg_lav_for_giornaliera_f2'])) || 1;
+        const calculatedRetribuzioneGiornaliera = retribuzioneOrdinaria / ggLav;
+        setResults({ [outputField]: calculatedRetribuzioneGiornaliera });
+        setShowResult(true);
+      }
       return;
     }
 
@@ -1168,8 +1229,20 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     outputFields.forEach(field => {
       let result: number | null = null;
 
+      // ---- RETRIBUZIONE GIORNALIERA ----
+      if (isRetribuzioneGiornalieraField(field)) {
+        if (retribuzioneGiornalieraMode === 'formula1') {
+          const retribuzioneMensile = numericInputs['retribuzione_mensile_for_giornaliera_f1'] || 0;
+          const ggRetr = numericInputs['gg_retr_for_giornaliera_f1'] || 1;
+          result = retribuzioneMensile / ggRetr;
+        } else {
+          const retribuzioneOrdinaria = numericInputs['retribuzione_ordinaria_for_giornaliera_f2'] || 0;
+          const ggLav = numericInputs['gg_lav_for_giornaliera_f2'] || 1;
+          result = retribuzioneOrdinaria / ggLav;
+        }
+      }
       // ---- PAGA BASE CONGLOBATA ----
-      if (isPagaBaseConglobataField(field)) {
+      else if (isPagaBaseConglobataField(field)) {
         const retribuzioneMensile = numericInputs['retribuzione_mensile_for_paga_base'] || 0;
         const contingenza = numericInputs['contingenza_for_paga_base'] || 0;
         const scattiAnz = numericInputs['scatti_anz_for_paga_base'] || 0;
@@ -1522,6 +1595,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onImponibileFiscaleMonthlyModeChange={setImponibileFiscaleMonthlyMode}
             retribuzioneMensileMode={retribuzioneMensileMode}
             onRetribuzioneMensileModeChange={setRetribuzioneMensileMode}
+            retribuzioneGiornalieraMode={retribuzioneGiornalieraMode}
+            onRetribuzioneGiornalieraModeChange={setRetribuzioneGiornalieraMode}
           />
         )}
 
@@ -1598,6 +1673,8 @@ interface StandardModeCalculatorProps {
   onImponibileFiscaleMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
   retribuzioneMensileMode: 'formula1' | 'formula2' | 'formula3';
   onRetribuzioneMensileModeChange: (mode: 'formula1' | 'formula2' | 'formula3') => void;
+  retribuzioneGiornalieraMode: 'formula1' | 'formula2';
+  onRetribuzioneGiornalieraModeChange: (mode: 'formula1' | 'formula2') => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -1653,6 +1730,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onImponibileFiscaleMonthlyModeChange,
   retribuzioneMensileMode,
   onRetribuzioneMensileModeChange,
+  retribuzioneGiornalieraMode,
+  onRetribuzioneGiornalieraModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTotaleCompetenzeField = outputField === 'totale_comp';
@@ -1738,6 +1817,13 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase() === 'retribuzione_ordinaria' ||
     outputField.toLowerCase().includes('retribuzione_ordinaria') ||
     getFieldLabel(outputField).toLowerCase().includes('retribuzione ordinaria')
+  ) : false;
+
+  // ---- RETRIBUZIONE GIORNALIERA ----
+  const isRetribuzioneGiornalieraField = outputField ? (
+    outputField.toLowerCase() === 'retribuzione_giornaliera' ||
+    outputField.toLowerCase().includes('retribuzione_giornaliera') ||
+    getFieldLabel(outputField).toLowerCase().includes('retribuzione giornaliera')
   ) : false;
 
   // 6. IMPONIBILE FISCALE (Monthly)
@@ -1836,6 +1922,116 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
+
+              {/* ---- RETRIBUZIONE GIORNALIERA ---- */}
+              {isRetribuzioneGiornalieraField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="retribuzioneGiornalieraMode"
+                        checked={retribuzioneGiornalieraMode === 'formula1'}
+                        onChange={() => onRetribuzioneGiornalieraModeChange('formula1')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="retribuzioneGiornalieraMode"
+                        checked={retribuzioneGiornalieraMode === 'formula2'}
+                        onChange={() => onRetribuzioneGiornalieraModeChange('formula2')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
+                  </div>
+
+                  {retribuzioneGiornalieraMode === 'formula1' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE MENSILE</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['retribuzione_mensile_for_giornaliera_f1'] || ''}
+                            onChange={(e) => onInputChange('retribuzione_mensile_for_giornaliera_f1', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['retribuzione_mensile_for_giornaliera_f1'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['retribuzione_mensile_for_giornaliera_f1'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">GG. RETR.</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['gg_retr_for_giornaliera_f1'] || ''}
+                            onChange={(e) => onInputChange('gg_retr_for_giornaliera_f1', e.target.value)}
+                            placeholder="0"
+                            className={`w-full pl-4 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['gg_retr_for_giornaliera_f1'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['gg_retr_for_giornaliera_f1'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE ORDINARIA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['retribuzione_ordinaria_for_giornaliera_f2'] || ''}
+                            onChange={(e) => onInputChange('retribuzione_ordinaria_for_giornaliera_f2', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['retribuzione_ordinaria_for_giornaliera_f2'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['retribuzione_ordinaria_for_giornaliera_f2'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">GG. LAV.</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['gg_lav_for_giornaliera_f2'] || ''}
+                            onChange={(e) => onInputChange('gg_lav_for_giornaliera_f2', e.target.value)}
+                            placeholder="0"
+                            className={`w-full pl-4 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['gg_lav_for_giornaliera_f2'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['gg_lav_for_giornaliera_f2'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ---- PAGA BASE CONGLOBATA ---- */}
               {isPagaBaseConglobataField && (
@@ -3701,7 +3897,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && !isIrpefLordaMonthlyField && !isPagaBaseConglobataField && !isContingenzaField && !isScattiAnzField && !isRetribuzioneOrariaField && !isRetribuzioneOrdinariaField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && !isIrpefLordaMonthlyField && !isPagaBaseConglobataField && !isContingenzaField && !isScattiAnzField && !isRetribuzioneOrariaField && !isRetribuzioneOrdinariaField && !isRetribuzioneGiornalieraField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -3966,6 +4162,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isScattiAnzField &&
                 !isRetribuzioneOrariaField &&
                 !isRetribuzioneOrdinariaField &&
+                !isRetribuzioneGiornalieraField &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
                 <>
