@@ -77,7 +77,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   ]);
 
   // 7. IRPEF LORDA (Monthly) এর জন্য মোড স্টেট - Formula 1 রিমুভ করা হয়েছে
-  const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'alternative' | 'formula3'>('alternative');
+  const [irpefLordaMonthlyMode, setIrpefLordaMonthlyMode] = useState<'alternative' | 'formula3' | 'formula4'>('alternative');
   
   // Totale Trattenute এর জন্য মোড স্টেট
   const [totaleTrattenuteMode, setTotaleTrattenuteMode] = useState<'formula1' | 'formula2' | 'formula3'>('formula1');
@@ -540,6 +540,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           return val === undefined || val === '' || isNaN(parseFloat(String(val)));
         });
         return { valid: missingF3.length === 0, missing: missingF3 };
+      } else if (irpefLordaMonthlyMode === 'formula4') {
+        const f4Fields = ['f4_imponibile_fiscale'];
+        const missingF4 = f4Fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingF4.length === 0, missing: missingF4 };
       }
     }
 
@@ -862,6 +869,12 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const detrLavDip = parseFloat(String(inputs['f3_detr_lav_dip'])) || 0;
         const calculatedF3Result = irpefNetta + detrLavDip;
         setResults({ [outputField]: calculatedF3Result });
+        setShowResult(true);
+        return;
+      } else if (irpefLordaMonthlyMode === 'formula4') {
+        const imponibileFiscale = parseFloat(String(inputs['f4_imponibile_fiscale'])) || 0;
+        const calculatedF4Result = imponibileFiscale * 0.23;
+        setResults({ [outputField]: calculatedF4Result });
         setShowResult(true);
         return;
       }
@@ -1271,7 +1284,7 @@ interface StandardModeCalculatorProps {
   onCustomFieldChange: (id: string, value: string) => void;
   onAddCustomField: () => void;
   onRemoveCustomField: (id: string) => void;
-  irpefLordaMonthlyMode: 'alternative' | 'formula3';
+  irpefLordaMonthlyMode: 'alternative' | 'formula3' | 'formula4';
   onIrpefLordaMonthlyModeChange: (mode: 'alternative' | 'formula3') => void;
   totaleTrattenuteMode: 'formula1' | 'formula2' | 'formula3';
   onTotaleTrattenuteModeChange: (mode: 'formula1' | 'formula2' | 'formula3') => void;
@@ -1705,6 +1718,16 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       />
                       <span>Formula 2</span>
                     </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="irpefLordaMonthlyMode"
+                        checked={irpefLordaMonthlyMode === 'formula4'}
+                        onChange={() => onIrpefLordaMonthlyModeChange('formula4')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 3</span>
+                    </label>
                   </div>
                   {irpefLordaMonthlyMode === 'alternative' && (
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1789,6 +1812,29 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           />
                         </div>
                         {attempted && !inputs['f3_detr_lav_dip'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {irpefLordaMonthlyMode === 'formula4' && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IMPONIBILE FISCALE (Monthly)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['f4_imponibile_fiscale'] || ''}
+                            onChange={(e) => onInputChange('f4_imponibile_fiscale', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['f4_imponibile_fiscale'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['f4_imponibile_fiscale'] && (
                           <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
                         )}
                       </div>
