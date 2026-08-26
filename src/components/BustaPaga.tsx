@@ -1009,6 +1009,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }).format(value);
   };
 
+  const formatPreciseCurrency = (value: number): string => {
+    return new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    }).format(value);
+  };
+
   const getFieldLabel = (fieldId: string): string => {
     if (fieldId === 'addizionali') return 'ADDIZIONALI';
     return calculator.fields.find((f: any) => f.id === fieldId)?.label || fieldId;
@@ -3270,12 +3279,17 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               </div>
 
               {showResult && (
-                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="mt-6 p-4 bg-white border border-black rounded-lg">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-emerald-800">Result ({getFieldLabel(outputField)}):</span>
-                    <span className="text-xl font-bold text-emerald-900">
-                      {formatCurrency(results[outputField] || 0)}
-                    </span>
+                    <span className="text-sm font-semibold text-black">{getFieldLabel(outputField)}</span>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-black">
+                        {formatCurrency(results[outputField] || 0)}
+                      </div>
+                      <div className="text-xs text-black mt-1">
+                        {formatPreciseCurrency(results[outputField] || 0)}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
