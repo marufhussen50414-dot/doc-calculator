@@ -258,7 +258,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       label.includes('imponibile fiscale adjustment');
   };
 
-  // ---- NEW: PAGA BASE CONGLOBATA ফিল্ড চিহ্নিত করার ফাংশন ----
+  // ---- PAGA BASE CONGLOBATA ----
   const isPagaBaseConglobataField = (fieldId: string | null): boolean => {
     if (!fieldId) return false;
     const field = calculator.fields.find((f: any) => f.id === fieldId);
@@ -269,10 +269,74 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       label.includes('paga base conglobata');
   };
 
+  // ---- CONTINGENZA ----
+  const isContingenzaField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'contingenza' ||
+      lower.includes('contingenza') ||
+      label.includes('contingenza');
+  };
+
+  // ---- SCATTI ANZ. ----
+  const isScattiAnzField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'scatti_anz' ||
+      lower.includes('scatti_anz') ||
+      label.includes('scatti anz');
+  };
+
+  // ---- RETRIBUZIONE ORARIA ----
+  const isRetribuzioneOrariaField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'retribuzione_oraria' ||
+      lower.includes('retribuzione_oraria') ||
+      label.includes('retribuzione oraria');
+  };
+
+  // ---- RETRIBUZIONE ORDINARIA ----
+  const isRetribuzioneOrdinariaField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'retribuzione_ordinaria' ||
+      lower.includes('retribuzione_ordinaria') ||
+      label.includes('retribuzione ordinaria');
+  };
+
   const getRequiredFields = (outputFieldId: string): string[] => {
-    // ---- NEW: PAGA BASE CONGLOBATA ----
+    // ---- PAGA BASE CONGLOBATA ----
     if (isPagaBaseConglobataField(outputFieldId)) {
       return ['retribuzione_mensile_for_paga_base', 'contingenza_for_paga_base', 'scatti_anz_for_paga_base'];
+    }
+
+    // ---- CONTINGENZA ----
+    if (isContingenzaField(outputFieldId)) {
+      return ['retribuzione_mensile_for_contingenza', 'paga_base_conglobata_for_contingenza', 'scatti_anz_for_contingenza'];
+    }
+
+    // ---- SCATTI ANZ. ----
+    if (isScattiAnzField(outputFieldId)) {
+      return ['retribuzione_mensile_for_scatti', 'paga_base_conglobata_for_scatti', 'contingenza_for_scatti'];
+    }
+
+    // ---- RETRIBUZIONE ORARIA ----
+    if (isRetribuzioneOrariaField(outputFieldId)) {
+      return ['retribuzione_mensile_for_oraria'];
+    }
+
+    // ---- RETRIBUZIONE ORDINARIA ----
+    if (isRetribuzioneOrdinariaField(outputFieldId)) {
+      return ['gg_lav_for_ordinaria', 'retribuzione_giornaliera_for_ordinaria'];
     }
 
     let required = outputFieldId === 'addizionali'
@@ -400,9 +464,49 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
-    // ---- NEW: PAGA BASE CONGLOBATA ----
+    // ---- PAGA BASE CONGLOBATA ----
     if (isPagaBaseConglobataField(outputFieldId)) {
       const required = ['retribuzione_mensile_for_paga_base', 'contingenza_for_paga_base', 'scatti_anz_for_paga_base'];
+      const missing = required.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missing.length === 0, missing };
+    }
+
+    // ---- CONTINGENZA ----
+    if (isContingenzaField(outputFieldId)) {
+      const required = ['retribuzione_mensile_for_contingenza', 'paga_base_conglobata_for_contingenza', 'scatti_anz_for_contingenza'];
+      const missing = required.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missing.length === 0, missing };
+    }
+
+    // ---- SCATTI ANZ. ----
+    if (isScattiAnzField(outputFieldId)) {
+      const required = ['retribuzione_mensile_for_scatti', 'paga_base_conglobata_for_scatti', 'contingenza_for_scatti'];
+      const missing = required.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missing.length === 0, missing };
+    }
+
+    // ---- RETRIBUZIONE ORARIA ----
+    if (isRetribuzioneOrariaField(outputFieldId)) {
+      const required = ['retribuzione_mensile_for_oraria'];
+      const missing = required.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missing.length === 0, missing };
+    }
+
+    // ---- RETRIBUZIONE ORDINARIA ----
+    if (isRetribuzioneOrdinariaField(outputFieldId)) {
+      const required = ['gg_lav_for_ordinaria', 'retribuzione_giornaliera_for_ordinaria'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
         return val === undefined || val === '' || isNaN(parseFloat(String(val)));
@@ -673,13 +777,54 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       return;
     }
 
-    // ---- NEW: PAGA BASE CONGLOBATA ----
+    // ---- PAGA BASE CONGLOBATA ----
     if (isPagaBaseConglobataField(outputField)) {
       const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_paga_base'])) || 0;
       const contingenza = parseFloat(String(inputs['contingenza_for_paga_base'])) || 0;
       const scattiAnz = parseFloat(String(inputs['scatti_anz_for_paga_base'])) || 0;
       const calculatedPagaBase = retribuzioneMensile - contingenza - scattiAnz;
       setResults({ [outputField]: calculatedPagaBase });
+      setShowResult(true);
+      return;
+    }
+
+    // ---- CONTINGENZA ----
+    if (isContingenzaField(outputField)) {
+      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_contingenza'])) || 0;
+      const pagaBaseConglobata = parseFloat(String(inputs['paga_base_conglobata_for_contingenza'])) || 0;
+      const scattiAnz = parseFloat(String(inputs['scatti_anz_for_contingenza'])) || 0;
+      const calculatedContingenza = retribuzioneMensile - pagaBaseConglobata - scattiAnz;
+      setResults({ [outputField]: calculatedContingenza });
+      setShowResult(true);
+      return;
+    }
+
+    // ---- SCATTI ANZ. ----
+    if (isScattiAnzField(outputField)) {
+      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_scatti'])) || 0;
+      const pagaBaseConglobata = parseFloat(String(inputs['paga_base_conglobata_for_scatti'])) || 0;
+      const contingenza = parseFloat(String(inputs['contingenza_for_scatti'])) || 0;
+      const calculatedScattiAnz = retribuzioneMensile - pagaBaseConglobata - contingenza;
+      setResults({ [outputField]: calculatedScattiAnz });
+      setShowResult(true);
+      return;
+    }
+
+    // ---- RETRIBUZIONE ORARIA ----
+    if (isRetribuzioneOrariaField(outputField)) {
+      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_oraria'])) || 0;
+      const calculatedRetribuzioneOraria = retribuzioneMensile / 172;
+      setResults({ [outputField]: calculatedRetribuzioneOraria });
+      setShowResult(true);
+      return;
+    }
+
+    // ---- RETRIBUZIONE ORDINARIA ----
+    if (isRetribuzioneOrdinariaField(outputField)) {
+      const ggLav = parseFloat(String(inputs['gg_lav_for_ordinaria'])) || 0;
+      const retribuzioneGiornaliera = parseFloat(String(inputs['retribuzione_giornaliera_for_ordinaria'])) || 0;
+      const calculatedRetribuzioneOrdinaria = ggLav * retribuzioneGiornaliera;
+      setResults({ [outputField]: calculatedRetribuzioneOrdinaria });
       setShowResult(true);
       return;
     }
@@ -1023,13 +1168,39 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     outputFields.forEach(field => {
       let result: number | null = null;
 
-      // ---- NEW: PAGA BASE CONGLOBATA ----
+      // ---- PAGA BASE CONGLOBATA ----
       if (isPagaBaseConglobataField(field)) {
         const retribuzioneMensile = numericInputs['retribuzione_mensile_for_paga_base'] || 0;
         const contingenza = numericInputs['contingenza_for_paga_base'] || 0;
         const scattiAnz = numericInputs['scatti_anz_for_paga_base'] || 0;
         result = retribuzioneMensile - contingenza - scattiAnz;
-      } else if (isImponibileFiscaleMonthlyField(field)) {
+      } 
+      // ---- CONTINGENZA ----
+      else if (isContingenzaField(field)) {
+        const retribuzioneMensile = numericInputs['retribuzione_mensile_for_contingenza'] || 0;
+        const pagaBaseConglobata = numericInputs['paga_base_conglobata_for_contingenza'] || 0;
+        const scattiAnz = numericInputs['scatti_anz_for_contingenza'] || 0;
+        result = retribuzioneMensile - pagaBaseConglobata - scattiAnz;
+      }
+      // ---- SCATTI ANZ. ----
+      else if (isScattiAnzField(field)) {
+        const retribuzioneMensile = numericInputs['retribuzione_mensile_for_scatti'] || 0;
+        const pagaBaseConglobata = numericInputs['paga_base_conglobata_for_scatti'] || 0;
+        const contingenza = numericInputs['contingenza_for_scatti'] || 0;
+        result = retribuzioneMensile - pagaBaseConglobata - contingenza;
+      }
+      // ---- RETRIBUZIONE ORARIA ----
+      else if (isRetribuzioneOrariaField(field)) {
+        const retribuzioneMensile = numericInputs['retribuzione_mensile_for_oraria'] || 0;
+        result = retribuzioneMensile / 172;
+      }
+      // ---- RETRIBUZIONE ORDINARIA ----
+      else if (isRetribuzioneOrdinariaField(field)) {
+        const ggLav = numericInputs['gg_lav_for_ordinaria'] || 0;
+        const retribuzioneGiornaliera = numericInputs['retribuzione_giornaliera_for_ordinaria'] || 0;
+        result = ggLav * retribuzioneGiornaliera;
+      }
+      else if (isImponibileFiscaleMonthlyField(field)) {
         if (imponibileFiscaleMonthlyMode === 'formula1') {
           const imponibileContributivo = numericInputs['imponibile_contributivo'] || 0;
           const totaleContributi = numericInputs['totale_contributi_for_fiscale'] || 0;
@@ -1534,11 +1705,39 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     getFieldLabel(outputField).toLowerCase().includes('imposta sostitutiva (monthly)')
   ) : false;
   
-  // ---- NEW: PAGA BASE CONGLOBATA ----
+  // ---- PAGA BASE CONGLOBATA ----
   const isPagaBaseConglobataField = outputField ? (
     outputField.toLowerCase() === 'paga_base_conglobata' ||
     outputField.toLowerCase().includes('paga_base_conglobata') ||
     getFieldLabel(outputField).toLowerCase().includes('paga base conglobata')
+  ) : false;
+
+  // ---- CONTINGENZA ----
+  const isContingenzaField = outputField ? (
+    outputField.toLowerCase() === 'contingenza' ||
+    outputField.toLowerCase().includes('contingenza') ||
+    getFieldLabel(outputField).toLowerCase().includes('contingenza')
+  ) : false;
+
+  // ---- SCATTI ANZ. ----
+  const isScattiAnzField = outputField ? (
+    outputField.toLowerCase() === 'scatti_anz' ||
+    outputField.toLowerCase().includes('scatti_anz') ||
+    getFieldLabel(outputField).toLowerCase().includes('scatti anz')
+  ) : false;
+
+  // ---- RETRIBUZIONE ORARIA ----
+  const isRetribuzioneOrariaField = outputField ? (
+    outputField.toLowerCase() === 'retribuzione_oraria' ||
+    outputField.toLowerCase().includes('retribuzione_oraria') ||
+    getFieldLabel(outputField).toLowerCase().includes('retribuzione oraria')
+  ) : false;
+
+  // ---- RETRIBUZIONE ORDINARIA ----
+  const isRetribuzioneOrdinariaField = outputField ? (
+    outputField.toLowerCase() === 'retribuzione_ordinaria' ||
+    outputField.toLowerCase().includes('retribuzione_ordinaria') ||
+    getFieldLabel(outputField).toLowerCase().includes('retribuzione ordinaria')
   ) : false;
 
   // 6. IMPONIBILE FISCALE (Monthly)
@@ -1638,7 +1837,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
 
-              {/* ---- NEW: PAGA BASE CONGLOBATA ---- */}
+              {/* ---- PAGA BASE CONGLOBATA ---- */}
               {isPagaBaseConglobataField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1696,6 +1895,208 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         />
                       </div>
                       {attempted && !inputs['scatti_anz_for_paga_base'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ---- CONTINGENZA ---- */}
+              {isContingenzaField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE MENSILE</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['retribuzione_mensile_for_contingenza'] || ''}
+                          onChange={(e) => onInputChange('retribuzione_mensile_for_contingenza', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['retribuzione_mensile_for_contingenza'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['retribuzione_mensile_for_contingenza'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">PAGA BASE CONGLOBATA</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['paga_base_conglobata_for_contingenza'] || ''}
+                          onChange={(e) => onInputChange('paga_base_conglobata_for_contingenza', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['paga_base_conglobata_for_contingenza'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['paga_base_conglobata_for_contingenza'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">SCATTI ANZ.</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['scatti_anz_for_contingenza'] || ''}
+                          onChange={(e) => onInputChange('scatti_anz_for_contingenza', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['scatti_anz_for_contingenza'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['scatti_anz_for_contingenza'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ---- SCATTI ANZ. ---- */}
+              {isScattiAnzField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE MENSILE</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['retribuzione_mensile_for_scatti'] || ''}
+                          onChange={(e) => onInputChange('retribuzione_mensile_for_scatti', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['retribuzione_mensile_for_scatti'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['retribuzione_mensile_for_scatti'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">PAGA BASE CONGLOBATA</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['paga_base_conglobata_for_scatti'] || ''}
+                          onChange={(e) => onInputChange('paga_base_conglobata_for_scatti', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['paga_base_conglobata_for_scatti'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['paga_base_conglobata_for_scatti'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">CONTINGENZA</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['contingenza_for_scatti'] || ''}
+                          onChange={(e) => onInputChange('contingenza_for_scatti', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['contingenza_for_scatti'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['contingenza_for_scatti'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ---- RETRIBUZIONE ORARIA ---- */}
+              {isRetribuzioneOrariaField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE MENSILE</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['retribuzione_mensile_for_oraria'] || ''}
+                          onChange={(e) => onInputChange('retribuzione_mensile_for_oraria', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['retribuzione_mensile_for_oraria'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['retribuzione_mensile_for_oraria'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ---- RETRIBUZIONE ORDINARIA ---- */}
+              {isRetribuzioneOrdinariaField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">GG. LAV.</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['gg_lav_for_ordinaria'] || ''}
+                          onChange={(e) => onInputChange('gg_lav_for_ordinaria', e.target.value)}
+                          placeholder="0"
+                          className={`w-full pl-4 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['gg_lav_for_ordinaria'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['gg_lav_for_ordinaria'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE GIORNALIERA</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['retribuzione_giornaliera_for_ordinaria'] || ''}
+                          onChange={(e) => onInputChange('retribuzione_giornaliera_for_ordinaria', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['retribuzione_giornaliera_for_ordinaria'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['retribuzione_giornaliera_for_ordinaria'] && (
                         <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
                       )}
                     </div>
@@ -3300,7 +3701,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && !isIrpefLordaMonthlyField && !isPagaBaseConglobataField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && !isIrpefLordaMonthlyField && !isPagaBaseConglobataField && !isContingenzaField && !isScattiAnzField && !isRetribuzioneOrariaField && !isRetribuzioneOrdinariaField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -3561,6 +3962,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isIrpefLordaMonthlyField &&
                 !isRetribuzioneMensileField &&
                 !isPagaBaseConglobataField &&
+                !isContingenzaField &&
+                !isScattiAnzField &&
+                !isRetribuzioneOrariaField &&
+                !isRetribuzioneOrdinariaField &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
                 <>
