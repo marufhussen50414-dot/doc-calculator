@@ -199,7 +199,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setContrAggTfrMode('formula1');
     setIrpefNettaMonthlyMode('formula1');
     setAddizionaliMode('formula1');
-    setImponibileFiscaleMonthlyMode('formula1'); // NEW
+    setImponibileFiscaleMonthlyMode('formula1');
     setRetribuzioneMensileMode('formula1');
   };
 
@@ -258,7 +258,23 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       label.includes('imponibile fiscale adjustment');
   };
 
+  // ---- NEW: PAGA BASE CONGLOBATA ফিল্ড চিহ্নিত করার ফাংশন ----
+  const isPagaBaseConglobataField = (fieldId: string | null): boolean => {
+    if (!fieldId) return false;
+    const field = calculator.fields.find((f: any) => f.id === fieldId);
+    const lower = fieldId.toLowerCase();
+    const label = (field?.label || '').toLowerCase();
+    return lower === 'paga_base_conglobata' ||
+      lower.includes('paga_base_conglobata') ||
+      label.includes('paga base conglobata');
+  };
+
   const getRequiredFields = (outputFieldId: string): string[] => {
+    // ---- NEW: PAGA BASE CONGLOBATA ----
+    if (isPagaBaseConglobataField(outputFieldId)) {
+      return ['retribuzione_mensile_for_paga_base', 'contingenza_for_paga_base', 'scatti_anz_for_paga_base'];
+    }
+
     let required = outputFieldId === 'addizionali'
       ? (addizionaliMode === 'formula1'
         ? ['addizionali_f1_totale_trattenute', 'addizionali_f1_irpef_imp_sost', 'addizionali_f1_totale_contributi']
@@ -384,6 +400,16 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   };
 
   const areRequiredFieldsFilled = (outputFieldId: string): { valid: boolean; missing: string[] } => {
+    // ---- NEW: PAGA BASE CONGLOBATA ----
+    if (isPagaBaseConglobataField(outputFieldId)) {
+      const required = ['retribuzione_mensile_for_paga_base', 'contingenza_for_paga_base', 'scatti_anz_for_paga_base'];
+      const missing = required.filter(fId => {
+        const val = inputs[fId];
+        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+      });
+      return { valid: missing.length === 0, missing };
+    }
+
     if (outputFieldId === 'totale_comp') {
       const formulaFields = ['netto', 'trattenute', 'arr_preced', 'arr_attuale'];
       const activeFormulaFields = enableRounding ? formulaFields : formulaFields.filter(f => f !== 'arr_preced' && f !== 'arr_attuale');
@@ -644,6 +670,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const validation = areRequiredFieldsFilled(outputField);
     if (!validation.valid) {
       setShowResult(false);
+      return;
+    }
+
+    // ---- NEW: PAGA BASE CONGLOBATA ----
+    if (isPagaBaseConglobataField(outputField)) {
+      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_paga_base'])) || 0;
+      const contingenza = parseFloat(String(inputs['contingenza_for_paga_base'])) || 0;
+      const scattiAnz = parseFloat(String(inputs['scatti_anz_for_paga_base'])) || 0;
+      const calculatedPagaBase = retribuzioneMensile - contingenza - scattiAnz;
+      setResults({ [outputField]: calculatedPagaBase });
+      setShowResult(true);
       return;
     }
 
@@ -985,7 +1022,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     let allSuccessful = true;
     outputFields.forEach(field => {
       let result: number | null = null;
-      if (isImponibileFiscaleMonthlyField(field)) {
+
+      // ---- NEW: PAGA BASE CONGLOBATA ----
+      if (isPagaBaseConglobataField(field)) {
+        const retribuzioneMensile = numericInputs['retribuzione_mensile_for_paga_base'] || 0;
+        const contingenza = numericInputs['contingenza_for_paga_base'] || 0;
+        const scattiAnz = numericInputs['scatti_anz_for_paga_base'] || 0;
+        result = retribuzioneMensile - contingenza - scattiAnz;
+      } else if (isImponibileFiscaleMonthlyField(field)) {
         if (imponibileFiscaleMonthlyMode === 'formula1') {
           const imponibileContributivo = numericInputs['imponibile_contributivo'] || 0;
           const totaleContributi = numericInputs['totale_contributi_for_fiscale'] || 0;
@@ -1303,8 +1347,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             addValueResult={addValueResult}
             onCalculateAddValue={handleCalculateAddValue}
             onResetAddValue={handleResetAddValue}
-            imponibileFiscaleMonthlyMode={imponibileFiscaleMonthlyMode} // NEW
-            onImponibileFiscaleMonthlyModeChange={setImponibileFiscaleMonthlyMode} // NEW
+            imponibileFiscaleMonthlyMode={imponibileFiscaleMonthlyMode}
+            onImponibileFiscaleMonthlyModeChange={setImponibileFiscaleMonthlyMode}
             retribuzioneMensileMode={retribuzioneMensileMode}
             onRetribuzioneMensileModeChange={setRetribuzioneMensileMode}
           />
@@ -1379,7 +1423,6 @@ interface StandardModeCalculatorProps {
   addValueResult: number | null;
   onCalculateAddValue: () => void;
   onResetAddValue: () => void;
-  // NEW props for 6. IMPONIBILE FISCALE (Monthly)
   imponibileFiscaleMonthlyMode: 'formula1' | 'formula2';
   onImponibileFiscaleMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
   retribuzioneMensileMode: 'formula1' | 'formula2' | 'formula3';
@@ -1435,8 +1478,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   addValueResult,
   onCalculateAddValue,
   onResetAddValue,
-  imponibileFiscaleMonthlyMode, // NEW
-  onImponibileFiscaleMonthlyModeChange, // NEW
+  imponibileFiscaleMonthlyMode,
+  onImponibileFiscaleMonthlyModeChange,
   retribuzioneMensileMode,
   onRetribuzioneMensileModeChange,
 }) => {
@@ -1491,6 +1534,13 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     getFieldLabel(outputField).toLowerCase().includes('imposta sostitutiva (monthly)')
   ) : false;
   
+  // ---- NEW: PAGA BASE CONGLOBATA ----
+  const isPagaBaseConglobataField = outputField ? (
+    outputField.toLowerCase() === 'paga_base_conglobata' ||
+    outputField.toLowerCase().includes('paga_base_conglobata') ||
+    getFieldLabel(outputField).toLowerCase().includes('paga base conglobata')
+  ) : false;
+
   // 6. IMPONIBILE FISCALE (Monthly)
   const isImponibileFiscaleMonthlyField = outputField ? (
     outputField.toLowerCase() === 'imponibile_fiscale_mese' ||
@@ -1587,6 +1637,71 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter the required values for {getFieldLabel(outputField)}:
               </label>
+
+              {/* ---- NEW: PAGA BASE CONGLOBATA ---- */}
+              {isPagaBaseConglobataField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE MENSILE</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['retribuzione_mensile_for_paga_base'] || ''}
+                          onChange={(e) => onInputChange('retribuzione_mensile_for_paga_base', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['retribuzione_mensile_for_paga_base'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['retribuzione_mensile_for_paga_base'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">CONTINGENZA</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['contingenza_for_paga_base'] || ''}
+                          onChange={(e) => onInputChange('contingenza_for_paga_base', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['contingenza_for_paga_base'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['contingenza_for_paga_base'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">SCATTI ANZ.</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inputs['scatti_anz_for_paga_base'] || ''}
+                          onChange={(e) => onInputChange('scatti_anz_for_paga_base', e.target.value)}
+                          placeholder="0.00"
+                          className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            attempted && !inputs['scatti_anz_for_paga_base'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {attempted && !inputs['scatti_anz_for_paga_base'] && (
+                        <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 6. IMPONIBILE FISCALE (Monthly) - NEW with 2 modes */}
               {isImponibileFiscaleMonthlyField && (
@@ -3185,7 +3300,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               )}
 
               {/* কাস্টম Dynamic Field অপশন (5, 6, 20, 22, 34 ইত্যাদি ফিল্ডের জন্য) */}
-              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && !isIrpefLordaMonthlyField && isAnnuoField && (
+              {!isTotaleCompetenzeField && !isTotaleTrattenuteField && !isTotaleContributiField && !isIrpefImpSostField && !isTfrMeseField && !isRetribuzioneUtileTfrField && !isContrAggTfrField && !isImponContribArrotMeseField && !isIrpefNettaMonthlyField && !isImponibileFiscaleMonthlyField && !isImponContributivoMeseField && !isImponibileFiscaleAdjustmentField && !isIrpefLordaMonthlyField && !isPagaBaseConglobataField && isAnnuoField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
@@ -3445,6 +3560,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isImponibileFiscaleAdjustmentField &&
                 !isIrpefLordaMonthlyField &&
                 !isRetribuzioneMensileField &&
+                !isPagaBaseConglobataField &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
                 <>
