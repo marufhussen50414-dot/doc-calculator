@@ -112,6 +112,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // NEW: 6. IMPONIBILE FISCALE (Monthly) এর জন্য মোড স্টেট (Formula 1 vs Formula 2)
   const [imponibileFiscaleMonthlyMode, setImponibileFiscaleMonthlyMode] = useState<'formula1' | 'formula2'>('formula1');
 
+  // RETRIBUZIONE MENSILE এর জন্য মোড স্টেট (Formula 1 vs Formula 2 vs Formula 3)
+  const [retribuzioneMensileMode, setRetribuzioneMensileMode] = useState<'formula1' | 'formula2' | 'formula3'>('formula1');
+
   const calculator = UNIFIED_CALCULATOR;
 
   const filteredFields = useMemo(() => {
@@ -197,6 +200,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     setIrpefNettaMonthlyMode('formula1');
     setAddizionaliMode('formula1');
     setImponibileFiscaleMonthlyMode('formula1'); // NEW
+    setRetribuzioneMensileMode('formula1');
   };
 
   const handleMultiOutputToggle = (fieldId: string) => {
@@ -405,6 +409,31 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         return val === undefined || val === '' || isNaN(parseFloat(String(val)));
       });
       return { valid: missingFields.length === 0, missing: missingFields };
+    }
+
+    if (outputFieldId === 'retribuzione_mensile') {
+      if (retribuzioneMensileMode === 'formula1') {
+        const fields = ['paga_base_conglobata', 'contingenza', 'scatti_anz'];
+        const missingFields = fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
+      } else if (retribuzioneMensileMode === 'formula2') {
+        const fields = ['retribuzione_giornaliera', 'rm_f2_gg_retr'];
+        const missingFields = fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
+      } else {
+        const fields = ['retribuzione_oraria'];
+        const missingFields = fields.filter(fId => {
+          const val = inputs[fId];
+          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        });
+        return { valid: missingFields.length === 0, missing: missingFields };
+      }
     }
 
     if (isTfrMeseField(outputFieldId)) {
@@ -725,6 +754,29 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale;
       setResults({ [outputField]: calculatedComp });
       setShowResult(true);
+      return;
+    }
+
+    if (outputField === 'retribuzione_mensile') {
+      if (retribuzioneMensileMode === 'formula1') {
+        const pagaBase = parseFloat(String(inputs['paga_base_conglobata'])) || 0;
+        const contingenza = parseFloat(String(inputs['contingenza'])) || 0;
+        const scattiAnz = parseFloat(String(inputs['scatti_anz'])) || 0;
+        const calculatedRetribuzioneMensile = pagaBase + contingenza + scattiAnz;
+        setResults({ [outputField]: calculatedRetribuzioneMensile });
+        setShowResult(true);
+      } else if (retribuzioneMensileMode === 'formula2') {
+        const retribuzioneGiornaliera = parseFloat(String(inputs['retribuzione_giornaliera'])) || 0;
+        const ggRetr = parseFloat(String(inputs['rm_f2_gg_retr'])) || 0;
+        const calculatedRetribuzioneMensileF2 = retribuzioneGiornaliera * ggRetr;
+        setResults({ [outputField]: calculatedRetribuzioneMensileF2 });
+        setShowResult(true);
+      } else {
+        const retribuzioneOraria = parseFloat(String(inputs['retribuzione_oraria'])) || 0;
+        const calculatedRetribuzioneMensileF3 = retribuzioneOraria * 172;
+        setResults({ [outputField]: calculatedRetribuzioneMensileF3 });
+        setShowResult(true);
+      }
       return;
     }
 
@@ -1253,6 +1305,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onResetAddValue={handleResetAddValue}
             imponibileFiscaleMonthlyMode={imponibileFiscaleMonthlyMode} // NEW
             onImponibileFiscaleMonthlyModeChange={setImponibileFiscaleMonthlyMode} // NEW
+            retribuzioneMensileMode={retribuzioneMensileMode}
+            onRetribuzioneMensileModeChange={setRetribuzioneMensileMode}
           />
         )}
 
@@ -1328,6 +1382,8 @@ interface StandardModeCalculatorProps {
   // NEW props for 6. IMPONIBILE FISCALE (Monthly)
   imponibileFiscaleMonthlyMode: 'formula1' | 'formula2';
   onImponibileFiscaleMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
+  retribuzioneMensileMode: 'formula1' | 'formula2' | 'formula3';
+  onRetribuzioneMensileModeChange: (mode: 'formula1' | 'formula2' | 'formula3') => void;
 }
 
 const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
@@ -1381,6 +1437,8 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onResetAddValue,
   imponibileFiscaleMonthlyMode, // NEW
   onImponibileFiscaleMonthlyModeChange, // NEW
+  retribuzioneMensileMode,
+  onRetribuzioneMensileModeChange,
 }) => {
   const requiredFieldIds = outputField ? getRequiredFields(outputField) : [];
   const isTotaleCompetenzeField = outputField === 'totale_comp';
@@ -1400,6 +1458,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
     outputField.toLowerCase() === '33_tfr_mese' ||
     outputField.toLowerCase().includes('tfr_mese')
   ) : false;
+  const isRetribuzioneMensileField = outputField === 'retribuzione_mensile';
   const isRetribuzioneUtileTfrField = outputField ? (
     outputField.toLowerCase() === 'retribuzione_utile_tfr' ||
     outputField.toLowerCase() === '31_retribuzione_utile_tfr' ||
@@ -2364,6 +2423,168 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 </div>
               )}
 
+              {/* RETRIBUZIONE MENSILE */}
+              {isRetribuzioneMensileField && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-6 mb-4">
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="retribuzioneMensileMode"
+                        checked={retribuzioneMensileMode === 'formula1'}
+                        onChange={() => onRetribuzioneMensileModeChange('formula1')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 1</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="retribuzioneMensileMode"
+                        checked={retribuzioneMensileMode === 'formula2'}
+                        onChange={() => onRetribuzioneMensileModeChange('formula2')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 2</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-sm font-semibold text-gray-700">
+                      <input
+                        type="radio"
+                        name="retribuzioneMensileMode"
+                        checked={retribuzioneMensileMode === 'formula3'}
+                        onChange={() => onRetribuzioneMensileModeChange('formula3')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Formula 3</span>
+                    </label>
+                  </div>
+
+                  {retribuzioneMensileMode === 'formula1' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">PAGA BASE CONGLOBATA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['paga_base_conglobata'] || ''}
+                            onChange={(e) => onInputChange('paga_base_conglobata', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['paga_base_conglobata'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['paga_base_conglobata'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">CONTINGENZA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['contingenza'] || ''}
+                            onChange={(e) => onInputChange('contingenza', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['contingenza'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['contingenza'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">SCATTI ANZ.</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['scatti_anz'] || ''}
+                            onChange={(e) => onInputChange('scatti_anz', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['scatti_anz'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['scatti_anz'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : retribuzioneMensileMode === 'formula2' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE GIORNALIERA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['retribuzione_giornaliera'] || ''}
+                            onChange={(e) => onInputChange('retribuzione_giornaliera', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['retribuzione_giornaliera'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['retribuzione_giornaliera'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">GG. RETR.</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['rm_f2_gg_retr'] || ''}
+                            onChange={(e) => onInputChange('rm_f2_gg_retr', e.target.value)}
+                            placeholder="0"
+                            className={`w-full pl-4 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['rm_f2_gg_retr'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['rm_f2_gg_retr'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE ORARIA</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={inputs['retribuzione_oraria'] || ''}
+                            onChange={(e) => onInputChange('retribuzione_oraria', e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              attempted && !inputs['retribuzione_oraria'] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {attempted && !inputs['retribuzione_oraria'] && (
+                          <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* TOTALE COMPETENZE */}
               {isTotaleCompetenzeField && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -3223,6 +3444,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 !isImponContributivoMeseField &&
                 !isImponibileFiscaleAdjustmentField &&
                 !isIrpefLordaMonthlyField &&
+                !isRetribuzioneMensileField &&
                 (!isIrpefImpSostField || irpefImpSostMode === 'formula1') &&
                 (!isDetrLavDipMonthlyField || detrLavDipMonthlyMode === 'formula1')) && (
                 <>
