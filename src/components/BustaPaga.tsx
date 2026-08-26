@@ -3270,11 +3270,18 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
               </div>
 
               {showResult && (
-                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="mt-6 p-4 bg-white border border-black rounded-lg">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-emerald-800">Result ({getFieldLabel(outputField)}):</span>
-                    <span className="text-xl font-bold text-emerald-900">
+                    <span className="text-sm font-semibold text-black">
+                      {getFieldLabel(outputField).replace(/^\d+\.\s*/, '')}
+                    </span>
+                    <span className="text-xl font-bold text-black">
                       {formatCurrency(results[outputField] || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-end mt-1">
+                    <span className="text-xs text-black">
+                      {(results[outputField] || 0).toFixed(4)} €
                     </span>
                   </div>
                 </div>
