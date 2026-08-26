@@ -1798,7 +1798,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   {irpefLordaMonthlyMode === 'formula3' && (
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">18. IRPEF NETTA (Monthly)</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA (Monthly)</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
@@ -1959,7 +1959,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   {irpefNettaMonthlyMode === 'formula1' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">17. IRPEF LORDA (Monthly)</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF LORDA (Monthly)</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
@@ -2257,7 +2257,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   {contrAggTfrMode === 'formula1' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">31. RETRIBUZIONE UTILE TFR</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE UTILE TFR</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
@@ -2276,7 +2276,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">33. TFR MESE</label>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">TFR MESE</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
@@ -2326,7 +2326,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">31. RETRIBUZIONE UTILE TFR</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">RETRIBUZIONE UTILE TFR</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
@@ -2345,7 +2345,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">32. CONTR. AGG. TFR</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">CONTR. AGG. TFR</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
