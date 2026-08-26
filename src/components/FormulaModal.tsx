@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1 through Formula 10 and their sub-formulas.
+ * Displays Formula 1 through Formula 14 and their sub-formulas.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -516,6 +516,68 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
               </div>
             </div>
           </div>
+
+          {/* Formula 11 */}
+          <div className="bg-gradient-to-r from-lime-50 to-green-50 border-2 border-lime-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-lime-900 mb-3">
+              Formula 11 (RETRIBUZIONE MENSILE Calculation)
+            </h3>
+
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-lime-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-lime-700">RETRIBUZIONE MENSILE</span> ={' '}
+                <span className="font-bold text-indigo-600">PAGA BASE CONGLOBATA</span> +{' '}
+                <span className="font-bold text-orange-600">CONTINGENZA</span> +{' '}
+                <span className="font-bold text-green-600">SCATTI ANZ.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 12 */}
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-yellow-900 mb-3">
+              Formula 12 (RETRIBUZIONE GIORNALIERA Calculation)
+            </h3>
+
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-yellow-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-yellow-700">RETRIBUZIONE GIORNALIERA</span> ={' '}
+                <span className="font-bold text-indigo-600">RETRIBUZIONE MENSILE</span> /{' '}
+                <span className="font-bold text-orange-600">GG. RETR.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 13 */}
+          <div className="bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-fuchsia-900 mb-3">
+              Formula 13 (RETRIBUZIONE ORARIA Calculation)
+            </h3>
+
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-fuchsia-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-fuchsia-700">RETRIBUZIONE ORARIA</span> ={' '}
+                <span className="font-bold text-indigo-600">RETRIBUZIONE MENSILE</span> /{' '}
+                <span className="font-bold text-gray-700">172</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Formula 14 */}
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-orange-900 mb-3">
+              Formula 14 (RETRIBUZIONE ORDINARIA Calculation)
+            </h3>
+
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-orange-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-orange-700">RETRIBUZIONE ORDINARIA</span> ={' '}
+                <span className="font-bold text-indigo-600">GG. LAV.</span> ×{' '}
+                <span className="font-bold text-red-600">RETRIBUZIONE GIORNALIERA</span>
+              </div>
+            </div>
+          </div>
+
 
         </div>
 
