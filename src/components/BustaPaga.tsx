@@ -1181,6 +1181,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           />
         ) : (
           <StandardModeCalculator
+            formatFullPrecision={formatFullPrecision}
             calculator={calculator}
             filteredFields={filteredFields}
             searchQuery={searchQuery}
@@ -1291,6 +1292,7 @@ interface StandardModeCalculatorProps {
   onCalculate: () => void;
   onReset: () => void;
   formatCurrency: (value: number) => string;
+  formatFullPrecision: (value: number) => string;
   getFieldLabel: (fieldId: string) => string;
   enableRounding: boolean;
   enableAddValueFormula: boolean;
@@ -1346,6 +1348,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   onCalculate,
   onReset,
   formatCurrency,
+  formatFullPrecision,
   getFieldLabel,
   enableRounding,
   enableAddValueFormula,
