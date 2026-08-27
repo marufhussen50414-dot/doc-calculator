@@ -4331,10 +4331,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                   onChange={(e) => onTempCalcOperatorChange(e.target.value as 'add' | 'subtract' | 'multiply' | 'divide')}
                   className="border border-gray-300 rounded text-xs font-semibold text-gray-700 px-2 py-1.5 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                 >
-                  <option value="add">+ (Plus)</option>
-                  <option value="subtract">− (Minus)</option>
-                  <option value="multiply">× (গুণ)</option>
-                  <option value="divide">÷ (ভাগ)</option>
+                  <option value="add">  +  </option>
+                  <option value="subtract">  −  </option>
+                  <option value="multiply">  ×  </option>
+                  <option value="divide">  ÷  </option>
                 </select>
                 <button
                   type="button"
