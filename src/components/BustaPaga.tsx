@@ -4249,7 +4249,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
         {enableAddValueFormula && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-              <h3 className="text-sm font-semibold text-gray-700">Add Value Formula</h3>
+              <h3 className="text-sm font-semibold text-gray-700">Temporary Calculator</h3>
               <button
                 type="button"
                 onClick={onAddCustomField}
