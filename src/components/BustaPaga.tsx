@@ -72,6 +72,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   // Add Value এর জন্য নিজস্ব স্টেট
   const [addValueResult, setAddValueResult] = useState<number | null>(null);
 
+  // Temporary Calculator এর জন্য সম্পূর্ণ আলাদা, স্বাধীন স্টেট (অন্য কোনো ফর্মুলার সাথে শেয়ার করা হয় না)
+  const [tempCalcFields, setTempCalcFields] = useState<CustomDynamicField[]>([
+    { id: '1', label: 'মান ১', value: '' },
+    { id: '2', label: 'মান ২', value: '' }
+  ]);
+  const [tempCalcOperator, setTempCalcOperator] = useState<'add' | 'subtract' | 'multiply' | 'divide'>('add');
+  const [tempCalcResult, setTempCalcResult] = useState<number | null>(null);
+
   const [annuoCustomMode, setAnnuoCustomMode] = useState<'formula' | 'custom'>('custom');
   const [customDynamicFields, setCustomDynamicFields] = useState<CustomDynamicField[]>([
     { id: '1', label: 'আগের মাসের মান', value: '' },
@@ -1207,6 +1215,35 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     ]);
   };
 
+  // Temporary Calculator এর জন্য সম্পূর্ণ আলাদা ক্যালকুলেটর লজিক (Plus/Minus/গুণ/ভাগ)
+  const handleCalculateTempCalc = () => {
+    const values = tempCalcFields.map(f => parseFloat(f.value) || 0);
+    if (values.length === 0) {
+      setTempCalcResult(0);
+      return;
+    }
+    let result: number;
+    if (tempCalcOperator === 'add') {
+      result = values.reduce((acc, val) => acc + val, 0);
+    } else if (tempCalcOperator === 'subtract') {
+      result = values.reduce((acc, val, idx) => (idx === 0 ? val : acc - val));
+    } else if (tempCalcOperator === 'multiply') {
+      result = values.reduce((acc, val) => acc * val, 1);
+    } else {
+      result = values.reduce((acc, val, idx) => (idx === 0 ? val : (val !== 0 ? acc / val : acc)));
+    }
+    setTempCalcResult(result);
+  };
+
+  const handleResetTempCalc = () => {
+    setTempCalcResult(null);
+    setTempCalcOperator('add');
+    setTempCalcFields([
+      { id: '1', label: 'মান ১', value: '' },
+      { id: '2', label: 'মান ২', value: '' }
+    ]);
+  };
+
   const handleMultiCalculate = () => {
     if (outputFields.size === 0) return;
     setAttempted(true);
@@ -1591,6 +1628,26 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             addValueResult={addValueResult}
             onCalculateAddValue={handleCalculateAddValue}
             onResetAddValue={handleResetAddValue}
+            tempCalcFields={tempCalcFields}
+            onTempCalcFieldChange={(id, val) => {
+              setTempCalcFields(tempCalcFields.map(f => f.id === id ? { ...f, value: val } : f));
+            }}
+            onAddTempCalcField={() => {
+              setTempCalcFields([
+                ...tempCalcFields,
+                { id: Date.now().toString(), label: 'নতুন মান', value: '' }
+              ]);
+            }}
+            onRemoveTempCalcField={(id) => {
+              if (tempCalcFields.length > 2) {
+                setTempCalcFields(tempCalcFields.filter(f => f.id !== id));
+              }
+            }}
+            tempCalcOperator={tempCalcOperator}
+            onTempCalcOperatorChange={setTempCalcOperator}
+            tempCalcResult={tempCalcResult}
+            onCalculateTempCalc={handleCalculateTempCalc}
+            onResetTempCalc={handleResetTempCalc}
             imponibileFiscaleMonthlyMode={imponibileFiscaleMonthlyMode}
             onImponibileFiscaleMonthlyModeChange={setImponibileFiscaleMonthlyMode}
             retribuzioneMensileMode={retribuzioneMensileMode}
@@ -1669,6 +1726,15 @@ interface StandardModeCalculatorProps {
   addValueResult: number | null;
   onCalculateAddValue: () => void;
   onResetAddValue: () => void;
+  tempCalcFields: CustomDynamicField[];
+  onTempCalcFieldChange: (id: string, value: string) => void;
+  onAddTempCalcField: () => void;
+  onRemoveTempCalcField: (id: string) => void;
+  tempCalcOperator: 'add' | 'subtract' | 'multiply' | 'divide';
+  onTempCalcOperatorChange: (op: 'add' | 'subtract' | 'multiply' | 'divide') => void;
+  tempCalcResult: number | null;
+  onCalculateTempCalc: () => void;
+  onResetTempCalc: () => void;
   imponibileFiscaleMonthlyMode: 'formula1' | 'formula2';
   onImponibileFiscaleMonthlyModeChange: (mode: 'formula1' | 'formula2') => void;
   retribuzioneMensileMode: 'formula1' | 'formula2' | 'formula3';
@@ -1726,6 +1792,15 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
   addValueResult,
   onCalculateAddValue,
   onResetAddValue,
+  tempCalcFields,
+  onTempCalcFieldChange,
+  onAddTempCalcField,
+  onRemoveTempCalcField,
+  tempCalcOperator,
+  onTempCalcOperatorChange,
+  tempCalcResult,
+  onCalculateTempCalc,
+  onResetTempCalc,
   imponibileFiscaleMonthlyMode,
   onImponibileFiscaleMonthlyModeChange,
   retribuzioneMensileMode,
@@ -4245,23 +4320,35 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
           )}
         </div>
 
-        {/* সম্পূর্ণ পৃথক Add Value Formula Card */}
+        {/* সম্পূর্ণ পৃথক Temporary Calculator Card (নিজস্ব স্বাধীন স্টেট, অন্য কোনো ফর্মুলার সাথে সংযুক্ত নয়) */}
         {enableAddValueFormula && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
               <h3 className="text-sm font-semibold text-gray-700">Temporary Calculator</h3>
-              <button
-                type="button"
-                onClick={onAddCustomField}
-                className="flex-shrink-0 flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
-              >
-                <span>+ Add Value</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <select
+                  value={tempCalcOperator}
+                  onChange={(e) => onTempCalcOperatorChange(e.target.value as 'add' | 'subtract' | 'multiply' | 'divide')}
+                  className="border border-gray-300 rounded text-xs font-semibold text-gray-700 px-2 py-1.5 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="add">+ (Plus)</option>
+                  <option value="subtract">− (Minus)</option>
+                  <option value="multiply">× (গুণ)</option>
+                  <option value="divide">÷ (ভাগ)</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={onAddTempCalcField}
+                  className="flex-shrink-0 flex items-center space-x-1 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-indigo-700 transition"
+                >
+                  <span>+ Add Value</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3 mb-4">
-              {customDynamicFields.map((field) => {
-                const canDelete = customDynamicFields.length > 2;
+              {tempCalcFields.map((field) => {
+                const canDelete = tempCalcFields.length > 2;
                 return (
                   <div key={field.id} className="flex items-center space-x-2">
                     <div className="relative flex-1">
@@ -4270,7 +4357,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         type="number"
                         step="0.01"
                         value={field.value}
-                        onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
+                        onChange={(e) => onTempCalcFieldChange(field.id, e.target.value)}
                         placeholder="0.00"
                         className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                       />
@@ -4278,7 +4365,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     <button
                       type="button"
                       disabled={!canDelete}
-                      onClick={() => canDelete && onRemoveCustomField(field.id)}
+                      onClick={() => canDelete && onRemoveTempCalcField(field.id)}
                       className={`p-2 rounded-lg transition flex items-center justify-center flex-shrink-0 ${
                         canDelete
                           ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'
@@ -4298,26 +4385,26 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
             <div className="flex space-x-3">
               <button
                 type="button"
-                onClick={onCalculateAddValue}
+                onClick={onCalculateTempCalc}
                 className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition shadow-md text-sm"
               >
                 Calculate
               </button>
               <button
                 type="button"
-                onClick={onResetAddValue}
+                onClick={onResetTempCalc}
                 className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition text-sm"
               >
                 Reset
               </button>
             </div>
 
-            {addValueResult !== null && (
+            {tempCalcResult !== null && (
               <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-emerald-800">Add Value Total:</span>
+                  <span className="text-sm font-semibold text-emerald-800">Total:</span>
                   <span className="text-xl font-bold text-emerald-900">
-                    {formatCurrency(addValueResult)}
+                    {formatCurrency(tempCalcResult)}
                   </span>
                 </div>
               </div>
