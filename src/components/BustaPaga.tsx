@@ -1787,7 +1787,7 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
   const isFiniteValue = (value: string) => value !== '' && Number.isFinite(parseFloat(value));
   const baseRateMissing = attempted && (outputField !== 'base' && !isFiniteValue(baseRate));
   const overtimeRateMissing = attempted && (outputField !== 'overtime' && !isFiniteValue(overtimeRate));
-  const percentageMissing = attempted && !isFiniteValue(percentage);
+  const percentageMissing = attempted && (outputField !== 'percentage' && !isFiniteValue(percentage));
   const baseRateZero = attempted && outputField === 'percentage' && parseFloat(baseRate) === 0;
   const invalidBaseDenominator = attempted && outputField === 'base' && (1 + parseFloat(percentage) / 100) === 0;
 
@@ -1902,25 +1902,27 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
                   </div>
                 )}
 
-                <div className="relative">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">ওভারটাইম পার্সেন্টেজ</label>
+                {outputField !== 'percentage' && (
                   <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={percentage}
-                      onChange={(e) => onPercentageChange(e.target.value)}
-                      placeholder="যেমন 25"
-                      className={percentageInputClass(percentageMissing || invalidBaseDenominator)}
-                    />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">ওভারটাইম পার্সেন্টেজ</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={percentage}
+                        onChange={(e) => onPercentageChange(e.target.value)}
+                        placeholder="যেমন 25"
+                        className={percentageInputClass(percentageMissing || invalidBaseDenominator)}
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
+                    </div>
+                    {(percentageMissing || invalidBaseDenominator) && (
+                      <span className="text-[10px] text-red-500 mt-1 block">
+                        {invalidBaseDenominator ? 'এই শতাংশের জন্য হিসাব করা সম্ভব নয়' : 'This field is required'}
+                      </span>
+                    )}
                   </div>
-                  {(percentageMissing || invalidBaseDenominator) && (
-                    <span className="text-[10px] text-red-500 mt-1 block">
-                      {invalidBaseDenominator ? 'এই শতাংশের জন্য হিসাব করা সম্ভব নয়' : 'This field is required'}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
 
               <div className="mt-6 flex space-x-3">
@@ -4693,10 +4695,10 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
             </div>
 
             {tempCalcResult !== null && (
-              <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <div className="mt-4 p-4 bg-white border border-black rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-emerald-800">Total:</span>
-                  <span className="text-xl font-bold text-emerald-900">
+                  <span className="text-sm font-semibold text-black">Total:</span>
+                  <span className="text-xl font-bold text-black">
                     {formatCurrency(tempCalcResult)}
                   </span>
                 </div>
