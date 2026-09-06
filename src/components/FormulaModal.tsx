@@ -685,15 +685,15 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
           {/* Formula 15 */}
           <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border-2 border-emerald-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-emerald-900 mb-3">
-              Formula 15 (OVERTIME RATE Calculation)
+              Formula 15 (ওভারটাইম রেট গণনা)
             </h3>
 
             <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-emerald-100 shadow-sm">
               <div className="text-gray-700">
-                <span className="font-bold text-emerald-700">OVERTIME RATE</span> ={' '}
-                <span className="font-bold text-indigo-600">RETRIBUZIONE ORARIA</span> + (
-                <span className="font-bold text-indigo-600">RETRIBUZIONE ORARIA</span> ×{' '}
-                <span className="font-bold text-purple-600">OVERTIME %</span> / 100)
+                <span className="font-bold text-emerald-700">ওভারটাইম রেট</span> ={' '}
+                <span className="font-bold text-indigo-600">মূল ঘণ্টার রেট</span> + ({' '}
+                <span className="font-bold text-indigo-600">মূল ঘণ্টার রেট</span> ×{' '}
+                <span className="font-bold text-purple-600">ওভারটাইম পার্সেন্টেজ %</span>)
               </div>
             </div>
 
@@ -705,19 +705,19 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
               <div className="space-y-2 text-xs font-mono">
                 <div className="bg-white p-2.5 rounded border border-gray-200">
                   <span className="font-semibold text-gray-700">
-                    To calculate RETRIBUZIONE ORARIA:
+                    মূল ঘণ্টার রেট বের করতে:
                   </span>
                   <div className="text-gray-900 mt-1">
-                    RETRIBUZIONE ORARIA = OVERTIME RATE / (1 + (OVERTIME % / 100))
+                    মূল ঘণ্টার রেট = ওভারটাইম রেট / (১ + (ওভারটাইম পার্সেন্টেজ / ১০০))
                   </div>
                 </div>
 
                 <div className="bg-white p-2.5 rounded border border-gray-200">
                   <span className="font-semibold text-gray-700">
-                    To calculate OVERTIME %:
+                    ওভারটাইম পার্সেন্টেজ বের করতে:
                   </span>
                   <div className="text-gray-900 mt-1">
-                    OVERTIME % = ((OVERTIME RATE / RETRIBUZIONE ORARIA) - 1) × 100
+                    ওভারটাইম পার্সেন্টেজ = ((ওভারটাইম রেট / মূল ঘণ্টার রেট) - ১) × ১০০
                   </div>
                 </div>
               </div>
