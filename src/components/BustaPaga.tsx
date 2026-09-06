@@ -7,7 +7,7 @@ interface BustaPagaProps {
   onBack: () => void;
 }
 
-type CalculatorMode = 'standard' | 'multi';
+type CalculatorMode = 'standard' | 'hourRate' | 'multi';
 
 interface CustomDynamicField {
   id: string;
@@ -68,9 +68,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
   const [enableAddValueFormula, setEnableAddValueFormula] = useState<boolean>(false);
 
-  // Calculate Hour Rate এর জন্য আলাদা state
+  // Calculate Hour Rate এর জন্য সম্পূর্ণ আলাদা state
+  const [hourRateOutputField, setHourRateOutputField] = useState<'base' | 'overtime' | null>(null);
   const [hourRateBase, setHourRateBase] = useState<string>('');
-  const [hourRateOvertime, setHourRateOvertime] = useState<number | null>(null);
+  const [hourRatePercentage, setHourRatePercentage] = useState<string>('');
+  const [hourRateResult, setHourRateResult] = useState<number | null>(null);
   const [hourRateAttempted, setHourRateAttempted] = useState<boolean>(false);
 
   // Add Value এর জন্য নিজস্ব স্টেট
@@ -1357,20 +1359,43 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
   };
 
+  const handleHourRateOutputFieldChange = (field: 'base' | 'overtime') => {
+    setHourRateOutputField(field);
+    setHourRateBase('');
+    setHourRatePercentage('');
+    setHourRateResult(null);
+    setHourRateAttempted(false);
+  };
+
   const handleCalculateHourRate = () => {
     setHourRateAttempted(true);
     const baseRate = parseFloat(hourRateBase);
+
     if (!Number.isFinite(baseRate)) {
-      setHourRateOvertime(null);
+      setHourRateResult(null);
       return;
     }
-    // মূল ঘণ্টার রেট + (মূল ঘণ্টার রেট × 25%)
-    setHourRateOvertime(baseRate + (baseRate * 0.25));
+
+    if (hourRateOutputField === 'base') {
+      setHourRateResult(baseRate);
+      return;
+    }
+
+    const percentage = parseFloat(hourRatePercentage);
+    if (!Number.isFinite(percentage)) {
+      setHourRateResult(null);
+      return;
+    }
+
+    // মূল ঘণ্টার রেট + (মূল ঘণ্টার রেট × যেকোনো নির্ধারিত শতাংশ)
+    setHourRateResult(baseRate + (baseRate * (percentage / 100)));
   };
 
   const handleResetHourRate = () => {
+    setHourRateOutputField(null);
     setHourRateBase('');
-    setHourRateOvertime(null);
+    setHourRatePercentage('');
+    setHourRateResult(null);
     setHourRateAttempted(false);
   };
 
@@ -1388,6 +1413,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     if (mode === 'standard') {
       setOutputField(null);
       setOutputFields(new Set());
+    } else if (mode === 'hourRate') {
+      handleResetHourRate();
     } else if (mode === 'multi') {
       setOutputFields(new Set());
     }
@@ -1525,64 +1552,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 <div className="font-semibold text-gray-800 text-sm">Standard</div>
                 <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
               </button>
-              <div className="p-3 rounded-lg border-2 border-gray-200 bg-white">
-                <div className="text-center mb-2">
-                  <div className="text-sm font-semibold text-gray-800">Calculate Hour Rate</div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">Calculate 25% overtime rate</div>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-[10px] font-semibold text-gray-700 mb-1">মূল ঘণ্টার রেট</label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">€</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={hourRateBase}
-                        onChange={(e) => {
-                          setHourRateBase(e.target.value);
-                          setHourRateOvertime(null);
-                        }}
-                        placeholder="0.00"
-                        className={`w-full pl-7 pr-2 py-1.5 border rounded-md text-xs focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
-                          hourRateAttempted && !hourRateBase ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                        }`}
-                      />
-                    </div>
-                    {hourRateAttempted && !hourRateBase && (
-                      <span className="text-[9px] text-red-500 mt-0.5 block">This field is required</span>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold text-gray-700 mb-1">ওভারটাইম রেট</label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">€</span>
-                      <input
-                        type="text"
-                        readOnly
-                        value={hourRateOvertime !== null ? hourRateOvertime.toFixed(2) : ''}
-                        placeholder="0.00"
-                        className="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded-md text-xs bg-gray-50 text-gray-800"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex space-x-2 pt-0.5">
-                    <button
-                      onClick={handleCalculateHourRate}
-                      className="flex-1 bg-indigo-600 text-white py-1.5 px-2 rounded-md text-[10px] font-semibold hover:bg-indigo-700 transition shadow-sm"
-                    >
-                      Calculate
-                    </button>
-                    <button
-                      onClick={handleResetHourRate}
-                      className="bg-gray-100 text-gray-700 py-1.5 px-2 rounded-md text-[10px] font-semibold hover:bg-gray-200 transition"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <button
+                onClick={() => handleModeChange('hourRate')}
+                className={`p-4 rounded-lg border-2 transition-all flex items-center justify-center min-h-[104px] ${
+                  mode === 'hourRate' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-semibold text-gray-800 text-sm">Calculate Hour Rate</div>
+              </button>
               <button
                 onClick={() => handleModeChange('multi')}
                 className={`p-4 rounded-lg border-2 transition-all ${
@@ -1597,7 +1574,21 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {mode === 'multi' ? (
+        {mode === 'hourRate' ? (
+          <HourRateCalculator
+            outputField={hourRateOutputField}
+            onOutputFieldChange={handleHourRateOutputFieldChange}
+            baseRate={hourRateBase}
+            percentage={hourRatePercentage}
+            result={hourRateResult}
+            attempted={hourRateAttempted}
+            onBaseRateChange={setHourRateBase}
+            onPercentageChange={setHourRatePercentage}
+            onCalculate={handleCalculateHourRate}
+            onReset={handleResetHourRate}
+            formatCurrency={formatCurrency}
+          />
+        ) : mode === 'multi' ? (
           <MultiModeCalculator
             calculator={calculator}
             filteredFields={filteredFields}
@@ -1734,6 +1725,177 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         </div>
       </div>
       <FormulaModal isOpen={showFormulaModal} onClose={() => setShowFormulaModal(false)} />
+    </div>
+  );
+};
+
+interface HourRateCalculatorProps {
+  outputField: 'base' | 'overtime' | null;
+  onOutputFieldChange: (field: 'base' | 'overtime') => void;
+  baseRate: string;
+  percentage: string;
+  result: number | null;
+  attempted: boolean;
+  onBaseRateChange: (value: string) => void;
+  onPercentageChange: (value: string) => void;
+  onCalculate: () => void;
+  onReset: () => void;
+  formatCurrency: (value: number) => string;
+}
+
+const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
+  outputField,
+  onOutputFieldChange,
+  baseRate,
+  percentage,
+  result,
+  attempted,
+  onBaseRateChange,
+  onPercentageChange,
+  onCalculate,
+  onReset,
+  formatCurrency,
+}) => {
+  const baseRateMissing = attempted && (baseRate === '' || !Number.isFinite(parseFloat(baseRate)));
+  const percentageMissing = outputField === 'overtime' && attempted && (percentage === '' || !Number.isFinite(parseFloat(percentage)));
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="lg:col-span-5 space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Select the field to calculate (output):
+          </label>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => onOutputFieldChange('base')}
+              className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                outputField === 'base'
+                  ? 'border-indigo-600 bg-indigo-50 shadow-md'
+                  : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="font-semibold text-gray-800 text-sm">মূল ঘণ্টার রেট</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => onOutputFieldChange('overtime')}
+              className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                outputField === 'overtime'
+                  ? 'border-indigo-600 bg-indigo-50 shadow-md'
+                  : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="font-semibold text-gray-800 text-sm">ওভারটাইম রেট</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="lg:col-span-7">
+        <div className="bg-white rounded-lg shadow-md p-6 min-h-[360px]">
+          {!outputField ? (
+            <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center">
+              <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l6 6m-4-10a6 6 0 11-12 0 6 6 0 0112 0zM4 20l4-4" />
+              </svg>
+              <p className="text-sm font-semibold text-gray-700">Please select a field from the left list first.</p>
+              <p className="text-xs text-gray-400 mt-1">Required inputs will appear here automatically.</p>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-6">
+                {outputField === 'base' ? 'মূল ঘণ্টার রেট' : 'ওভারটাইম রেট'}
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    মূল ঘণ্টার রেট
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">€</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={baseRate}
+                      onChange={(e) => {
+                        onBaseRateChange(e.target.value);
+                      }}
+                      placeholder="0.00"
+                      className={`w-full pl-8 pr-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                        baseRateMissing ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                  {baseRateMissing && (
+                    <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                  )}
+                </div>
+
+                {outputField === 'overtime' && (
+                  <div className="relative">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      ওভারটাইম শতাংশ (%)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={percentage}
+                        onChange={(e) => onPercentageChange(e.target.value)}
+                        placeholder="যেমন 25"
+                        className={`w-full pr-9 pl-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                          percentageMissing ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
+                    </div>
+                    {percentageMissing && (
+                      <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {outputField === 'overtime' && (
+                <div className="mt-5 p-3 bg-gray-50 rounded-md border border-gray-200">
+                  <p className="text-xs text-gray-600">
+                    Formula: মূল ঘণ্টার রেট + (মূল ঘণ্টার রেট × ওভারটাইম %)
+                  </p>
+                </div>
+              )}
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={onCalculate}
+                  className="bg-indigo-600 text-white py-2 px-5 rounded-md text-sm font-semibold hover:bg-indigo-700 transition shadow-sm"
+                >
+                  Calculate
+                </button>
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="bg-gray-100 text-gray-700 py-2 px-5 rounded-md text-sm font-semibold hover:bg-gray-200 transition"
+                >
+                  Reset
+                </button>
+              </div>
+
+              {result !== null && (
+                <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <div className="text-xs font-semibold text-gray-600 mb-1">Result</div>
+                  <div className="text-2xl font-bold text-indigo-700">{formatCurrency(result)}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
