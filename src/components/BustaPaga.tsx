@@ -1608,6 +1608,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onCalculate={handleCalculateHourRate}
             onReset={handleResetHourRate}
             formatCurrency={formatCurrency}
+            formatFullPrecision={formatFullPrecision}
           />
         ) : mode === 'multi' ? (
           <MultiModeCalculator
@@ -1764,6 +1765,7 @@ interface HourRateCalculatorProps {
   onCalculate: () => void;
   onReset: () => void;
   formatCurrency: (value: number) => string;
+  formatFullPrecision?: (value: number) => string;
 }
 
 const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
@@ -1780,6 +1782,7 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
   onCalculate,
   onReset,
   formatCurrency,
+  formatFullPrecision,
 }) => {
   const isFiniteValue = (value: string) => value !== '' && Number.isFinite(parseFloat(value));
   const baseRateMissing = attempted && (outputField !== 'base' && !isFiniteValue(baseRate));
@@ -1789,20 +1792,20 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
   const invalidBaseDenominator = attempted && outputField === 'base' && (1 + parseFloat(percentage) / 100) === 0;
 
   const inputClass = (missing: boolean) =>
-    `w-full pl-8 pr-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
-      missing ? 'border-red-500 bg-red-50' : 'border-gray-300'
+    `w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+      missing ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
     }`;
 
   const percentageInputClass = (missing: boolean) =>
-    `w-full pr-9 pl-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
-      missing ? 'border-red-500 bg-red-50' : 'border-gray-300'
+    `w-full pr-9 pl-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
+      missing ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
     }`;
 
   const fieldButtonClass = (active: boolean) =>
-    `w-full text-left p-4 rounded-lg border-2 transition-all ${
+    `p-3.5 rounded-lg border-2 text-left transition-all ${
       active
-        ? 'border-indigo-600 bg-indigo-50 shadow-md'
-        : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+        ? 'border-indigo-600 bg-indigo-50 shadow-md font-semibold text-indigo-900 ring-2 ring-indigo-200'
+        : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-800'
     }`;
 
   const outputTitle = outputField === 'base'
@@ -1820,40 +1823,48 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Select the field to calculate (output):
           </label>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '470px' }}>
             <button type="button" onClick={() => onOutputFieldChange('base')} className={fieldButtonClass(outputField === 'base')}>
-              <div className="font-semibold text-gray-800 text-sm">মূল ঘণ্টার রেট</div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">মূল ঘণ্টার রেট</span>
+              </div>
             </button>
             <button type="button" onClick={() => onOutputFieldChange('overtime')} className={fieldButtonClass(outputField === 'overtime')}>
-              <div className="font-semibold text-gray-800 text-sm">ওভারটাইম রেট</div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">ওভারটাইম রেট</span>
+              </div>
             </button>
             <button type="button" onClick={() => onOutputFieldChange('percentage')} className={fieldButtonClass(outputField === 'percentage')}>
-              <div className="font-semibold text-gray-800 text-sm">ওভারটাইম পার্সেন্টেজ</div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">ওভারটাইম পার্সেন্টেজ</span>
+              </div>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="lg:col-span-7">
-        <div className="bg-white rounded-lg shadow-md p-6 min-h-[360px]">
+      <div className="lg:col-span-7 space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
           {!outputField ? (
-            <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center">
-              <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l6 6m-4-10a6 6 0 11-12 0 6 6 0 0112 0zM4 20l4-4" />
+            <div className="text-center py-16 text-gray-500">
+              <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
               </svg>
-              <p className="text-sm font-semibold text-gray-700">Please select a field from the left list first.</p>
+              <p className="text-base font-medium text-gray-700">Please select a field from the left list first.</p>
               <p className="text-xs text-gray-400 mt-1">Required inputs will appear here automatically.</p>
             </div>
           ) : (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-6">{outputTitle}</h3>
+            <>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                Enter the required values for {outputTitle}:
+              </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {outputField !== 'base' && (
                   <div className="relative">
                     <label className="block text-xs font-semibold text-gray-700 mb-1">মূল ঘণ্টার রেট</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">€</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                       <input
                         type="number"
                         step="0.01"
@@ -1875,7 +1886,7 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
                   <div className="relative">
                     <label className="block text-xs font-semibold text-gray-700 mb-1">ওভারটাইম রেট</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">€</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                       <input
                         type="number"
                         step="0.01"
@@ -1902,42 +1913,53 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
                       placeholder="যেমন 25"
                       className={percentageInputClass(percentageMissing || invalidBaseDenominator)}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
                   </div>
                   {(percentageMissing || invalidBaseDenominator) && (
                     <span className="text-[10px] text-red-500 mt-1 block">
-                      {invalidBaseDenominator ? 'এই শতাংশের জন্য হিসাব করা সম্ভব নয়' : 'This field is required'}
+                      {invalidBaseDenominator ? 'এই শতাংশের জন্য হিসাব করা সম্ভব নয়' : 'This field is required'}
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="mt-5 p-3 bg-gray-50 rounded-md border border-gray-200">
-                <p className="text-xs text-gray-600">
-                  {outputField === 'overtime' && 'Formula: ওভারটাইম রেট = মূল ঘণ্টার রেট + (মূল ঘণ্টার রেট × ওভারটাইম পার্সেন্টেজ / 100)'}
-                  {outputField === 'base' && 'Formula: মূল ঘণ্টার রেট = ওভারটাইম রেট / (1 + (ওভারটাইম পার্সেন্টেজ / 100))'}
-                  {outputField === 'percentage' && 'Formula: ওভারটাইম পার্সেন্টেজ = ((ওভারটাইম রেট / মূল ঘণ্টার রেট) - 1) × 100'}
-                </p>
-              </div>
-
-              <div className="flex space-x-3 mt-6">
-                <button type="button" onClick={onCalculate} className="bg-indigo-600 text-white py-2 px-5 rounded-md text-sm font-semibold hover:bg-indigo-700 transition shadow-sm">
+              <div className="mt-6 flex space-x-3">
+                <button
+                  type="button"
+                  onClick={onCalculate}
+                  className="flex-1 bg-indigo-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
+                >
                   Calculate
                 </button>
-                <button type="button" onClick={onReset} className="bg-gray-100 text-gray-700 py-2 px-5 rounded-md text-sm font-semibold hover:bg-gray-200 transition">
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
+                >
                   Reset
                 </button>
               </div>
 
               {result !== null && (
-                <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                  <div className="text-xs font-semibold text-gray-600 mb-1">Result</div>
-                  <div className="text-2xl font-bold text-indigo-700">
-                    {outputField === 'percentage' ? `${result.toFixed(2)}%` : formatCurrency(result)}
+                <div className="mt-6 p-4 bg-white border border-black rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-black">
+                      {outputTitle}
+                    </span>
+                    <span className="text-xl font-bold text-black">
+                      {outputField === 'percentage' ? `${result.toFixed(2)}%` : formatCurrency(result)}
+                    </span>
                   </div>
+                  {outputField !== 'percentage' && formatFullPrecision && (
+                    <div className="flex justify-end mt-1">
+                      <span className="text-xs text-black">
+                        {formatFullPrecision(result)} €
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
