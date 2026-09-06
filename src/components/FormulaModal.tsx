@@ -8,7 +8,7 @@ interface FormulaModalProps {
 /**
  * Formula Modal Component
  * 
- * Displays Formula 1 through Formula 14 and their sub-formulas.
+ * Displays Formula 1 through Formula 15 and their sub-formulas.
  */
 export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -682,6 +682,47 @@ export const FormulaModal: React.FC<FormulaModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
+          {/* Formula 15 */}
+          <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border-2 border-emerald-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-emerald-900 mb-3">
+              Formula 15 (OVERTIME RATE Calculation)
+            </h3>
+
+            <div className="bg-white rounded-md p-4 font-mono text-sm overflow-x-auto mb-4 border border-emerald-100 shadow-sm">
+              <div className="text-gray-700">
+                <span className="font-bold text-emerald-700">OVERTIME RATE</span> ={' '}
+                <span className="font-bold text-indigo-600">RETRIBUZIONE ORARIA</span> + (
+                <span className="font-bold text-indigo-600">RETRIBUZIONE ORARIA</span> ×{' '}
+                <span className="font-bold text-purple-600">OVERTIME %</span> / 100)
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-emerald-200 pt-4">
+              <h4 className="text-sm font-bold text-emerald-900 mb-3">
+                Sub-Formulas (Backward Calculation):
+              </h4>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate RETRIBUZIONE ORARIA:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    RETRIBUZIONE ORARIA = OVERTIME RATE / (1 + (OVERTIME % / 100))
+                  </div>
+                </div>
+
+                <div className="bg-white p-2.5 rounded border border-gray-200">
+                  <span className="font-semibold text-gray-700">
+                    To calculate OVERTIME %:
+                  </span>
+                  <div className="text-gray-900 mt-1">
+                    OVERTIME % = ((OVERTIME RATE / RETRIBUZIONE ORARIA) - 1) × 100
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
         </div>
 
