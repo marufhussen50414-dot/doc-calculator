@@ -54,6 +54,23 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
   // আপনার অন্য কোনো Field ID থাকলে এখানে নিচে নতুন লাইন যোগ করে নিতে পারবেন
 };
 
+// ---------------------------------------------------------------------------
+// % সাপোর্ট: যেকোনো ইনপুট বক্সে যদি কেউ "9.19%" এর মতো % সহ মান লেখে,
+// তাহলে সেটাকে স্বয়ংক্রিয়ভাবে ভাগ করে (÷100) দশমিক মানে (যেমন 0.0919) রূপান্তর করে দেয়।
+// % ছাড়া স্বাভাবিক সংখ্যা লিখলে কোনো পরিবর্তন হয় না।
+// ---------------------------------------------------------------------------
+const parsePercentAwareValue = (value: string): string => {
+  const trimmed = value.trim();
+  if (trimmed.endsWith('%')) {
+    const numberPart = trimmed.slice(0, -1).trim();
+    const parsedNumber = parseFloat(numberPart);
+    if (Number.isFinite(parsedNumber)) {
+      return String(parsedNumber / 100);
+    }
+  }
+  return value;
+};
+
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [mode, setMode] = useState<CalculatorMode>('standard');
   const [outputField, setOutputField] = useState<string | null>(null);
@@ -185,9 +202,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       delete newInputs[fieldId];
       setInputs(newInputs);
     } else {
+      const processedValue = parsePercentAwareValue(value);
       setInputs((prev) => ({
         ...prev,
-        [fieldId]: value,
+        [fieldId]: processedValue,
       }));
     }
     setShowResult(false);
@@ -1602,9 +1620,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             percentage={hourRatePercentage}
             result={hourRateResult}
             attempted={hourRateAttempted}
-            onBaseRateChange={setHourRateBase}
-            onOvertimeRateChange={setHourRateOvertime}
-            onPercentageChange={setHourRatePercentage}
+            onBaseRateChange={(val: string) => setHourRateBase(parsePercentAwareValue(val))}
+            onOvertimeRateChange={(val: string) => setHourRateOvertime(parsePercentAwareValue(val))}
+            onPercentageChange={(val: string) => setHourRatePercentage(parsePercentAwareValue(val))}
             onCalculate={handleCalculateHourRate}
             onReset={handleResetHourRate}
             formatCurrency={formatCurrency}
@@ -1656,7 +1674,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onAnnuoCustomModeChange={setAnnuoCustomMode}
             customDynamicFields={customDynamicFields}
             onCustomFieldChange={(id, val) => {
-              setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: val } : f));
+              const processedVal = parsePercentAwareValue(val);
+              setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: processedVal } : f));
             }}
             onAddCustomField={() => {
               setCustomDynamicFields([
@@ -1683,7 +1702,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onRetribuzioneUtileTfrModeChange={setRetribuzioneUtileTfrMode}
             retribuzioneUtileTfrCustomFields={retribuzioneUtileTfrCustomFields}
             onRetribuzioneUtileTfrCustomFieldChange={(id, val) => {
-              setRetribuzioneUtileTfrCustomFields(retribuzioneUtileTfrCustomFields.map(f => f.id === id ? { ...f, value: val } : f));
+              const processedVal = parsePercentAwareValue(val);
+              setRetribuzioneUtileTfrCustomFields(retribuzioneUtileTfrCustomFields.map(f => f.id === id ? { ...f, value: processedVal } : f));
             }}
             onAddRetribuzioneUtileTfrCustomField={() => {
               setRetribuzioneUtileTfrCustomFields([
@@ -1707,7 +1727,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onResetAddValue={handleResetAddValue}
             tempCalcFields={tempCalcFields}
             onTempCalcFieldChange={(id, val) => {
-              setTempCalcFields(tempCalcFields.map(f => f.id === id ? { ...f, value: val } : f));
+              const processedVal = parsePercentAwareValue(val);
+              setTempCalcFields(tempCalcFields.map(f => f.id === id ? { ...f, value: processedVal } : f));
             }}
             onAddTempCalcField={() => {
               setTempCalcFields([
@@ -1866,7 +1887,7 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                       <input
-                        type="number"
+                        type="text" inputMode="decimal"
                         step="0.01"
                         value={baseRate}
                         onChange={(e) => onBaseRateChange(e.target.value)}
@@ -1888,7 +1909,7 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                       <input
-                        type="number"
+                        type="text" inputMode="decimal"
                         step="0.01"
                         value={overtimeRate}
                         onChange={(e) => onOvertimeRateChange(e.target.value)}
@@ -1907,7 +1928,7 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
                     <label className="block text-xs font-semibold text-gray-700 mb-1">ওভারটাইম পার্সেন্টেজ</label>
                     <div className="relative">
                       <input
-                        type="number"
+                        type="text" inputMode="decimal"
                         step="0.01"
                         value={percentage}
                         onChange={(e) => onPercentageChange(e.target.value)}
@@ -2326,7 +2347,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['retribuzione_mensile_for_giornaliera_f1'] || ''}
                             onChange={(e) => onInputChange('retribuzione_mensile_for_giornaliera_f1', e.target.value)}
@@ -2344,7 +2365,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">GG. RETR.</label>
                         <div className="relative">
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['gg_retr_for_giornaliera_f1'] || ''}
                             onChange={(e) => onInputChange('gg_retr_for_giornaliera_f1', e.target.value)}
@@ -2366,7 +2387,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['retribuzione_ordinaria_for_giornaliera_f2'] || ''}
                             onChange={(e) => onInputChange('retribuzione_ordinaria_for_giornaliera_f2', e.target.value)}
@@ -2384,7 +2405,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">GG. LAV.</label>
                         <div className="relative">
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['gg_lav_for_giornaliera_f2'] || ''}
                             onChange={(e) => onInputChange('gg_lav_for_giornaliera_f2', e.target.value)}
@@ -2412,7 +2433,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['retribuzione_mensile_for_paga_base'] || ''}
                           onChange={(e) => onInputChange('retribuzione_mensile_for_paga_base', e.target.value)}
@@ -2431,7 +2452,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['contingenza_for_paga_base'] || ''}
                           onChange={(e) => onInputChange('contingenza_for_paga_base', e.target.value)}
@@ -2450,7 +2471,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['scatti_anz_for_paga_base'] || ''}
                           onChange={(e) => onInputChange('scatti_anz_for_paga_base', e.target.value)}
@@ -2477,7 +2498,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['retribuzione_mensile_for_contingenza'] || ''}
                           onChange={(e) => onInputChange('retribuzione_mensile_for_contingenza', e.target.value)}
@@ -2496,7 +2517,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['paga_base_conglobata_for_contingenza'] || ''}
                           onChange={(e) => onInputChange('paga_base_conglobata_for_contingenza', e.target.value)}
@@ -2515,7 +2536,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['scatti_anz_for_contingenza'] || ''}
                           onChange={(e) => onInputChange('scatti_anz_for_contingenza', e.target.value)}
@@ -2542,7 +2563,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['retribuzione_mensile_for_scatti'] || ''}
                           onChange={(e) => onInputChange('retribuzione_mensile_for_scatti', e.target.value)}
@@ -2561,7 +2582,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['paga_base_conglobata_for_scatti'] || ''}
                           onChange={(e) => onInputChange('paga_base_conglobata_for_scatti', e.target.value)}
@@ -2580,7 +2601,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['contingenza_for_scatti'] || ''}
                           onChange={(e) => onInputChange('contingenza_for_scatti', e.target.value)}
@@ -2607,7 +2628,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['retribuzione_mensile_for_oraria'] || ''}
                           onChange={(e) => onInputChange('retribuzione_mensile_for_oraria', e.target.value)}
@@ -2633,7 +2654,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <label className="block text-xs font-semibold text-gray-700 mb-1">GG. LAV.</label>
                       <div className="relative">
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['gg_lav_for_ordinaria'] || ''}
                           onChange={(e) => onInputChange('gg_lav_for_ordinaria', e.target.value)}
@@ -2652,7 +2673,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['retribuzione_giornaliera_for_ordinaria'] || ''}
                           onChange={(e) => onInputChange('retribuzione_giornaliera_for_ordinaria', e.target.value)}
@@ -2704,7 +2725,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                             <input
-                              type="number"
+                              type="text" inputMode="decimal"
                               step="0.01"
                               value={inputs['imponibile_contributivo'] || ''}
                               onChange={(e) => onInputChange('imponibile_contributivo', e.target.value)}
@@ -2723,7 +2744,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                             <input
-                              type="number"
+                              type="text" inputMode="decimal"
                               step="0.01"
                               value={inputs['totale_contributi_for_fiscale'] || ''}
                               onChange={(e) => onInputChange('totale_contributi_for_fiscale', e.target.value)}
@@ -2743,7 +2764,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['adjustment'] || ''}
                             onChange={(e) => onInputChange('adjustment', e.target.value)}
@@ -2766,7 +2787,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_lorda_mese_for_fiscale'] || ''}
                             onChange={(e) => onInputChange('irpef_lorda_mese_for_fiscale', e.target.value)}
@@ -2795,7 +2816,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['imponibile_fiscale'] || ''}
                             onChange={(e) => onInputChange('imponibile_fiscale', e.target.value)}
@@ -2814,7 +2835,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['imponibile_contributivo'] || ''}
                             onChange={(e) => onInputChange('imponibile_contributivo', e.target.value)}
@@ -2834,7 +2855,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['totale_contributi_for_adjustment'] || ''}
                           onChange={(e) => onInputChange('totale_contributi_for_adjustment', e.target.value)}
@@ -2894,7 +2915,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['alt_irpef_imp_sost'] || ''}
                             onChange={(e) => onInputChange('alt_irpef_imp_sost', e.target.value)}
@@ -2908,7 +2929,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['alt_detr_lav_dip'] || ''}
                             onChange={(e) => onInputChange('alt_detr_lav_dip', e.target.value)}
@@ -2922,7 +2943,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['alt_imposta_sost'] || ''}
                             onChange={(e) => onInputChange('alt_imposta_sost', e.target.value)}
@@ -2940,7 +2961,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['f3_irpef_netta'] || ''}
                             onChange={(e) => onInputChange('f3_irpef_netta', e.target.value)}
@@ -2959,7 +2980,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['f3_detr_lav_dip'] || ''}
                             onChange={(e) => onInputChange('f3_detr_lav_dip', e.target.value)}
@@ -2982,7 +3003,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['f4_imponibile_fiscale'] || ''}
                             onChange={(e) => onInputChange('f4_imponibile_fiscale', e.target.value)}
@@ -3011,7 +3032,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['imponibile_fiscale'] || ''}
                             onChange={(e) => onInputChange('imponibile_fiscale', e.target.value)}
@@ -3030,7 +3051,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['totale_contributi_for_contributivo'] || ''}
                             onChange={(e) => onInputChange('totale_contributi_for_contributivo', e.target.value)}
@@ -3050,7 +3071,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['adjustment_contributivo'] || ''}
                           onChange={(e) => onInputChange('adjustment_contributivo', e.target.value)}
@@ -3101,7 +3122,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_lorda_mese'] || ''}
                             onChange={(e) => onInputChange('irpef_lorda_mese', e.target.value)}
@@ -3120,7 +3141,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['detr_lav_dip'] || ''}
                             onChange={(e) => onInputChange('detr_lav_dip', e.target.value)}
@@ -3142,7 +3163,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_netta_f2_totale_trattenute'] || ''}
                             onChange={(e) => onInputChange('irpef_netta_f2_totale_trattenute', e.target.value)}
@@ -3161,7 +3182,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_netta_f2_totale_contributi'] || ''}
                             onChange={(e) => onInputChange('irpef_netta_f2_totale_contributi', e.target.value)}
@@ -3180,7 +3201,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_netta_f2_addizionali'] || ''}
                             onChange={(e) => onInputChange('irpef_netta_f2_addizionali', e.target.value)}
@@ -3199,7 +3220,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_netta_f2_imposta_sostitutiva'] || ''}
                             onChange={(e) => onInputChange('irpef_netta_f2_imposta_sostitutiva', e.target.value)}
@@ -3251,7 +3272,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tfr_mese'] || ''}
                             onChange={(e) => onInputChange('tfr_mese', e.target.value)}
@@ -3270,7 +3291,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['contr_agg_tfr'] || ''}
                             onChange={(e) => onInputChange('contr_agg_tfr', e.target.value)}
@@ -3308,7 +3329,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             <div className="relative flex-1">
                               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                               <input
-                                type="number"
+                                type="text" inputMode="decimal"
                                 step="0.01"
                                 value={field.value}
                                 onChange={(e) => onRetribuzioneUtileTfrCustomFieldChange(field.id, e.target.value)}
@@ -3348,7 +3369,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['contr_agg_tfr'] || ''}
                           onChange={(e) => onInputChange('contr_agg_tfr', e.target.value)}
@@ -3399,7 +3420,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['retribuzione_utile_tfr'] || ''}
                             onChange={(e) => onInputChange('retribuzione_utile_tfr', e.target.value)}
@@ -3418,7 +3439,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tfr_mese'] || ''}
                             onChange={(e) => onInputChange('tfr_mese', e.target.value)}
@@ -3440,7 +3461,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['impon_contrib_arrot_mese'] || ''}
                             onChange={(e) => onInputChange('impon_contrib_arrot_mese', e.target.value)}
@@ -3468,7 +3489,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['retribuzione_utile_tfr'] || ''}
                           onChange={(e) => onInputChange('retribuzione_utile_tfr', e.target.value)}
@@ -3487,7 +3508,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['contr_agg_tfr'] || ''}
                           onChange={(e) => onInputChange('contr_agg_tfr', e.target.value)}
@@ -3548,7 +3569,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['paga_base_conglobata'] || ''}
                             onChange={(e) => onInputChange('paga_base_conglobata', e.target.value)}
@@ -3567,7 +3588,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['contingenza'] || ''}
                             onChange={(e) => onInputChange('contingenza', e.target.value)}
@@ -3586,7 +3607,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['scatti_anz'] || ''}
                             onChange={(e) => onInputChange('scatti_anz', e.target.value)}
@@ -3608,7 +3629,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['retribuzione_giornaliera'] || ''}
                             onChange={(e) => onInputChange('retribuzione_giornaliera', e.target.value)}
@@ -3626,7 +3647,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">GG. RETR.</label>
                         <div className="relative">
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['rm_f2_gg_retr'] || ''}
                             onChange={(e) => onInputChange('rm_f2_gg_retr', e.target.value)}
@@ -3648,7 +3669,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['retribuzione_oraria'] || ''}
                             onChange={(e) => onInputChange('retribuzione_oraria', e.target.value)}
@@ -3676,7 +3697,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['netto'] || ''}
                           onChange={(e) => onInputChange('netto', e.target.value)}
@@ -3690,7 +3711,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                         <input
-                          type="number"
+                          type="text" inputMode="decimal"
                           step="0.01"
                           value={inputs['trattenute'] || ''}
                           onChange={(e) => onInputChange('trattenute', e.target.value)}
@@ -3706,7 +3727,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                             <input
-                              type="number"
+                              type="text" inputMode="decimal"
                               step="0.01"
                               value={inputs['arr_preced'] || ''}
                               onChange={(e) => onInputChange('arr_preced', e.target.value)}
@@ -3720,7 +3741,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                             <input
-                              type="number"
+                              type="text" inputMode="decimal"
                               step="0.01"
                               value={inputs['arr_attuale'] || ''}
                               onChange={(e) => onInputChange('arr_attuale', e.target.value)}
@@ -3778,7 +3799,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['competenze'] || ''}
                             onChange={(e) => onInputChange('competenze', e.target.value)}
@@ -3792,7 +3813,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['netto'] || ''}
                             onChange={(e) => onInputChange('netto', e.target.value)}
@@ -3808,7 +3829,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                               <input
-                                type="number"
+                                type="text" inputMode="decimal"
                                 step="0.01"
                                 value={inputs['arr_preced'] || ''}
                                 onChange={(e) => onInputChange('arr_preced', e.target.value)}
@@ -3822,7 +3843,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                               <input
-                                type="number"
+                                type="text" inputMode="decimal"
                                 step="0.01"
                                 value={inputs['arr_attuale'] || ''}
                                 onChange={(e) => onInputChange('arr_attuale', e.target.value)}
@@ -3841,7 +3862,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_imp_sost'] || ''}
                             onChange={(e) => onInputChange('irpef_imp_sost', e.target.value)}
@@ -3855,7 +3876,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['totale_contributi'] || ''}
                             onChange={(e) => onInputChange('totale_contributi', e.target.value)}
@@ -3869,7 +3890,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['addizionali_field'] || ''}
                             onChange={(e) => onInputChange('addizionali_field', e.target.value)}
@@ -3886,7 +3907,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tt_f3_irpef_netta'] || ''}
                             onChange={(e) => onInputChange('tt_f3_irpef_netta', e.target.value)}
@@ -3900,7 +3921,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tt_f3_totale_contributi'] || ''}
                             onChange={(e) => onInputChange('tt_f3_totale_contributi', e.target.value)}
@@ -3914,7 +3935,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tt_f3_addizionali'] || ''}
                             onChange={(e) => onInputChange('tt_f3_addizionali', e.target.value)}
@@ -3928,7 +3949,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tt_f3_imposta_sostitutiva'] || ''}
                             onChange={(e) => onInputChange('tt_f3_imposta_sostitutiva', e.target.value)}
@@ -3995,7 +4016,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['totale_trattenute_input'] || ''}
                             onChange={(e) => onInputChange('totale_trattenute_input', e.target.value)}
@@ -4009,7 +4030,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_imp_sost_input'] || ''}
                             onChange={(e) => onInputChange('irpef_imp_sost_input', e.target.value)}
@@ -4023,7 +4044,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['addizionali_input'] || ''}
                             onChange={(e) => onInputChange('addizionali_input', e.target.value)}
@@ -4040,7 +4061,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tc_f2_totale_trattenute'] || ''}
                             onChange={(e) => onInputChange('tc_f2_totale_trattenute', e.target.value)}
@@ -4054,7 +4075,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tc_f2_irpef_netta'] || ''}
                             onChange={(e) => onInputChange('tc_f2_irpef_netta', e.target.value)}
@@ -4068,7 +4089,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tc_f2_addizionali'] || ''}
                             onChange={(e) => onInputChange('tc_f2_addizionali', e.target.value)}
@@ -4082,7 +4103,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tc_f2_imposta_sostitutiva'] || ''}
                             onChange={(e) => onInputChange('tc_f2_imposta_sostitutiva', e.target.value)}
@@ -4099,7 +4120,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tc_f3_imponibile_contributivo'] || ''}
                             onChange={(e) => onInputChange('tc_f3_imponibile_contributivo', e.target.value)}
@@ -4113,7 +4134,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tc_f3_adjustment'] || ''}
                             onChange={(e) => onInputChange('tc_f3_adjustment', e.target.value)}
@@ -4127,7 +4148,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['tc_f3_imponibile_fiscale'] || ''}
                             onChange={(e) => onInputChange('tc_f3_imponibile_fiscale', e.target.value)}
@@ -4160,7 +4181,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                             <div className="relative flex-1">
                               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                               <input
-                                type="number"
+                                type="text" inputMode="decimal"
                                 step="0.01"
                                 value={field.value}
                                 onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
@@ -4224,7 +4245,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_f2_totale_trattenute'] || ''}
                             onChange={(e) => onInputChange('irpef_f2_totale_trattenute', e.target.value)}
@@ -4238,7 +4259,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_f2_totale_contributi'] || ''}
                             onChange={(e) => onInputChange('irpef_f2_totale_contributi', e.target.value)}
@@ -4252,7 +4273,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['irpef_f2_addizionali'] || ''}
                             onChange={(e) => onInputChange('irpef_f2_addizionali', e.target.value)}
@@ -4291,7 +4312,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                           <div className="relative flex-1">
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                             <input
-                              type="number"
+                              type="text" inputMode="decimal"
                               step="0.01"
                               value={field.value}
                               onChange={(e) => onCustomFieldChange(field.id, e.target.value)}
@@ -4329,7 +4350,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_totale_trattenute'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                        <input type="text" inputMode="decimal" step="0.01" value={inputs['imposta_sostitutiva_totale_trattenute'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                       </div>
                       {attempted && !inputs['imposta_sostitutiva_totale_trattenute'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                     </div>
@@ -4337,7 +4358,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_totale_contributi'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                        <input type="text" inputMode="decimal" step="0.01" value={inputs['imposta_sostitutiva_totale_contributi'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                       </div>
                       {attempted && !inputs['imposta_sostitutiva_totale_contributi'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                     </div>
@@ -4345,7 +4366,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <label className="block text-xs font-semibold text-gray-700 mb-1">ADDIZIONALI</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_addizionali'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_addizionali', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_addizionali'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                        <input type="text" inputMode="decimal" step="0.01" value={inputs['imposta_sostitutiva_addizionali'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_addizionali', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_addizionali'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                       </div>
                       {attempted && !inputs['imposta_sostitutiva_addizionali'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                     </div>
@@ -4353,7 +4374,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                       <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                        <input type="number" step="0.01" value={inputs['imposta_sostitutiva_irpef_netta'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_irpef_netta', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                        <input type="text" inputMode="decimal" step="0.01" value={inputs['imposta_sostitutiva_irpef_netta'] || ''} onChange={(e) => onInputChange('imposta_sostitutiva_irpef_netta', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['imposta_sostitutiva_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                       </div>
                       {attempted && !inputs['imposta_sostitutiva_irpef_netta'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                     </div>
@@ -4380,7 +4401,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f1_totale_trattenute'] || ''} onChange={(e) => onInputChange('addizionali_f1_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <input type="text" inputMode="decimal" step="0.01" value={inputs['addizionali_f1_totale_trattenute'] || ''} onChange={(e) => onInputChange('addizionali_f1_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                         </div>
                         {attempted && !inputs['addizionali_f1_totale_trattenute'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                       </div>
@@ -4388,7 +4409,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF + IMP. SOST.</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f1_irpef_imp_sost'] || ''} onChange={(e) => onInputChange('addizionali_f1_irpef_imp_sost', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_irpef_imp_sost'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <input type="text" inputMode="decimal" step="0.01" value={inputs['addizionali_f1_irpef_imp_sost'] || ''} onChange={(e) => onInputChange('addizionali_f1_irpef_imp_sost', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_irpef_imp_sost'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                         </div>
                         {attempted && !inputs['addizionali_f1_irpef_imp_sost'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                       </div>
@@ -4396,7 +4417,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f1_totale_contributi'] || ''} onChange={(e) => onInputChange('addizionali_f1_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <input type="text" inputMode="decimal" step="0.01" value={inputs['addizionali_f1_totale_contributi'] || ''} onChange={(e) => onInputChange('addizionali_f1_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f1_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                         </div>
                         {attempted && !inputs['addizionali_f1_totale_contributi'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                       </div>
@@ -4407,7 +4428,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE TRATTENUTE</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_totale_trattenute'] || ''} onChange={(e) => onInputChange('addizionali_f2_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <input type="text" inputMode="decimal" step="0.01" value={inputs['addizionali_f2_totale_trattenute'] || ''} onChange={(e) => onInputChange('addizionali_f2_totale_trattenute', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_totale_trattenute'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                         </div>
                         {attempted && !inputs['addizionali_f2_totale_trattenute'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                       </div>
@@ -4415,7 +4436,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">TOTALE CONTRIBUTI</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_totale_contributi'] || ''} onChange={(e) => onInputChange('addizionali_f2_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <input type="text" inputMode="decimal" step="0.01" value={inputs['addizionali_f2_totale_contributi'] || ''} onChange={(e) => onInputChange('addizionali_f2_totale_contributi', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_totale_contributi'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                         </div>
                         {attempted && !inputs['addizionali_f2_totale_contributi'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                       </div>
@@ -4423,7 +4444,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">IRPEF NETTA</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_irpef_netta'] || ''} onChange={(e) => onInputChange('addizionali_f2_irpef_netta', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <input type="text" inputMode="decimal" step="0.01" value={inputs['addizionali_f2_irpef_netta'] || ''} onChange={(e) => onInputChange('addizionali_f2_irpef_netta', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_irpef_netta'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                         </div>
                         {attempted && !inputs['addizionali_f2_irpef_netta'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                       </div>
@@ -4431,7 +4452,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <label className="block text-xs font-semibold text-gray-700 mb-1">IMPOSTA SOSTITUTIVA</label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
-                          <input type="number" step="0.01" value={inputs['addizionali_f2_imposta_sostitutiva'] || ''} onChange={(e) => onInputChange('addizionali_f2_imposta_sostitutiva', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_imposta_sostitutiva'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <input type="text" inputMode="decimal" step="0.01" value={inputs['addizionali_f2_imposta_sostitutiva'] || ''} onChange={(e) => onInputChange('addizionali_f2_imposta_sostitutiva', e.target.value)} placeholder="0.00" className={`w-full pl-8 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${attempted && !inputs['addizionali_f2_imposta_sostitutiva'] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                         </div>
                         {attempted && !inputs['addizionali_f2_imposta_sostitutiva'] && <span className="text-[10px] text-red-500 mt-1 block">This field is required</span>}
                       </div>
@@ -4473,7 +4494,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['dld2_irpef_lorda'] || ''}
                             onChange={(e) => onInputChange('dld2_irpef_lorda', e.target.value)}
@@ -4492,7 +4513,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs['dld2_irpef_netta'] || ''}
                             onChange={(e) => onInputChange('dld2_irpef_netta', e.target.value)}
@@ -4558,7 +4579,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                               <input
                                 id={fieldId}
-                                type="number"
+                                type="text" inputMode="decimal"
                                 step="0.01"
                                 value={inputs[fieldId] || ''}
                                 onChange={(e) => onInputChange(fieldId, e.target.value)}
@@ -4649,7 +4670,7 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     <div className="relative flex-1">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                       <input
-                        type="number"
+                        type="text" inputMode="decimal"
                         step="0.01"
                         value={field.value}
                         onChange={(e) => onTempCalcFieldChange(field.id, e.target.value)}
@@ -4855,7 +4876,7 @@ const MultiModeCalculator: React.FC<MultiModeCalculatorProps> = ({
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€</span>
                           <input
                             id={`multi-${fieldId}`}
-                            type="number"
+                            type="text" inputMode="decimal"
                             step="0.01"
                             value={inputs[fieldId] || ''}
                             onChange={(e) => onInputChange(fieldId, e.target.value)}
