@@ -4702,6 +4702,11 @@ const StandardModeCalculator: React.FC<StandardModeCalculatorProps> = ({
                     {formatCurrency(tempCalcResult)}
                   </span>
                 </div>
+                <div className="flex justify-end mt-1">
+                  <span className="text-xs text-black">
+                    {formatFullPrecision(tempCalcResult)} €
+                  </span>
+                </div>
               </div>
             )}
           </div>
