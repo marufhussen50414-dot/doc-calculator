@@ -55,20 +55,21 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// % সাপোর্ট: যেকোনো ইনপুট বক্সে যদি কেউ "9.19%" এর মতো % সহ মান লেখে,
-// তাহলে সেটাকে স্বয়ংক্রিয়ভাবে ভাগ করে (÷100) দশমিক মানে (যেমন 0.0919) রূপান্তর করে দেয়।
-// % ছাড়া স্বাভাবিক সংখ্যা লিখলে কোনো পরিবর্তন হয় না।
+// % সাপোর্ট: যেকোনো ইনপুট বক্সে "9.19%" এর মতো % সহ মান লিখলে, বক্সে "9.19%" ই দেখাতে
+// থাকবে (raw text অপরিবর্তিত থাকবে), কিন্তু হিসাব-নিকাশের সময় এই ফাংশন দিয়ে সেটাকে
+// ভাগ করে (÷100) দশমিক মানে (যেমন 0.0919) রূপান্তর করে গণনা করা হয়।
+// % ছাড়া স্বাভাবিক সংখ্যা দিলে স্বাভাবিকভাবেই কাজ করে।
 // ---------------------------------------------------------------------------
-const parsePercentAwareValue = (value: string): string => {
-  const trimmed = value.trim();
-  if (trimmed.endsWith('%')) {
-    const numberPart = trimmed.slice(0, -1).trim();
-    const parsedNumber = parseFloat(numberPart);
-    if (Number.isFinite(parsedNumber)) {
-      return String(parsedNumber / 100);
-    }
+const getNumericValue = (raw: unknown): number => {
+  if (raw === undefined || raw === null) return NaN;
+  const str = String(raw).trim();
+  if (str === '') return NaN;
+  if (str.endsWith('%')) {
+    const percentPart = str.slice(0, -1).trim();
+    const parsedPercent = parseFloat(percentPart);
+    return Number.isFinite(parsedPercent) ? parsedPercent / 100 : NaN;
   }
-  return value;
+  return parseFloat(str);
 };
 
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
@@ -202,10 +203,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       delete newInputs[fieldId];
       setInputs(newInputs);
     } else {
-      const processedValue = parsePercentAwareValue(value);
       setInputs((prev) => ({
         ...prev,
-        [fieldId]: processedValue,
+        [fieldId]: value,
       }));
     }
     setShowResult(false);
@@ -264,7 +264,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     const numericInputs: CalculatorInputs = {};
     Object.keys(inputs).forEach(key => {
       const value = inputs[key];
-      numericInputs[key] = typeof value === 'string' ? parseFloat(value) || 0 : value;
+      numericInputs[key] = typeof value === 'string' ? getNumericValue(value) || 0 : value;
     });
     return numericInputs;
   };
@@ -527,14 +527,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const required = ['retribuzione_mensile_for_giornaliera_f1', 'gg_retr_for_giornaliera_f1'];
         const missing = required.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missing.length === 0, missing };
       } else {
         const required = ['retribuzione_ordinaria_for_giornaliera_f2', 'gg_lav_for_giornaliera_f2'];
         const missing = required.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missing.length === 0, missing };
       }
@@ -545,7 +545,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const required = ['retribuzione_mensile_for_paga_base', 'contingenza_for_paga_base', 'scatti_anz_for_paga_base'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missing.length === 0, missing };
     }
@@ -555,7 +555,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const required = ['retribuzione_mensile_for_contingenza', 'paga_base_conglobata_for_contingenza', 'scatti_anz_for_contingenza'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missing.length === 0, missing };
     }
@@ -565,7 +565,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const required = ['retribuzione_mensile_for_scatti', 'paga_base_conglobata_for_scatti', 'contingenza_for_scatti'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missing.length === 0, missing };
     }
@@ -575,7 +575,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const required = ['retribuzione_mensile_for_oraria'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missing.length === 0, missing };
     }
@@ -585,7 +585,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const required = ['gg_lav_for_ordinaria', 'retribuzione_giornaliera_for_ordinaria'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missing.length === 0, missing };
     }
@@ -595,7 +595,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const activeFormulaFields = enableRounding ? formulaFields : formulaFields.filter(f => f !== 'arr_preced' && f !== 'arr_attuale');
       const missingFields = activeFormulaFields.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missingFields.length === 0, missing: missingFields };
     }
@@ -605,14 +605,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const f2Fields = ['irpef_netta_f2_totale_trattenute', 'irpef_netta_f2_totale_contributi', 'irpef_netta_f2_addizionali', 'irpef_netta_f2_imposta_sostitutiva'];
         const missingFields = f2Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       }
       const fields = ['irpef_lorda_mese', 'detr_lav_dip'];
       const missingFields = fields.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missingFields.length === 0, missing: missingFields };
     }
@@ -622,21 +622,21 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const fields = ['paga_base_conglobata', 'contingenza', 'scatti_anz'];
         const missingFields = fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else if (retribuzioneMensileMode === 'formula2') {
         const fields = ['retribuzione_giornaliera', 'rm_f2_gg_retr'];
         const missingFields = fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else {
         const fields = ['retribuzione_oraria'];
         const missingFields = fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       }
@@ -646,20 +646,20 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const tfrFields = ['retribuzione_utile_tfr', 'contr_agg_tfr'];
       const missingFields = tfrFields.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missingFields.length === 0, missing: missingFields };
     }
 
     if (isRetribuzioneUtileTfrField(outputFieldId)) {
       if (retribuzioneUtileTfrMode === 'alternative') {
-        const hasValue = retribuzioneUtileTfrCustomFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+        const hasValue = retribuzioneUtileTfrCustomFields.some(f => f.value !== '' && !isNaN(getNumericValue(f.value)));
         return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
       }
       const fields = ['tfr_mese', 'contr_agg_tfr'];
       const missingFields = fields.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missingFields.length === 0, missing: missingFields };
     }
@@ -669,14 +669,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const fields = ['impon_contrib_arrot_mese'];
         const missingFields = fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       }
       const fields = ['retribuzione_utile_tfr', 'tfr_mese'];
       const missingFields = fields.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missingFields.length === 0, missing: missingFields };
     }
@@ -687,21 +687,21 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const activeFields = enableRounding ? formula1Fields : ['competenze', 'netto'];
         const missingFields = activeFields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else if (totaleTrattenuteMode === 'formula2') {
         const formula2Fields = ['irpef_imp_sost', 'totale_contributi', 'addizionali_field'];
         const missingFields = formula2Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else {
         const formula3Fields = ['tt_f3_irpef_netta', 'tt_f3_totale_contributi', 'tt_f3_addizionali', 'tt_f3_imposta_sostitutiva'];
         const missingFields = formula3Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       }
@@ -712,25 +712,25 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const tcFields = ['totale_trattenute_input', 'irpef_imp_sost_input', 'addizionali_input'];
         const missingFields = tcFields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else if (totaleContributiMode === 'formula2') {
         const tc2Fields = ['tc_f2_totale_trattenute', 'tc_f2_irpef_netta', 'tc_f2_addizionali', 'tc_f2_imposta_sostitutiva'];
         const missingFields = tc2Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else if (totaleContributiMode === 'formula3') {
         const tc3Fields = ['tc_f3_imponibile_contributivo', 'tc_f3_adjustment', 'tc_f3_imponibile_fiscale'];
         const missingFields = tc3Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       } else {
-        const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+        const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(getNumericValue(f.value)));
         return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
       }
     }
@@ -747,14 +747,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const f2Fields = ['irpef_f2_totale_trattenute', 'irpef_f2_totale_contributi', 'irpef_f2_addizionali'];
         const missingFields = f2Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingFields.length === 0, missing: missingFields };
       }
     }
 
     if (isAnnuoField(outputFieldId) && annuoCustomMode === 'custom') {
-      const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(parseFloat(f.value)));
+      const hasValue = customDynamicFields.some(f => f.value !== '' && !isNaN(getNumericValue(f.value)));
       return { valid: hasValue, missing: hasValue ? [] : ['custom_fields'] };
     }
 
@@ -764,21 +764,21 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const altFields = ['alt_irpef_imp_sost', 'alt_detr_lav_dip', 'alt_imposta_sost'];
         const missingAlt = altFields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingAlt.length === 0, missing: missingAlt };
       } else if (irpefLordaMonthlyMode === 'formula3') {
         const f3Fields = ['f3_irpef_netta', 'f3_detr_lav_dip'];
         const missingF3 = f3Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingF3.length === 0, missing: missingF3 };
       } else if (irpefLordaMonthlyMode === 'formula4') {
         const f4Fields = ['f4_imponibile_fiscale'];
         const missingF4 = f4Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingF4.length === 0, missing: missingF4 };
       }
@@ -789,7 +789,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const dld2Fields = ['dld2_irpef_lorda', 'dld2_irpef_netta'];
         const missingDld2 = dld2Fields.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missingDld2.length === 0, missing: missingDld2 };
       }
@@ -801,7 +801,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const required = ['imponibile_contributivo', 'totale_contributi_for_fiscale', 'adjustment'];
         const missing = required.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missing.length === 0, missing };
       } else {
@@ -809,7 +809,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
         const required = ['irpef_lorda_mese_for_fiscale'];
         const missing = required.filter(fId => {
           const val = inputs[fId];
-          return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+          return val === undefined || val === '' || isNaN(getNumericValue(val));
         });
         return { valid: missing.length === 0, missing };
       }
@@ -820,7 +820,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const required = ['imponibile_fiscale', 'totale_contributi_for_contributivo', 'adjustment_contributivo'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missing.length === 0, missing };
     }
@@ -830,7 +830,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
       const required = ['imponibile_fiscale', 'imponibile_contributivo', 'totale_contributi_for_adjustment'];
       const missing = required.filter(fId => {
         const val = inputs[fId];
-        return val === undefined || val === '' || isNaN(parseFloat(String(val)));
+        return val === undefined || val === '' || isNaN(getNumericValue(val));
       });
       return { valid: missing.length === 0, missing };
     }
@@ -856,14 +856,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     // ---- RETRIBUZIONE GIORNALIERA ----
     if (isRetribuzioneGiornalieraField(outputField)) {
       if (retribuzioneGiornalieraMode === 'formula1') {
-        const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_giornaliera_f1'])) || 0;
-        const ggRetr = parseFloat(String(inputs['gg_retr_for_giornaliera_f1'])) || 1;
+        const retribuzioneMensile = getNumericValue(inputs['retribuzione_mensile_for_giornaliera_f1']) || 0;
+        const ggRetr = getNumericValue(inputs['gg_retr_for_giornaliera_f1']) || 1;
         const calculatedRetribuzioneGiornaliera = retribuzioneMensile / ggRetr;
         setResults({ [outputField]: calculatedRetribuzioneGiornaliera });
         setShowResult(true);
       } else {
-        const retribuzioneOrdinaria = parseFloat(String(inputs['retribuzione_ordinaria_for_giornaliera_f2'])) || 0;
-        const ggLav = parseFloat(String(inputs['gg_lav_for_giornaliera_f2'])) || 1;
+        const retribuzioneOrdinaria = getNumericValue(inputs['retribuzione_ordinaria_for_giornaliera_f2']) || 0;
+        const ggLav = getNumericValue(inputs['gg_lav_for_giornaliera_f2']) || 1;
         const calculatedRetribuzioneGiornaliera = retribuzioneOrdinaria / ggLav;
         setResults({ [outputField]: calculatedRetribuzioneGiornaliera });
         setShowResult(true);
@@ -873,9 +873,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     // ---- PAGA BASE CONGLOBATA ----
     if (isPagaBaseConglobataField(outputField)) {
-      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_paga_base'])) || 0;
-      const contingenza = parseFloat(String(inputs['contingenza_for_paga_base'])) || 0;
-      const scattiAnz = parseFloat(String(inputs['scatti_anz_for_paga_base'])) || 0;
+      const retribuzioneMensile = getNumericValue(inputs['retribuzione_mensile_for_paga_base']) || 0;
+      const contingenza = getNumericValue(inputs['contingenza_for_paga_base']) || 0;
+      const scattiAnz = getNumericValue(inputs['scatti_anz_for_paga_base']) || 0;
       const calculatedPagaBase = retribuzioneMensile - contingenza - scattiAnz;
       setResults({ [outputField]: calculatedPagaBase });
       setShowResult(true);
@@ -884,9 +884,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     // ---- CONTINGENZA ----
     if (isContingenzaField(outputField)) {
-      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_contingenza'])) || 0;
-      const pagaBaseConglobata = parseFloat(String(inputs['paga_base_conglobata_for_contingenza'])) || 0;
-      const scattiAnz = parseFloat(String(inputs['scatti_anz_for_contingenza'])) || 0;
+      const retribuzioneMensile = getNumericValue(inputs['retribuzione_mensile_for_contingenza']) || 0;
+      const pagaBaseConglobata = getNumericValue(inputs['paga_base_conglobata_for_contingenza']) || 0;
+      const scattiAnz = getNumericValue(inputs['scatti_anz_for_contingenza']) || 0;
       const calculatedContingenza = retribuzioneMensile - pagaBaseConglobata - scattiAnz;
       setResults({ [outputField]: calculatedContingenza });
       setShowResult(true);
@@ -895,9 +895,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     // ---- SCATTI ANZ. ----
     if (isScattiAnzField(outputField)) {
-      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_scatti'])) || 0;
-      const pagaBaseConglobata = parseFloat(String(inputs['paga_base_conglobata_for_scatti'])) || 0;
-      const contingenza = parseFloat(String(inputs['contingenza_for_scatti'])) || 0;
+      const retribuzioneMensile = getNumericValue(inputs['retribuzione_mensile_for_scatti']) || 0;
+      const pagaBaseConglobata = getNumericValue(inputs['paga_base_conglobata_for_scatti']) || 0;
+      const contingenza = getNumericValue(inputs['contingenza_for_scatti']) || 0;
       const calculatedScattiAnz = retribuzioneMensile - pagaBaseConglobata - contingenza;
       setResults({ [outputField]: calculatedScattiAnz });
       setShowResult(true);
@@ -906,7 +906,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     // ---- RETRIBUZIONE ORARIA ----
     if (isRetribuzioneOrariaField(outputField)) {
-      const retribuzioneMensile = parseFloat(String(inputs['retribuzione_mensile_for_oraria'])) || 0;
+      const retribuzioneMensile = getNumericValue(inputs['retribuzione_mensile_for_oraria']) || 0;
       const calculatedRetribuzioneOraria = retribuzioneMensile / 172;
       setResults({ [outputField]: calculatedRetribuzioneOraria });
       setShowResult(true);
@@ -915,8 +915,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     // ---- RETRIBUZIONE ORDINARIA ----
     if (isRetribuzioneOrdinariaField(outputField)) {
-      const ggLav = parseFloat(String(inputs['gg_lav_for_ordinaria'])) || 0;
-      const retribuzioneGiornaliera = parseFloat(String(inputs['retribuzione_giornaliera_for_ordinaria'])) || 0;
+      const ggLav = getNumericValue(inputs['gg_lav_for_ordinaria']) || 0;
+      const retribuzioneGiornaliera = getNumericValue(inputs['retribuzione_giornaliera_for_ordinaria']) || 0;
       const calculatedRetribuzioneOrdinaria = ggLav * retribuzioneGiornaliera;
       setResults({ [outputField]: calculatedRetribuzioneOrdinaria });
       setShowResult(true);
@@ -926,15 +926,15 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     // 6. IMPONIBILE FISCALE (Monthly) - NEW with 2 modes
     if (isImponibileFiscaleMonthlyField(outputField)) {
       if (imponibileFiscaleMonthlyMode === 'formula1') {
-        const imponibileContributivo = parseFloat(String(inputs['imponibile_contributivo'])) || 0;
-        const totaleContributi = parseFloat(String(inputs['totale_contributi_for_fiscale'])) || 0;
-        const adjustment = parseFloat(String(inputs['adjustment'])) || 0;
+        const imponibileContributivo = getNumericValue(inputs['imponibile_contributivo']) || 0;
+        const totaleContributi = getNumericValue(inputs['totale_contributi_for_fiscale']) || 0;
+        const adjustment = getNumericValue(inputs['adjustment']) || 0;
         const calculatedImponibileFiscale = imponibileContributivo - totaleContributi + adjustment;
         setResults({ [outputField]: calculatedImponibileFiscale });
         setShowResult(true);
       } else {
         // Formula 2: IMPONIBILE FISCALE = IRPEF LORDA (Monthly) / 0.23
-        const irpefLorda = parseFloat(String(inputs['irpef_lorda_mese_for_fiscale'])) || 0;
+        const irpefLorda = getNumericValue(inputs['irpef_lorda_mese_for_fiscale']) || 0;
         const calculatedImponibileFiscale = irpefLorda / 0.23;
         setResults({ [outputField]: calculatedImponibileFiscale });
         setShowResult(true);
@@ -944,9 +944,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     // IMPONIBILE FISCALE ADJUSTMENT calculation
     if (isImponibileFiscaleAdjustmentField(outputField)) {
-      const imponibileFiscale = parseFloat(String(inputs['imponibile_fiscale'])) || 0;
-      const imponibileContributivo = parseFloat(String(inputs['imponibile_contributivo'])) || 0;
-      const totaleContributi = parseFloat(String(inputs['totale_contributi_for_adjustment'])) || 0;
+      const imponibileFiscale = getNumericValue(inputs['imponibile_fiscale']) || 0;
+      const imponibileContributivo = getNumericValue(inputs['imponibile_contributivo']) || 0;
+      const totaleContributi = getNumericValue(inputs['totale_contributi_for_adjustment']) || 0;
       const calculatedAdjustment = imponibileFiscale - imponibileContributivo + totaleContributi;
       setResults({ [outputField]: calculatedAdjustment });
       setShowResult(true);
@@ -955,9 +955,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     // 3. IMPON. CONTRIBUTIVO MESE calculation
     if (isImponContributivoMeseField(outputField)) {
-      const imponibileFiscale = parseFloat(String(inputs['imponibile_fiscale'])) || 0;
-      const totaleContributi = parseFloat(String(inputs['totale_contributi_for_contributivo'])) || 0;
-      const adjustment = parseFloat(String(inputs['adjustment_contributivo'])) || 0;
+      const imponibileFiscale = getNumericValue(inputs['imponibile_fiscale']) || 0;
+      const totaleContributi = getNumericValue(inputs['totale_contributi_for_contributivo']) || 0;
+      const adjustment = getNumericValue(inputs['adjustment_contributivo']) || 0;
       const calculatedImponContributivo = imponibileFiscale + totaleContributi - adjustment;
       setResults({ [outputField]: calculatedImponContributivo });
       setShowResult(true);
@@ -965,10 +965,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isImpostaSostitutivaField(outputField)) {
-      const totaleTrattenute = parseFloat(String(inputs['imposta_sostitutiva_totale_trattenute'])) || 0;
-      const totaleContributi = parseFloat(String(inputs['imposta_sostitutiva_totale_contributi'])) || 0;
-      const addizionali = parseFloat(String(inputs['imposta_sostitutiva_addizionali'])) || 0;
-      const irpefNetta = parseFloat(String(inputs['imposta_sostitutiva_irpef_netta'])) || 0;
+      const totaleTrattenute = getNumericValue(inputs['imposta_sostitutiva_totale_trattenute']) || 0;
+      const totaleContributi = getNumericValue(inputs['imposta_sostitutiva_totale_contributi']) || 0;
+      const addizionali = getNumericValue(inputs['imposta_sostitutiva_addizionali']) || 0;
+      const irpefNetta = getNumericValue(inputs['imposta_sostitutiva_irpef_netta']) || 0;
       const calculatedImpostaSostitutiva = totaleTrattenute - totaleContributi - addizionali - irpefNetta;
       setResults({ [outputField]: calculatedImpostaSostitutiva });
       setShowResult(true);
@@ -977,17 +977,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (isIrpefNettaMonthlyField(outputField)) {
       if (irpefNettaMonthlyMode === 'formula2') {
-        const totTrattenute = parseFloat(String(inputs['irpef_netta_f2_totale_trattenute'])) || 0;
-        const totContributi = parseFloat(String(inputs['irpef_netta_f2_totale_contributi'])) || 0;
-        const addizionali = parseFloat(String(inputs['irpef_netta_f2_addizionali'])) || 0;
-        const impostaSostitutiva = parseFloat(String(inputs['irpef_netta_f2_imposta_sostitutiva'])) || 0;
+        const totTrattenute = getNumericValue(inputs['irpef_netta_f2_totale_trattenute']) || 0;
+        const totContributi = getNumericValue(inputs['irpef_netta_f2_totale_contributi']) || 0;
+        const addizionali = getNumericValue(inputs['irpef_netta_f2_addizionali']) || 0;
+        const impostaSostitutiva = getNumericValue(inputs['irpef_netta_f2_imposta_sostitutiva']) || 0;
         const calculatedIrpefNettaF2 = totTrattenute - totContributi - addizionali - impostaSostitutiva;
         setResults({ [outputField]: calculatedIrpefNettaF2 });
         setShowResult(true);
         return;
       }
-      const irpefLorda = parseFloat(String(inputs['irpef_lorda_mese'])) || 0;
-      const detrLavDip = parseFloat(String(inputs['detr_lav_dip'])) || 0;
+      const irpefLorda = getNumericValue(inputs['irpef_lorda_mese']) || 0;
+      const detrLavDip = getNumericValue(inputs['detr_lav_dip']) || 0;
       const calculatedIrpefNetta = irpefLorda - detrLavDip;
       setResults({ [outputField]: calculatedIrpefNetta });
       setShowResult(true);
@@ -995,7 +995,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isImponContribArrotMeseField(outputField)) {
-      const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
+      const contrAggTfr = getNumericValue(inputs['contr_agg_tfr']) || 0;
       const calculatedImponContribArrotMese = contrAggTfr / 0.005;
       setResults({ [outputField]: calculatedImponContribArrotMese });
       setShowResult(true);
@@ -1004,17 +1004,17 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (outputField === 'addizionali') {
       if (addizionaliMode === 'formula1') {
-        const totaleTrattenute = parseFloat(String(inputs['addizionali_f1_totale_trattenute'])) || 0;
-        const irpefImpSost = parseFloat(String(inputs['addizionali_f1_irpef_imp_sost'])) || 0;
-        const totaleContributi = parseFloat(String(inputs['addizionali_f1_totale_contributi'])) || 0;
+        const totaleTrattenute = getNumericValue(inputs['addizionali_f1_totale_trattenute']) || 0;
+        const irpefImpSost = getNumericValue(inputs['addizionali_f1_irpef_imp_sost']) || 0;
+        const totaleContributi = getNumericValue(inputs['addizionali_f1_totale_contributi']) || 0;
         const calculatedAddizionali = totaleTrattenute - irpefImpSost - totaleContributi;
         setResults({ [outputField]: calculatedAddizionali });
         setShowResult(true);
       } else {
-        const totaleTrattenute = parseFloat(String(inputs['addizionali_f2_totale_trattenute'])) || 0;
-        const totaleContributi = parseFloat(String(inputs['addizionali_f2_totale_contributi'])) || 0;
-        const irpefNetta = parseFloat(String(inputs['addizionali_f2_irpef_netta'])) || 0;
-        const impostaSostitutiva = parseFloat(String(inputs['addizionali_f2_imposta_sostitutiva'])) || 0;
+        const totaleTrattenute = getNumericValue(inputs['addizionali_f2_totale_trattenute']) || 0;
+        const totaleContributi = getNumericValue(inputs['addizionali_f2_totale_contributi']) || 0;
+        const irpefNetta = getNumericValue(inputs['addizionali_f2_irpef_netta']) || 0;
+        const impostaSostitutiva = getNumericValue(inputs['addizionali_f2_imposta_sostitutiva']) || 0;
         const calculatedAddizionali = totaleTrattenute - totaleContributi - irpefNetta - impostaSostitutiva;
         setResults({ [outputField]: calculatedAddizionali });
         setShowResult(true);
@@ -1023,10 +1023,10 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (outputField === 'totale_comp') {
-      const netto = parseFloat(String(inputs['netto'])) || 0;
-      const trattenute = parseFloat(String(inputs['trattenute'])) || 0;
-      const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
-      const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
+      const netto = getNumericValue(inputs['netto']) || 0;
+      const trattenute = getNumericValue(inputs['trattenute']) || 0;
+      const arrPreced = enableRounding ? (getNumericValue(inputs['arr_preced']) || 0) : 0;
+      const arrAttuale = enableRounding ? (getNumericValue(inputs['arr_attuale']) || 0) : 0;
       const calculatedComp = netto + (trattenute + arrPreced) - arrAttuale;
       setResults({ [outputField]: calculatedComp });
       setShowResult(true);
@@ -1035,20 +1035,20 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (outputField === 'retribuzione_mensile') {
       if (retribuzioneMensileMode === 'formula1') {
-        const pagaBase = parseFloat(String(inputs['paga_base_conglobata'])) || 0;
-        const contingenza = parseFloat(String(inputs['contingenza'])) || 0;
-        const scattiAnz = parseFloat(String(inputs['scatti_anz'])) || 0;
+        const pagaBase = getNumericValue(inputs['paga_base_conglobata']) || 0;
+        const contingenza = getNumericValue(inputs['contingenza']) || 0;
+        const scattiAnz = getNumericValue(inputs['scatti_anz']) || 0;
         const calculatedRetribuzioneMensile = pagaBase + contingenza + scattiAnz;
         setResults({ [outputField]: calculatedRetribuzioneMensile });
         setShowResult(true);
       } else if (retribuzioneMensileMode === 'formula2') {
-        const retribuzioneGiornaliera = parseFloat(String(inputs['retribuzione_giornaliera'])) || 0;
-        const ggRetr = parseFloat(String(inputs['rm_f2_gg_retr'])) || 0;
+        const retribuzioneGiornaliera = getNumericValue(inputs['retribuzione_giornaliera']) || 0;
+        const ggRetr = getNumericValue(inputs['rm_f2_gg_retr']) || 0;
         const calculatedRetribuzioneMensileF2 = retribuzioneGiornaliera * ggRetr;
         setResults({ [outputField]: calculatedRetribuzioneMensileF2 });
         setShowResult(true);
       } else {
-        const retribuzioneOraria = parseFloat(String(inputs['retribuzione_oraria'])) || 0;
+        const retribuzioneOraria = getNumericValue(inputs['retribuzione_oraria']) || 0;
         const calculatedRetribuzioneMensileF3 = retribuzioneOraria * 172;
         setResults({ [outputField]: calculatedRetribuzioneMensileF3 });
         setShowResult(true);
@@ -1057,8 +1057,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isTfrMeseField(outputField)) {
-      const retribuzioneUtileTfr = parseFloat(String(inputs['retribuzione_utile_tfr'])) || 0;
-      const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
+      const retribuzioneUtileTfr = getNumericValue(inputs['retribuzione_utile_tfr']) || 0;
+      const contrAggTfr = getNumericValue(inputs['contr_agg_tfr']) || 0;
       const calculatedTfrMese = (retribuzioneUtileTfr / 13.5) - contrAggTfr;
       setResults({ [outputField]: calculatedTfrMese });
       setShowResult(true);
@@ -1067,13 +1067,13 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (isRetribuzioneUtileTfrField(outputField)) {
       if (retribuzioneUtileTfrMode === 'alternative') {
-        const totalSum = retribuzioneUtileTfrCustomFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+        const totalSum = retribuzioneUtileTfrCustomFields.reduce((acc, curr) => acc + (getNumericValue(curr.value) || 0), 0);
         setResults({ [outputField]: totalSum });
         setShowResult(true);
         return;
       }
-      const tfrMese = parseFloat(String(inputs['tfr_mese'])) || 0;
-      const contrAggTfr = parseFloat(String(inputs['contr_agg_tfr'])) || 0;
+      const tfrMese = getNumericValue(inputs['tfr_mese']) || 0;
+      const contrAggTfr = getNumericValue(inputs['contr_agg_tfr']) || 0;
       const calculatedRetribuzioneUtileTfr = (tfrMese + contrAggTfr) * 13.5;
       setResults({ [outputField]: calculatedRetribuzioneUtileTfr });
       setShowResult(true);
@@ -1082,14 +1082,14 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (isContrAggTfrField(outputField)) {
       if (contrAggTfrMode === 'formula2') {
-        const imponContribArrotMese = parseFloat(String(inputs['impon_contrib_arrot_mese'])) || 0;
+        const imponContribArrotMese = getNumericValue(inputs['impon_contrib_arrot_mese']) || 0;
         const calculatedContrAggTfrF2 = imponContribArrotMese * 0.005;
         setResults({ [outputField]: calculatedContrAggTfrF2 });
         setShowResult(true);
         return;
       }
-      const retribuzioneUtileTfr = parseFloat(String(inputs['retribuzione_utile_tfr'])) || 0;
-      const tfrMese = parseFloat(String(inputs['tfr_mese'])) || 0;
+      const retribuzioneUtileTfr = getNumericValue(inputs['retribuzione_utile_tfr']) || 0;
+      const tfrMese = getNumericValue(inputs['tfr_mese']) || 0;
       const calculatedContrAggTfr = (retribuzioneUtileTfr / 13.5) - tfrMese;
       setResults({ [outputField]: calculatedContrAggTfr });
       setShowResult(true);
@@ -1098,27 +1098,27 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (outputField === 'totale_trattenute') {
       if (totaleTrattenuteMode === 'formula1') {
-        const competenze = parseFloat(String(inputs['competenze'])) || 0;
-        const netto = parseFloat(String(inputs['netto'])) || 0;
-        const arrPreced = enableRounding ? (parseFloat(String(inputs['arr_preced'])) || 0) : 0;
-        const arrAttuale = enableRounding ? (parseFloat(String(inputs['arr_attuale'])) || 0) : 0;
+        const competenze = getNumericValue(inputs['competenze']) || 0;
+        const netto = getNumericValue(inputs['netto']) || 0;
+        const arrPreced = enableRounding ? (getNumericValue(inputs['arr_preced']) || 0) : 0;
+        const arrAttuale = enableRounding ? (getNumericValue(inputs['arr_attuale']) || 0) : 0;
 
         const calculatedTrattenute = competenze - netto - arrPreced + arrAttuale;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       } else if (totaleTrattenuteMode === 'formula2') {
-        const irpefImpSost = parseFloat(String(inputs['irpef_imp_sost'])) || 0;
-        const totaleContributi = parseFloat(String(inputs['totale_contributi'])) || 0;
-        const addizionaliField = parseFloat(String(inputs['addizionali_field'])) || 0;
+        const irpefImpSost = getNumericValue(inputs['irpef_imp_sost']) || 0;
+        const totaleContributi = getNumericValue(inputs['totale_contributi']) || 0;
+        const addizionaliField = getNumericValue(inputs['addizionali_field']) || 0;
 
         const calculatedTrattenute = irpefImpSost + totaleContributi + addizionaliField;
         setResults({ [outputField]: calculatedTrattenute });
         setShowResult(true);
       } else if (totaleTrattenuteMode === 'formula3') {
-        const irpefNetta = parseFloat(String(inputs['tt_f3_irpef_netta'])) || 0;
-        const totaleContributiF3 = parseFloat(String(inputs['tt_f3_totale_contributi'])) || 0;
-        const addizionaliF3 = parseFloat(String(inputs['tt_f3_addizionali'])) || 0;
-        const impostaSostitutivaF3 = parseFloat(String(inputs['tt_f3_imposta_sostitutiva'])) || 0;
+        const irpefNetta = getNumericValue(inputs['tt_f3_irpef_netta']) || 0;
+        const totaleContributiF3 = getNumericValue(inputs['tt_f3_totale_contributi']) || 0;
+        const addizionaliF3 = getNumericValue(inputs['tt_f3_addizionali']) || 0;
+        const impostaSostitutivaF3 = getNumericValue(inputs['tt_f3_imposta_sostitutiva']) || 0;
 
         const calculatedTrattenuteF3 = irpefNetta + totaleContributiF3 + addizionaliF3 + impostaSostitutivaF3;
         setResults({ [outputField]: calculatedTrattenuteF3 });
@@ -1129,32 +1129,32 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (outputField === 'totale_contributi') {
       if (totaleContributiMode === 'formula1') {
-        const totaleTrattenuteVal = parseFloat(String(inputs['totale_trattenute_input'])) || 0;
-        const irpefImpSostVal = parseFloat(String(inputs['irpef_imp_sost_input'])) || 0;
-        const addizionaliVal = parseFloat(String(inputs['addizionali_input'])) || 0;
+        const totaleTrattenuteVal = getNumericValue(inputs['totale_trattenute_input']) || 0;
+        const irpefImpSostVal = getNumericValue(inputs['irpef_imp_sost_input']) || 0;
+        const addizionaliVal = getNumericValue(inputs['addizionali_input']) || 0;
 
         const calculatedTotaleContributi = totaleTrattenuteVal - irpefImpSostVal - addizionaliVal;
         setResults({ [outputField]: calculatedTotaleContributi });
         setShowResult(true);
       } else if (totaleContributiMode === 'formula2') {
-        const totaleTrattenuteF2 = parseFloat(String(inputs['tc_f2_totale_trattenute'])) || 0;
-        const irpefNettaF2 = parseFloat(String(inputs['tc_f2_irpef_netta'])) || 0;
-        const addizionaliF2 = parseFloat(String(inputs['tc_f2_addizionali'])) || 0;
-        const impostaSostitutivaF2 = parseFloat(String(inputs['tc_f2_imposta_sostitutiva'])) || 0;
+        const totaleTrattenuteF2 = getNumericValue(inputs['tc_f2_totale_trattenute']) || 0;
+        const irpefNettaF2 = getNumericValue(inputs['tc_f2_irpef_netta']) || 0;
+        const addizionaliF2 = getNumericValue(inputs['tc_f2_addizionali']) || 0;
+        const impostaSostitutivaF2 = getNumericValue(inputs['tc_f2_imposta_sostitutiva']) || 0;
 
         const calculatedTotaleContributiF2 = totaleTrattenuteF2 - irpefNettaF2 - addizionaliF2 - impostaSostitutivaF2;
         setResults({ [outputField]: calculatedTotaleContributiF2 });
         setShowResult(true);
       } else if (totaleContributiMode === 'formula3') {
-        const imponibileContributivoF3 = parseFloat(String(inputs['tc_f3_imponibile_contributivo'])) || 0;
-        const adjustmentF3 = parseFloat(String(inputs['tc_f3_adjustment'])) || 0;
-        const imponibileFiscaleF3 = parseFloat(String(inputs['tc_f3_imponibile_fiscale'])) || 0;
+        const imponibileContributivoF3 = getNumericValue(inputs['tc_f3_imponibile_contributivo']) || 0;
+        const adjustmentF3 = getNumericValue(inputs['tc_f3_adjustment']) || 0;
+        const imponibileFiscaleF3 = getNumericValue(inputs['tc_f3_imponibile_fiscale']) || 0;
 
         const calculatedTotaleContributiF3 = imponibileContributivoF3 + adjustmentF3 - imponibileFiscaleF3;
         setResults({ [outputField]: calculatedTotaleContributiF3 });
         setShowResult(true);
       } else {
-        const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+        const totalSum = customDynamicFields.reduce((acc, curr) => acc + (getNumericValue(curr.value) || 0), 0);
         setResults({ [outputField]: totalSum });
         setShowResult(true);
       }
@@ -1163,9 +1163,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (isIrpefImpSostField(outputField)) {
       if (irpefImpSostMode === 'formula2') {
-        const totTrattenute = parseFloat(String(inputs['irpef_f2_totale_trattenute'])) || 0;
-        const totContributi = parseFloat(String(inputs['irpef_f2_totale_contributi'])) || 0;
-        const addizionali = parseFloat(String(inputs['irpef_f2_addizionali'])) || 0;
+        const totTrattenute = getNumericValue(inputs['irpef_f2_totale_trattenute']) || 0;
+        const totContributi = getNumericValue(inputs['irpef_f2_totale_contributi']) || 0;
+        const addizionali = getNumericValue(inputs['irpef_f2_addizionali']) || 0;
 
         const calculatedIrpefImpSost = totTrattenute - totContributi - addizionali;
         setResults({ [outputField]: calculatedIrpefImpSost });
@@ -1175,7 +1175,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
 
     if (isAnnuoField(outputField) && annuoCustomMode === 'custom') {
-      const totalSum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+      const totalSum = customDynamicFields.reduce((acc, curr) => acc + (getNumericValue(curr.value) || 0), 0);
       setResults({ [outputField]: totalSum });
       setShowResult(true);
       return;
@@ -1184,22 +1184,22 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     // 7. IRPEF LORDA (Monthly) - Formula 1 রিমুভ করা হয়েছে
     if (outputField === 'irpef_lorda_mese') {
       if (irpefLordaMonthlyMode === 'alternative') {
-        const irpefImpSost = parseFloat(String(inputs['alt_irpef_imp_sost'])) || 0;
-        const detrLavDip = parseFloat(String(inputs['alt_detr_lav_dip'])) || 0;
-        const impostaSost = parseFloat(String(inputs['alt_imposta_sost'])) || 0;
+        const irpefImpSost = getNumericValue(inputs['alt_irpef_imp_sost']) || 0;
+        const detrLavDip = getNumericValue(inputs['alt_detr_lav_dip']) || 0;
+        const impostaSost = getNumericValue(inputs['alt_imposta_sost']) || 0;
         const calculatedAltResult = (irpefImpSost + detrLavDip) - impostaSost;
         setResults({ [outputField]: calculatedAltResult });
         setShowResult(true);
         return;
       } else if (irpefLordaMonthlyMode === 'formula3') {
-        const irpefNetta = parseFloat(String(inputs['f3_irpef_netta'])) || 0;
-        const detrLavDip = parseFloat(String(inputs['f3_detr_lav_dip'])) || 0;
+        const irpefNetta = getNumericValue(inputs['f3_irpef_netta']) || 0;
+        const detrLavDip = getNumericValue(inputs['f3_detr_lav_dip']) || 0;
         const calculatedF3Result = irpefNetta + detrLavDip;
         setResults({ [outputField]: calculatedF3Result });
         setShowResult(true);
         return;
       } else if (irpefLordaMonthlyMode === 'formula4') {
-        const imponibileFiscale = parseFloat(String(inputs['f4_imponibile_fiscale'])) || 0;
+        const imponibileFiscale = getNumericValue(inputs['f4_imponibile_fiscale']) || 0;
         const calculatedF4Result = imponibileFiscale * 0.23;
         setResults({ [outputField]: calculatedF4Result });
         setShowResult(true);
@@ -1209,8 +1209,8 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
     if (outputField === 'detr_lav_dipendente_mese') {
       if (detrLavDipMonthlyMode === 'formula2') {
-        const irpefLordaDld = parseFloat(String(inputs['dld2_irpef_lorda'])) || 0;
-        const irpefNettaDld = parseFloat(String(inputs['dld2_irpef_netta'])) || 0;
+        const irpefLordaDld = getNumericValue(inputs['dld2_irpef_lorda']) || 0;
+        const irpefNettaDld = getNumericValue(inputs['dld2_irpef_netta']) || 0;
         const calculatedDetrLavDip = irpefLordaDld - irpefNettaDld;
         setResults({ [outputField]: calculatedDetrLavDip });
         setShowResult(true);
@@ -1228,7 +1228,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
   // Add Value এর জন্য সম্পূর্ণ আলাদা ক্যালকুলেটর
   const handleCalculateAddValue = () => {
-    const sum = customDynamicFields.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+    const sum = customDynamicFields.reduce((acc, curr) => acc + (getNumericValue(curr.value) || 0), 0);
     setAddValueResult(sum);
   };
 
@@ -1242,7 +1242,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
 
   // Temporary Calculator এর জন্য সম্পূর্ণ আলাদা ক্যালকুলেটর লজিক (Plus/Minus/গুণ/ভাগ)
   const handleCalculateTempCalc = () => {
-    const values = tempCalcFields.map(f => parseFloat(f.value) || 0);
+    const values = tempCalcFields.map(f => getNumericValue(f.value) || 0);
     if (values.length === 0) {
       setTempCalcResult(0);
       return;
@@ -1390,9 +1390,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const handleCalculateHourRate = () => {
     setHourRateAttempted(true);
 
-    const baseRate = parseFloat(hourRateBase);
-    const overtimeRate = parseFloat(hourRateOvertime);
-    const percentage = parseFloat(hourRatePercentage);
+    const baseRate = getNumericValue(hourRateBase);
+    const overtimeRate = getNumericValue(hourRateOvertime);
+    const percentage = getNumericValue(hourRatePercentage);
 
     if (hourRateOutputField === 'overtime') {
       // ওভারটাইম রেট = মূল ঘণ্টার রেট + (মূল ঘণ্টার রেট × ওভারটাইম পার্সেন্টেজ / 100)
@@ -1620,9 +1620,9 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             percentage={hourRatePercentage}
             result={hourRateResult}
             attempted={hourRateAttempted}
-            onBaseRateChange={(val: string) => setHourRateBase(parsePercentAwareValue(val))}
-            onOvertimeRateChange={(val: string) => setHourRateOvertime(parsePercentAwareValue(val))}
-            onPercentageChange={(val: string) => setHourRatePercentage(parsePercentAwareValue(val))}
+            onBaseRateChange={setHourRateBase}
+            onOvertimeRateChange={setHourRateOvertime}
+            onPercentageChange={setHourRatePercentage}
             onCalculate={handleCalculateHourRate}
             onReset={handleResetHourRate}
             formatCurrency={formatCurrency}
@@ -1674,8 +1674,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onAnnuoCustomModeChange={setAnnuoCustomMode}
             customDynamicFields={customDynamicFields}
             onCustomFieldChange={(id, val) => {
-              const processedVal = parsePercentAwareValue(val);
-              setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: processedVal } : f));
+              setCustomDynamicFields(customDynamicFields.map(f => f.id === id ? { ...f, value: val } : f));
             }}
             onAddCustomField={() => {
               setCustomDynamicFields([
@@ -1702,8 +1701,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onRetribuzioneUtileTfrModeChange={setRetribuzioneUtileTfrMode}
             retribuzioneUtileTfrCustomFields={retribuzioneUtileTfrCustomFields}
             onRetribuzioneUtileTfrCustomFieldChange={(id, val) => {
-              const processedVal = parsePercentAwareValue(val);
-              setRetribuzioneUtileTfrCustomFields(retribuzioneUtileTfrCustomFields.map(f => f.id === id ? { ...f, value: processedVal } : f));
+              setRetribuzioneUtileTfrCustomFields(retribuzioneUtileTfrCustomFields.map(f => f.id === id ? { ...f, value: val } : f));
             }}
             onAddRetribuzioneUtileTfrCustomField={() => {
               setRetribuzioneUtileTfrCustomFields([
@@ -1727,8 +1725,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
             onResetAddValue={handleResetAddValue}
             tempCalcFields={tempCalcFields}
             onTempCalcFieldChange={(id, val) => {
-              const processedVal = parsePercentAwareValue(val);
-              setTempCalcFields(tempCalcFields.map(f => f.id === id ? { ...f, value: processedVal } : f));
+              setTempCalcFields(tempCalcFields.map(f => f.id === id ? { ...f, value: val } : f));
             }}
             onAddTempCalcField={() => {
               setTempCalcFields([
@@ -1805,12 +1802,12 @@ const HourRateCalculator: React.FC<HourRateCalculatorProps> = ({
   formatCurrency,
   formatFullPrecision,
 }) => {
-  const isFiniteValue = (value: string) => value !== '' && Number.isFinite(parseFloat(value));
+  const isFiniteValue = (value: string) => value !== '' && Number.isFinite(getNumericValue(value));
   const baseRateMissing = attempted && (outputField !== 'base' && !isFiniteValue(baseRate));
   const overtimeRateMissing = attempted && (outputField !== 'overtime' && !isFiniteValue(overtimeRate));
   const percentageMissing = attempted && (outputField !== 'percentage' && !isFiniteValue(percentage));
-  const baseRateZero = attempted && outputField === 'percentage' && parseFloat(baseRate) === 0;
-  const invalidBaseDenominator = attempted && outputField === 'base' && (1 + parseFloat(percentage) / 100) === 0;
+  const baseRateZero = attempted && outputField === 'percentage' && getNumericValue(baseRate) === 0;
+  const invalidBaseDenominator = attempted && outputField === 'base' && (1 + getNumericValue(percentage) / 100) === 0;
 
   const inputClass = (missing: boolean) =>
     `w-full pl-8 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent transition-all ${
