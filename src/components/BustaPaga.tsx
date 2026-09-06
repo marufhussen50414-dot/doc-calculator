@@ -2,13 +2,12 @@ import { useState, useMemo } from 'react';
 import { CalculatorInputs } from '../types';
 import { UNIFIED_CALCULATOR, searchFields } from '../config/unifiedCalculator';
 import { FormulaModal } from './FormulaModal';
-import { TargetCalculator } from './TargetCalculator';
 
 interface BustaPagaProps {
   onBack: () => void;
 }
 
-type CalculatorMode = 'standard' | 'target' | 'multi';
+type CalculatorMode = 'standard' | 'multi';
 
 interface CustomDynamicField {
   id: string;
@@ -68,6 +67,11 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [enableRounding, setEnableRounding] = useState<boolean>(false);
   const [enableAddValueFormula, setEnableAddValueFormula] = useState<boolean>(false);
+
+  // Calculate Hour Rate এর জন্য আলাদা state
+  const [hourRateBase, setHourRateBase] = useState<string>('');
+  const [hourRateOvertime, setHourRateOvertime] = useState<number | null>(null);
+  const [hourRateAttempted, setHourRateAttempted] = useState<boolean>(false);
 
   // Add Value এর জন্য নিজস্ব স্টেট
   const [addValueResult, setAddValueResult] = useState<number | null>(null);
@@ -1353,12 +1357,30 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
     }
   };
 
+  const handleCalculateHourRate = () => {
+    setHourRateAttempted(true);
+    const baseRate = parseFloat(hourRateBase);
+    if (!Number.isFinite(baseRate)) {
+      setHourRateOvertime(null);
+      return;
+    }
+    // মূল ঘণ্টার রেট + (মূল ঘণ্টার রেট × 25%)
+    setHourRateOvertime(baseRate + (baseRate * 0.25));
+  };
+
+  const handleResetHourRate = () => {
+    setHourRateBase('');
+    setHourRateOvertime(null);
+    setHourRateAttempted(false);
+  };
+
   const handleReset = () => {
     setInputs({});
     setResults({});
     setShowResult(false);
     setAttempted(false);
     setAddValueResult(null);
+    handleResetHourRate();
     setCustomDynamicFields([
       { id: '1', label: 'আগের মাসের মান', value: '' },
       { id: '2', label: 'চলতি মাসের মান', value: '' }
@@ -1503,16 +1525,64 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
                 <div className="font-semibold text-gray-800 text-sm">Standard</div>
                 <div className="text-xs text-gray-600 mt-1">Calculate a single field</div>
               </button>
-              <button
-                onClick={() => handleModeChange('target')}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  mode === 'target' ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="text-2xl mb-2">🎯</div>
-                <div className="font-semibold text-gray-800 text-sm">Target</div>
-                <div className="text-xs text-gray-600 mt-1">Set a goal</div>
-              </button>
+              <div className="p-3 rounded-lg border-2 border-gray-200 bg-white">
+                <div className="text-center mb-2">
+                  <div className="text-sm font-semibold text-gray-800">Calculate Hour Rate</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">Calculate 25% overtime rate</div>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-700 mb-1">মূল ঘণ্টার রেট</label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">€</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={hourRateBase}
+                        onChange={(e) => {
+                          setHourRateBase(e.target.value);
+                          setHourRateOvertime(null);
+                        }}
+                        placeholder="0.00"
+                        className={`w-full pl-7 pr-2 py-1.5 border rounded-md text-xs focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                          hourRateAttempted && !hourRateBase ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        }`}
+                      />
+                    </div>
+                    {hourRateAttempted && !hourRateBase && (
+                      <span className="text-[9px] text-red-500 mt-0.5 block">This field is required</span>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-700 mb-1">ওভারটাইম রেট</label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">€</span>
+                      <input
+                        type="text"
+                        readOnly
+                        value={hourRateOvertime !== null ? hourRateOvertime.toFixed(2) : ''}
+                        placeholder="0.00"
+                        className="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded-md text-xs bg-gray-50 text-gray-800"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex space-x-2 pt-0.5">
+                    <button
+                      onClick={handleCalculateHourRate}
+                      className="flex-1 bg-indigo-600 text-white py-1.5 px-2 rounded-md text-[10px] font-semibold hover:bg-indigo-700 transition shadow-sm"
+                    >
+                      Calculate
+                    </button>
+                    <button
+                      onClick={handleResetHourRate}
+                      className="bg-gray-100 text-gray-700 py-1.5 px-2 rounded-md text-[10px] font-semibold hover:bg-gray-200 transition"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
               <button
                 onClick={() => handleModeChange('multi')}
                 className={`p-4 rounded-lg border-2 transition-all ${
@@ -1527,13 +1597,7 @@ export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {mode === 'target' ? (
-          <div className="flex justify-end">
-            <div className="w-full max-w-4xl">
-              <TargetCalculator onBack={() => setMode('standard')} />
-            </div>
-          </div>
-        ) : mode === 'multi' ? (
+        {mode === 'multi' ? (
           <MultiModeCalculator
             calculator={calculator}
             filteredFields={filteredFields}
