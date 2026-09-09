@@ -59,17 +59,29 @@ const CUSTOM_FIELD_TITLES: Record<string, string> = {
 // থাকবে (raw text অপরিবর্তিত থাকবে), কিন্তু হিসাব-নিকাশের সময় এই ফাংশন দিয়ে সেটাকে
 // ভাগ করে (÷100) দশমিক মানে (যেমন 0.0919) রূপান্তর করে গণনা করা হয়।
 // % ছাড়া স্বাভাবিক সংখ্যা দিলে স্বাভাবিকভাবেই কাজ করে।
+//
+// এছাড়া কমা (,) কে দশমিক বিন্দু হিসেবে লেখা সংখ্যাও (যেমন "1732,97" বা "1.732,97")
+// এখানে সঠিকভাবে পার্স করা হয় — আগে এটি না থাকায় কমার পরের অংশ বাদ পড়ে ভুল ফলাফল আসতো।
 // ---------------------------------------------------------------------------
 const getNumericValue = (raw: unknown): number => {
   if (raw === undefined || raw === null) return NaN;
-  const str = String(raw).trim();
+  let str = String(raw).trim();
   if (str === '') return NaN;
+  let isPercent = false;
   if (str.endsWith('%')) {
-    const percentPart = str.slice(0, -1).trim();
-    const parsedPercent = parseFloat(percentPart);
-    return Number.isFinite(parsedPercent) ? parsedPercent / 100 : NaN;
+    isPercent = true;
+    str = str.slice(0, -1).trim();
   }
-  return parseFloat(str);
+  if (str.includes(',') && str.includes('.')) {
+    // "1.732,97" এর মতো ফরম্যাট — পিরিয়ড হলো হাজার আলাদাকারী, কমা হলো দশমিক
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes(',')) {
+    // শুধু কমা থাকলে সেটাই দশমিক বিন্দু ধরে নেওয়া হয় (যেমন "1732,97")
+    str = str.replace(',', '.');
+  }
+  const parsed = parseFloat(str);
+  if (!Number.isFinite(parsed)) return NaN;
+  return isPercent ? parsed / 100 : parsed;
 };
 
 export const BustaPaga: React.FC<BustaPagaProps> = ({ onBack }) => {
